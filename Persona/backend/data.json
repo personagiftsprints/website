@@ -1,0 +1,86 @@
+{
+  "productType": "tshirt",
+  "printAreas": [
+    {
+      "key": "front-pocket",
+      "label": "Front Pocket Area",
+      "previewImage": "/previews/tshirt-front-pocket.png",
+      "maskImage": null,
+      "bounds": {
+        "x": 320,
+        "y": 180,
+        "width": 140,
+        "height": 140
+      },
+      "allowedContent": ["text", "image"],
+      "rules": {
+        "text": {
+          "maxChars": 12,
+          "fonts": ["Montserrat", "Arial"],
+          "colors": ["#000000", "#ffffff"],
+          "minSize": 12,
+          "maxSize": 32
+        },
+        "image": {
+          "maxSizeMB": 3,
+          "allowedFormats": ["png", "jpg", "jpeg", "webp"],
+          "minDPI": 150
+        }
+      }
+    },
+    {
+      "key": "front-center",
+      "label": "Front Center Print",
+      "previewImage": "/shirt.png",
+      "maskImage": null,
+      "bounds": {
+        "x": 220,
+        "y": 200,
+        "width": 360,
+        "height": 460
+      },
+      "allowedContent": ["text", "image"],
+      "rules": {
+        "text": {
+          "maxChars": 30,
+          "fonts": ["Montserrat", "Arial"],
+          "colors": ["#000000", "#ffffff", "#faa61b"],
+          "minSize": 16,
+          "maxSize": 80
+        },
+        "image": {
+          "maxSizeMB": 5,
+          "allowedFormats": ["png", "jpg", "jpeg", "webp"],
+          "minDPI": 150
+        }
+      }
+    },
+    {
+      "key": "back-center",
+      "label": "Back Center Print",
+      "previewImage": "/back.png",
+      "maskImage": null,
+      "bounds": {
+        "x": 230,
+        "y": 190,
+        "width": 360,
+        "height": 480
+      },
+      "allowedContent": ["text", "image"],
+      "rules": {
+        "text": {
+          "maxChars": 35,
+          "fonts": ["Montserrat", "Arial"],
+          "colors": ["#000000", "#ffffff"],
+          "minSize": 16,
+          "maxSize": 85
+        },
+        "image": {
+          "maxSizeMB": 6,
+          "allowedFormats": ["png", "jpg", "jpeg", "webp"],
+          "minDPI": 150
+        }
+      }
+    }
+  ]
+}
