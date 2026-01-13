@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation"
 import { 
   Eye, FileImage, ArrowLeft, Edit3, Check, 
   Image as ImageIcon, Info, ChevronDown, ChevronUp, Upload,
-  X, Plus
+  X, Plus, Smartphone
 } from "lucide-react"
 
 export default function PrintConfigDetailPage() {
@@ -17,6 +17,7 @@ export default function PrintConfigDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeView, setActiveView] = useState(null)
+  const [activeModelIndex, setActiveModelIndex] = useState(0)
   const [error, setError] = useState(null)
   const [expandedArea, setExpandedArea] = useState(null)
   const [baseImageInputKey, setBaseImageInputKey] = useState(Date.now())
@@ -24,6 +25,8 @@ export default function PrintConfigDetailPage() {
 
   const saveTimeoutRef = useRef(null)
   const baseImageInputRef = useRef(null)
+
+  const isMobileCase = config?.type === "mobileCase"
 
   const fetchConfig = useCallback(async () => {
     if (!type) return
@@ -36,7 +39,13 @@ export default function PrintConfigDetailPage() {
       const found = (data.data || []).find(c => c.type === type)
       if (!found) throw new Error("Configuration not found")
       setConfig(found)
-      setActiveView(Object.keys(found.views || {})[0] || null)
+      
+      // Set initial active view or model
+      if (found.type === "mobileCase") {
+        setActiveModelIndex(0)
+      } else {
+        setActiveView(Object.keys(found.views || {})[0] || null)
+      }
     } catch (err) {
       setError(err.message)
       console.error("Error fetching config:", err)
@@ -70,6 +79,7 @@ export default function PrintConfigDetailPage() {
     }, 600)
   }, [type])
 
+  // Update base image for regular products
   const updateBaseImage = (viewKey, newUrl) => {
     if (!config?.views?.[viewKey]) return
     const updatedViews = {
@@ -81,6 +91,25 @@ export default function PrintConfigDetailPage() {
     if (isEditing) autoSave(newConfig)
   }
 
+  // Update base image for mobile case models
+  const updateMobileCaseBaseImage = (modelIndex, newUrl) => {
+    if (!config?.models?.[modelIndex]) return
+    
+    const updatedModels = [...config.models]
+    updatedModels[modelIndex] = {
+      ...updatedModels[modelIndex],
+      view: {
+        ...updatedModels[modelIndex].view,
+        baseImage: newUrl
+      }
+    }
+    
+    const newConfig = { ...config, models: updatedModels }
+    setConfig(newConfig)
+    if (isEditing) autoSave(newConfig)
+  }
+
+  // Update reference image for regular products
   const updateReferenceImage = (viewKey, areaIndex, referenceIndex, newUrl) => {
     if (!config?.views?.[viewKey]?.areas?.[areaIndex]) return
     
@@ -111,6 +140,39 @@ export default function PrintConfigDetailPage() {
     if (isEditing) autoSave(newConfig)
   }
 
+  // Update reference image for mobile case models
+  const updateMobileCaseReferenceImage = (modelIndex, areaIndex, referenceIndex, newUrl) => {
+    if (!config?.models?.[modelIndex]?.view?.areas?.[areaIndex]) return
+    
+    const updatedModels = [...config.models]
+    const updatedAreas = [...updatedModels[modelIndex].view.areas]
+    const updatedReferences = [...(updatedAreas[areaIndex].references || [])]
+    
+    if (referenceIndex >= 0 && referenceIndex < updatedReferences.length) {
+      updatedReferences[referenceIndex] = newUrl
+    } else {
+      updatedReferences.push(newUrl)
+    }
+    
+    updatedAreas[areaIndex] = {
+      ...updatedAreas[areaIndex],
+      references: updatedReferences
+    }
+    
+    updatedModels[modelIndex] = {
+      ...updatedModels[modelIndex],
+      view: {
+        ...updatedModels[modelIndex].view,
+        areas: updatedAreas
+      }
+    }
+    
+    const newConfig = { ...config, models: updatedModels }
+    setConfig(newConfig)
+    if (isEditing) autoSave(newConfig)
+  }
+
+  // Remove reference image for regular products
   const removeReferenceImage = (viewKey, areaIndex, referenceIndex) => {
     if (!config?.views?.[viewKey]?.areas?.[areaIndex]) return
     
@@ -137,6 +199,34 @@ export default function PrintConfigDetailPage() {
     if (isEditing) autoSave(newConfig)
   }
 
+  // Remove reference image for mobile case models
+  const removeMobileCaseReferenceImage = (modelIndex, areaIndex, referenceIndex) => {
+    if (!config?.models?.[modelIndex]?.view?.areas?.[areaIndex]) return
+    
+    const updatedModels = [...config.models]
+    const updatedAreas = [...updatedModels[modelIndex].view.areas]
+    const updatedReferences = [...(updatedAreas[areaIndex].references || [])]
+    
+    updatedReferences.splice(referenceIndex, 1)
+    
+    updatedAreas[areaIndex] = {
+      ...updatedAreas[areaIndex],
+      references: updatedReferences
+    }
+    
+    updatedModels[modelIndex] = {
+      ...updatedModels[modelIndex],
+      view: {
+        ...updatedModels[modelIndex].view,
+        areas: updatedAreas
+      }
+    }
+    
+    const newConfig = { ...config, models: updatedModels }
+    setConfig(newConfig)
+    if (isEditing) autoSave(newConfig)
+  }
+
   const handleFileChange = (viewKey, areaIndex = null, referenceIndex = null, event) => {
     const file = event.target.files[0]
     if (!file) return
@@ -144,19 +234,36 @@ export default function PrintConfigDetailPage() {
     // Create a local URL for preview
     const localUrl = URL.createObjectURL(file)
     
-    if (areaIndex === null) {
-      // Base image
-      updateBaseImage(viewKey, localUrl)
-      setBaseImageInputKey(Date.now())
+    if (isMobileCase) {
+      // For mobile case models
+      if (areaIndex === null) {
+        // Base image for mobile case
+        updateMobileCaseBaseImage(activeModelIndex, localUrl)
+        setBaseImageInputKey(Date.now())
+      } else {
+        // Reference image for mobile case
+        updateMobileCaseReferenceImage(activeModelIndex, areaIndex, referenceIndex, localUrl)
+        
+        setReferenceInputKeys(prev => ({
+          ...prev,
+          [`mobile-${activeModelIndex}-${areaIndex}-${referenceIndex}`]: Date.now()
+        }))
+      }
     } else {
-      // Reference image
-      updateReferenceImage(viewKey, areaIndex, referenceIndex, localUrl)
-      
-      // Update reference input key
-      setReferenceInputKeys(prev => ({
-        ...prev,
-        [`${viewKey}-${areaIndex}-${referenceIndex}`]: Date.now()
-      }))
+      // For regular products
+      if (areaIndex === null) {
+        // Base image
+        updateBaseImage(viewKey, localUrl)
+        setBaseImageInputKey(Date.now())
+      } else {
+        // Reference image
+        updateReferenceImage(viewKey, areaIndex, referenceIndex, localUrl)
+        
+        setReferenceInputKeys(prev => ({
+          ...prev,
+          [`${viewKey}-${areaIndex}-${referenceIndex}`]: Date.now()
+        }))
+      }
     }
   }
 
@@ -167,7 +274,12 @@ export default function PrintConfigDetailPage() {
   }
 
   const handleReplaceReferenceClick = (areaIndex, referenceIndex) => {
-    const inputId = `ref-input-${activeView}-${areaIndex}-${referenceIndex}`
+    const prefix = isMobileCase ? "mobile" : activeView
+    const modelIndex = isMobileCase ? activeModelIndex : 0
+    const inputId = isMobileCase 
+      ? `ref-input-mobile-${modelIndex}-${areaIndex}-${referenceIndex}`
+      : `ref-input-${activeView}-${areaIndex}-${referenceIndex}`
+    
     const input = document.getElementById(inputId)
     if (input) {
       input.click()
@@ -175,7 +287,12 @@ export default function PrintConfigDetailPage() {
   }
 
   const handleAddReferenceClick = (areaIndex) => {
-    const inputId = `add-ref-input-${activeView}-${areaIndex}`
+    const prefix = isMobileCase ? "mobile" : activeView
+    const modelIndex = isMobileCase ? activeModelIndex : 0
+    const inputId = isMobileCase 
+      ? `add-ref-input-mobile-${modelIndex}-${areaIndex}`
+      : `add-ref-input-${activeView}-${areaIndex}`
+    
     const input = document.getElementById(inputId)
     if (input) {
       input.click()
@@ -205,7 +322,7 @@ export default function PrintConfigDetailPage() {
 
   if (!config) return null
 
-  const views = config.views || {}
+  const views = !isMobileCase ? config.views || {} : {}
   const viewKeys = Object.keys(views)
 
   return (
@@ -231,7 +348,7 @@ export default function PrintConfigDetailPage() {
 
             <button
               onClick={() => setIsEditing(!isEditing)}
-              disabled={saving || viewKeys.length === 0}
+              disabled={saving || (isMobileCase ? !config.models?.length : viewKeys.length === 0)}
               className={`inline-flex items-center px-5 py-2.5 rounded-lg font-medium text-sm transition-colors shadow-sm ${
                 isEditing ? "bg-green-600 text-white hover:bg-green-700" : "bg-blue-600 text-white hover:bg-blue-700"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -247,255 +364,492 @@ export default function PrintConfigDetailPage() {
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-xl  border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Print Views & Base Images</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {isMobileCase ? "Mobile Case Models" : "Print Views & Base Images"}
+            </h2>
           </div>
 
           <div className="p-6">
-            {viewKeys.length === 0 ? (
-              <div className="text-center py-16">
-                <FileImage className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">No views defined</h3>
-              </div>
-            ) : (
-              <>
-                {/* View Tabs */}
-                <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-1">
-                  {viewKeys.map(viewKey => (
-                    <button
-                      key={viewKey}
-                      onClick={() => setActiveView(viewKey)}
-                      className={`px-5 py-2.5 font-medium text-sm rounded-t-lg transition-colors ${
-                        activeView === viewKey
-                          ? "bg-white text-blue-600 border border-b-0 border-gray-200 -mb-px shadow-sm"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`}
-                    >
-                      {viewKey.replace(/_/g, " ").toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-
-               {activeView && views[activeView] && (
-  <div className="space-y-10 lg:space-y-0 lg:flex lg:gap-8">
-    {/* Left Column - Base Image */}
-    <section className="lg:w-2/5 xl:w-1/3">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <ImageIcon className="w-5 h-5 text-blue-600" />
-        {activeView.replace(/_/g, " ").toUpperCase()} — Base Image
-      </h3>
-
-      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
-        <div className="aspect-[4/3] max-h-[340px] bg-white rounded-lg overflow-hidden shadow-inner mx-auto">
-          <img
-            src={views[activeView].baseImage || "https://placehold.co/800x600?text=No+Base+Image"}
-            alt={`${activeView} base template`}
-            className="w-full h-full object-contain"
-            onError={e => e.currentTarget.src = "https://placehold.co/800x600?text=Image+Not+Found"}
-          />
-        </div>
-
-        {/* Replace Photo Button (only shown in edit mode) */}
-        {isEditing && (
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleReplaceBaseImageClick}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 text-gray-700 font-medium transition-colors shadow-sm"
-            >
-              <Upload className="w-4 h-4" />
-              Replace Base Image
-            </button>
-            
-            {/* Hidden file input for base image */}
-            <input
-              key={baseImageInputKey}
-              ref={baseImageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleFileChange(activeView, null, null, e)}
-              className="hidden"
-            />
-            
-            <p className="mt-2 text-sm text-gray-500">
-              Upload a new base image (PNG, JPG, WebP recommended)
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* URL Input Field (hidden from user view) */}
-      <div className="sr-only" aria-hidden="true">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Base Image URL
-        </label>
-        <input
-          type="text"
-          value={views[activeView].baseImage || ""}
-          onChange={e => updateBaseImage(activeView, e.target.value.trim())}
-          placeholder="https://example.com/base-tshirt-front.png"
-          disabled={!isEditing}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-mono text-sm"
-        />
-      </div>
-    </section>
-
-    {/* Right Column - Customizable Areas */}
-    <section className="lg:w-3/5 xl:w-2/3 border-t lg:border-t-0 lg:border-l lg:border-gray-200 lg:pl-8 pt-8 lg:pt-0">
-      <h3 className="text-lg font-semibold text-gray-900 mb-5">
-        Customizable Areas ({views[activeView].areas?.length || 0})
-      </h3>
-
-      {views[activeView].areas?.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {views[activeView].areas.map((area, idx) => (
-            <div
-              key={idx}
-              className="border border-gray-200 rounded-lg p-5 bg-white hover:shadow-sm transition-shadow"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <h4 className="font-semibold text-gray-900">{area.name}</h4>
-              </div>
-
-              <div className="space-y-2 text-sm text-gray-700">
-                <p><span className="text-gray-600">ID:</span> <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">{area.id}</code></p>
-                <p><span className="text-gray-600">Max Size:</span> <span className="font-medium">{area.max}</span></p>
-                {area.type && (
-                  <p><span className="text-gray-600">Type:</span> <span className="capitalize font-medium">{area.type}</span></p>
-                )}
-                {area.description && (
-                  <p className="text-gray-600 mt-3 pt-2 border-t border-gray-100 flex items-start gap-2">
-                    <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                    <span>{area.description}</span>
-                  </p>
+            {/* Mobile Case Layout */}
+            {isMobileCase ? (
+              <div>
+                {/* Model Selection Tabs */}
+                {config.models?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-1">
+                    {config.models.map((model, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveModelIndex(idx)}
+                        className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+                          activeModelIndex === idx
+                            ? "bg-white text-blue-600 border border-b-0 border-gray-200 -mb-px shadow-sm"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" />
+                          {model.modelName}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
 
-                {/* References Section */}
-                <div className="mt-3">
-                  <button
-                    onClick={() => toggleReferences(idx)}
-                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    Reference Examples ({area.references?.length || 0})
-                    {expandedArea === idx ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
+                {/* Active Model Content */}
+                {config.models?.[activeModelIndex] && (
+                  <div className="space-y-10 lg:space-y-0 lg:flex lg:gap-8">
+                    {/* Left Column - Base Image */}
+                    <section className="lg:w-2/5 xl:w-1/3">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5 text-blue-600" />
+                        {config.models[activeModelIndex].modelName} — Base Image
+                        <span className="text-sm font-normal text-gray-500 ml-2">
+                          ({config.models[activeModelIndex].displaySize}, {config.models[activeModelIndex].year})
+                        </span>
+                      </h3>
 
-                  {expandedArea === idx && (
-                    <div className="mt-3 pt-2 border-t border-gray-100">
-                      <div className="space-y-3">
-                        {/* Add Reference Button (only in edit mode) */}
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                        <div className="aspect-3/4 max-h-100 bg-white rounded-lg overflow-hidden shadow-inner mx-auto">
+                          <img
+                            src={config.models[activeModelIndex].view.baseImage || "https://placehold.co/600x800?text=No+Base+Image"}
+                            alt={`${config.models[activeModelIndex].modelName} case template`}
+                            className="w-full h-full object-contain"
+                            onError={e => e.currentTarget.src = "https://placehold.co/600x800?text=Image+Not+Found"}
+                          />
+                        </div>
+
+                        {/* Replace Photo Button (only shown in edit mode) */}
                         {isEditing && (
-                          <div className="text-center">
+                          <div className="mt-4 text-center">
                             <button
-                              onClick={() => handleAddReferenceClick(idx)}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors"
+                              onClick={handleReplaceBaseImageClick}
+                              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 text-gray-700 font-medium transition-colors shadow-sm"
                             >
-                              <Plus className="w-4 h-4" />
-                              Add Reference Image
+                              <Upload className="w-4 h-4" />
+                              Replace Base Image
                             </button>
+                            
+                            {/* Hidden file input for base image */}
                             <input
-                              id={`add-ref-input-${activeView}-${idx}`}
+                              key={baseImageInputKey}
+                              ref={baseImageInputRef}
                               type="file"
                               accept="image/*"
-                              onChange={(e) => handleFileChange(activeView, idx, area.references?.length || 0, e)}
+                              onChange={(e) => handleFileChange("mobile", null, null, e)}
                               className="hidden"
                             />
+                            
+                            <p className="mt-2 text-sm text-gray-500">
+                              Upload a new base image (PNG, JPG, WebP recommended)
+                            </p>
                           </div>
                         )}
+                      </div>
 
-                        {/* Reference Images */}
-                        <div className="flex flex-wrap gap-3">
-                          {area.references?.map((ref, refIdx) => (
-                            <div key={refIdx} className="relative group">
-                              <a
-                                href={ref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block w-28 h-28 rounded overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
-                              >
-                                <img
-                                  src={ref}
-                                  alt={`Reference ${refIdx + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={e => {
-                                    e.currentTarget.src = "https://placehold.co/100x100?text=Not+Found"
-                                  }}
-                                />
-                              </a>
-                              
-                              {/* Edit/Delete Controls (only in edit mode) */}
-                              {isEditing && (
-                                <>
-                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                                    <button
-                                      onClick={() => handleReplaceReferenceClick(idx, refIdx)}
-                                      className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
-                                      title="Replace this image"
-                                    >
-                                      <Upload className="w-3 h-3 text-gray-700" />
-                                    </button>
-                                    <button
-                                      onClick={() => removeReferenceImage(activeView, idx, refIdx)}
-                                      className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
-                                      title="Remove this image"
-                                    >
-                                      <X className="w-3 h-3 text-red-600" />
-                                    </button>
-                                  </div>
-                                  
-                                  {/* Hidden file input for this specific reference */}
-                                  <input
-                                    id={`ref-input-${activeView}-${idx}-${refIdx}`}
-                                    key={referenceInputKeys[`${activeView}-${idx}-${refIdx}`] || refIdx}
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handleFileChange(activeView, idx, refIdx, e)}
-                                    className="hidden"
-                                  />
-                                </>
-                              )}
-                              
-                              {/* Hidden URL input for reference */}
-                              <div className="sr-only" aria-hidden="true">
-                                <input
-                                  type="text"
-                                  value={ref || ""}
-                                  onChange={(e) => updateReferenceImage(activeView, idx, refIdx, e.target.value.trim())}
-                                  placeholder="https://example.com/reference-image.jpg"
-                                  disabled={!isEditing}
-                                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                                />
+                      {/* Model Specifications */}
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 className="font-medium text-gray-900 mb-3">Model Specifications</h4>
+                        <div className="space-y-2 text-sm text-gray-700">
+                          <p><span className="text-gray-600">Dimensions:</span> {config.models[activeModelIndex].dimensions.height} × {config.models[activeModelIndex].dimensions.width} × {config.models[activeModelIndex].dimensions.thickness}</p>
+                          <p><span className="text-gray-600">Year:</span> {config.models[activeModelIndex].year}</p>
+                          <p><span className="text-gray-600">Model Code:</span> <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">{config.models[activeModelIndex].modelCode}</code></p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Right Column - Customizable Areas */}
+                    <section className="lg:w-3/5 xl:w-2/3 border-t lg:border-t-0 lg:border-l lg:border-gray-200 lg:pl-8 pt-8 lg:pt-0">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-5">
+                        Customizable Areas ({config.models[activeModelIndex].view.areas?.length || 0})
+                      </h3>
+
+                      {config.models[activeModelIndex].view.areas?.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {config.models[activeModelIndex].view.areas.map((area, idx) => (
+                            <div
+                              key={idx}
+                              className="border border-gray-200 rounded-lg p-5 bg-white hover:shadow-sm transition-shadow"
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-semibold text-gray-900">{area.name}</h4>
+                              </div>
+
+                              <div className="space-y-2 text-sm text-gray-700">
+                                <p><span className="text-gray-600">ID:</span> <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">{area.id}</code></p>
+                                <p><span className="text-gray-600">Max Size:</span> <span className="font-medium">{area.max}</span></p>
+                                {area.type && (
+                                  <p><span className="text-gray-600">Type:</span> <span className="capitalize font-medium">{area.type}</span></p>
+                                )}
+                                {area.description && (
+                                  <p className="text-gray-600 mt-3 pt-2 border-t border-gray-100 flex items-start gap-2">
+                                    <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                    <span>{area.description}</span>
+                                  </p>
+                                )}
+
+                                {/* References Section */}
+                                <div className="mt-3">
+                                  <button
+                                    onClick={() => toggleReferences(idx)}
+                                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                  >
+                                    <ImageIcon className="w-4 h-4" />
+                                    Reference Examples ({area.references?.length || 0})
+                                    {expandedArea === idx ? (
+                                      <ChevronUp className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </button>
+
+                                  {expandedArea === idx && (
+                                    <div className="mt-3 pt-2 border-t border-gray-100">
+                                      <div className="space-y-3">
+                                        {/* Add Reference Button (only in edit mode) */}
+                                        {isEditing && (
+                                          <div className="text-center">
+                                            <button
+                                              onClick={() => handleAddReferenceClick(idx)}
+                                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors"
+                                            >
+                                              <Plus className="w-4 h-4" />
+                                              Add Reference Image
+                                            </button>
+                                            <input
+                                              id={`add-ref-input-mobile-${activeModelIndex}-${idx}`}
+                                              type="file"
+                                              accept="image/*"
+                                              onChange={(e) => handleFileChange("mobile", idx, area.references?.length || 0, e)}
+                                              className="hidden"
+                                            />
+                                          </div>
+                                        )}
+
+                                        {/* Reference Images */}
+                                        <div className="flex flex-wrap gap-3">
+                                          {area.references?.map((ref, refIdx) => (
+                                            <div key={refIdx} className="relative group">
+                                              <a
+                                                href={ref}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block w-28 h-28 rounded overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
+                                              >
+                                                <img
+                                                  src={ref}
+                                                  alt={`Reference ${refIdx + 1}`}
+                                                  className="w-full h-full object-cover"
+                                                  onError={e => {
+                                                    e.currentTarget.src = "https://placehold.co/100x100?text=Not+Found"
+                                                  }}
+                                                />
+                                              </a>
+                                              
+                                              {/* Edit/Delete Controls (only in edit mode) */}
+                                              {isEditing && (
+                                                <>
+                                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                                                    <button
+                                                      onClick={() => handleReplaceReferenceClick(idx, refIdx)}
+                                                      className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                                                      title="Replace this image"
+                                                    >
+                                                      <Upload className="w-3 h-3 text-gray-700" />
+                                                    </button>
+                                                    <button
+                                                      onClick={() => removeMobileCaseReferenceImage(activeModelIndex, idx, refIdx)}
+                                                      className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
+                                                      title="Remove this image"
+                                                    >
+                                                      <X className="w-3 h-3 text-red-600" />
+                                                    </button>
+                                                  </div>
+                                                  
+                                                  {/* Hidden file input for this specific reference */}
+                                                  <input
+                                                    id={`ref-input-mobile-${activeModelIndex}-${idx}-${refIdx}`}
+                                                    key={referenceInputKeys[`mobile-${activeModelIndex}-${idx}-${refIdx}`] || refIdx}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => handleFileChange("mobile", idx, refIdx, e)}
+                                                    className="hidden"
+                                                  />
+                                                </>
+                                              )}
+                                              
+                                              {/* Hidden URL input for reference */}
+                                              <div className="sr-only" aria-hidden="true">
+                                                <input
+                                                  type="text"
+                                                  value={ref || ""}
+                                                  onChange={(e) => updateMobileCaseReferenceImage(activeModelIndex, idx, refIdx, e.target.value.trim())}
+                                                  placeholder="https://example.com/reference-image.jpg"
+                                                  disabled={!isEditing}
+                                                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        
+                                        {(!area.references || area.references.length === 0) && (
+                                          <div className="text-center py-4 text-gray-400">
+                                            No reference images added yet
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
-                        
-                        {(!area.references || area.references.length === 0) && (
-                          <div className="text-center py-4 text-gray-400">
-                            No reference images added yet
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      ) : (
+                        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                          <p className="text-gray-500">No customizable areas defined for this model</p>
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <p className="text-gray-500">No customizable areas defined for this view</p>
-        </div>
-      )}
-    </section>
-  </div>
-)}
+            ) : (
+              /* Regular Product Layout */
+              <>
+                {viewKeys.length === 0 ? (
+                  <div className="text-center py-16">
+                    <FileImage className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">No views defined</h3>
+                  </div>
+                ) : (
+                  <>
+                    {/* View Tabs for regular products */}
+                    <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-1">
+                      {viewKeys.map(viewKey => (
+                        <button
+                          key={viewKey}
+                          onClick={() => setActiveView(viewKey)}
+                          className={`px-5 py-2.5 font-medium text-sm rounded-t-lg transition-colors ${
+                            activeView === viewKey
+                              ? "bg-white text-blue-600 border border-b-0 border-gray-200 -mb-px shadow-sm"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          }`}
+                        >
+                          {viewKey.replace(/_/g, " ").toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Regular Product Content - This is your existing code */}
+                    {activeView && views[activeView] && (
+                      <div className="space-y-10 lg:space-y-0 lg:flex lg:gap-8">
+                        {/* Left Column - Base Image */}
+                        <section className="lg:w-2/5 xl:w-1/3">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <ImageIcon className="w-5 h-5 text-blue-600" />
+                            {activeView.replace(/_/g, " ").toUpperCase()} — Base Image
+                          </h3>
+
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                            <div className="aspect-4/3 max-h-85 bg-white rounded-lg overflow-hidden shadow-inner mx-auto">
+                              <img
+                                src={views[activeView].baseImage || "https://placehold.co/800x600?text=No+Base+Image"}
+                                alt={`${activeView} base template`}
+                                className="w-full h-full object-contain"
+                                onError={e => e.currentTarget.src = "https://placehold.co/800x600?text=Image+Not+Found"}
+                              />
+                            </div>
+
+                            {/* Replace Photo Button (only shown in edit mode) */}
+                            {isEditing && (
+                              <div className="mt-4 text-center">
+                                <button
+                                  onClick={handleReplaceBaseImageClick}
+                                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 text-gray-700 font-medium transition-colors shadow-sm"
+                                >
+                                  <Upload className="w-4 h-4" />
+                                  Replace Base Image
+                                </button>
+                                
+                                {/* Hidden file input for base image */}
+                                <input
+                                  key={baseImageInputKey}
+                                  ref={baseImageInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(activeView, null, null, e)}
+                                  className="hidden"
+                                />
+                                
+                                <p className="mt-2 text-sm text-gray-500">
+                                  Upload a new base image (PNG, JPG, WebP recommended)
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </section>
+
+                        {/* Right Column - Customizable Areas */}
+                        <section className="lg:w-3/5 xl:w-2/3 border-t lg:border-t-0 lg:border-l lg:border-gray-200 lg:pl-8 pt-8 lg:pt-0">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-5">
+                            Customizable Areas ({views[activeView].areas?.length || 0})
+                          </h3>
+
+                          {views[activeView].areas?.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                              {views[activeView].areas.map((area, idx) => (
+                                <div
+                                  key={idx}
+                                  className="border border-gray-200 rounded-lg p-5 bg-white hover:shadow-sm transition-shadow"
+                                >
+                                  <div className="flex justify-between items-start mb-3">
+                                    <h4 className="font-semibold text-gray-900">{area.name}</h4>
+                                  </div>
+
+                                  <div className="space-y-2 text-sm text-gray-700">
+                                    <p><span className="text-gray-600">ID:</span> <code className="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-xs">{area.id}</code></p>
+                                    <p><span className="text-gray-600">Max Size:</span> <span className="font-medium">{area.max}</span></p>
+                                    {area.type && (
+                                      <p><span className="text-gray-600">Type:</span> <span className="capitalize font-medium">{area.type}</span></p>
+                                    )}
+                                    {area.description && (
+                                      <p className="text-gray-600 mt-3 pt-2 border-t border-gray-100 flex items-start gap-2">
+                                        <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                        <span>{area.description}</span>
+                                      </p>
+                                    )}
+
+                                    {/* References Section */}
+                                    <div className="mt-3">
+                                      <button
+                                        onClick={() => toggleReferences(idx)}
+                                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                      >
+                                        <ImageIcon className="w-4 h-4" />
+                                        Reference Examples ({area.references?.length || 0})
+                                        {expandedArea === idx ? (
+                                          <ChevronUp className="w-4 h-4" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4" />
+                                        )}
+                                      </button>
+
+                                      {expandedArea === idx && (
+                                        <div className="mt-3 pt-2 border-t border-gray-100">
+                                          <div className="space-y-3">
+                                            {/* Add Reference Button (only in edit mode) */}
+                                            {isEditing && (
+                                              <div className="text-center">
+                                                <button
+                                                  onClick={() => handleAddReferenceClick(idx)}
+                                                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors"
+                                                >
+                                                  <Plus className="w-4 h-4" />
+                                                  Add Reference Image
+                                                </button>
+                                                <input
+                                                  id={`add-ref-input-${activeView}-${idx}`}
+                                                  type="file"
+                                                  accept="image/*"
+                                                  onChange={(e) => handleFileChange(activeView, idx, area.references?.length || 0, e)}
+                                                  className="hidden"
+                                                />
+                                              </div>
+                                            )}
+
+                                            {/* Reference Images */}
+                                            <div className="flex flex-wrap gap-3">
+                                              {area.references?.map((ref, refIdx) => (
+                                                <div key={refIdx} className="relative group">
+                                                  <a
+                                                    href={ref}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="block w-28 h-28 rounded overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
+                                                  >
+                                                    <img
+                                                      src={ref}
+                                                      alt={`Reference ${refIdx + 1}`}
+                                                      className="w-full h-full object-cover"
+                                                      onError={e => {
+                                                        e.currentTarget.src = "https://placehold.co/100x100?text=Not+Found"
+                                                      }}
+                                                    />
+                                                  </a>
+                                                  
+                                                  {/* Edit/Delete Controls (only in edit mode) */}
+                                                  {isEditing && (
+                                                    <>
+                                                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                                                        <button
+                                                          onClick={() => handleReplaceReferenceClick(idx, refIdx)}
+                                                          className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                                                          title="Replace this image"
+                                                        >
+                                                          <Upload className="w-3 h-3 text-gray-700" />
+                                                        </button>
+                                                        <button
+                                                          onClick={() => removeReferenceImage(activeView, idx, refIdx)}
+                                                          className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
+                                                          title="Remove this image"
+                                                        >
+                                                          <X className="w-3 h-3 text-red-600" />
+                                                        </button>
+                                                      </div>
+                                                      
+                                                      {/* Hidden file input for this specific reference */}
+                                                      <input
+                                                        id={`ref-input-${activeView}-${idx}-${refIdx}`}
+                                                        key={referenceInputKeys[`${activeView}-${idx}-${refIdx}`] || refIdx}
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => handleFileChange(activeView, idx, refIdx, e)}
+                                                        className="hidden"
+                                                      />
+                                                    </>
+                                                  )}
+                                                  
+                                                  {/* Hidden URL input for reference */}
+                                                  <div className="sr-only" aria-hidden="true">
+                                                    <input
+                                                      type="text"
+                                                      value={ref || ""}
+                                                      onChange={(e) => updateReferenceImage(activeView, idx, refIdx, e.target.value.trim())}
+                                                      placeholder="https://example.com/reference-image.jpg"
+                                                      disabled={!isEditing}
+                                                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                                                    />
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                            
+                                            {(!area.references || area.references.length === 0) && (
+                                              <div className="text-center py-4 text-gray-400">
+                                                No reference images added yet
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                              <p className="text-gray-500">No customizable areas defined for this view</p>
+                            </div>
+                          )}
+                        </section>
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>

@@ -8,11 +8,19 @@ export const getAvailablePrintModels = async (req, res) => {
       const doc = await item.model.findOne({ isDefault: true }).lean()
       if (!doc) continue
 
-      data.push({
-        name: item.name,
-        type: item.type,
-        views: doc.views
-      })
+      if (item.type === "mobileCase") {
+        data.push({
+          name: item.name,
+          type: item.type,
+          models: doc.models
+        })
+      } else {
+        data.push({
+          name: item.name,
+          type: item.type,
+          views: doc.views
+        })
+      }
     }
 
     res.status(200).json({
@@ -26,3 +34,4 @@ export const getAvailablePrintModels = async (req, res) => {
     })
   }
 }
+
