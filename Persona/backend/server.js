@@ -12,12 +12,12 @@ const app = express()
 
 app.use(
   cors({
-    origin: "*",
+    origin: ["http://127.0.0.1:5173", "http://localhost:5173", "https://persona-gifts.vercel.app","http://10.34.156.138:5173","https://persona-2klo.onrender.com"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
   })
 )
-
 
 app.use(express.json())
 
