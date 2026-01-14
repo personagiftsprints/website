@@ -1,6 +1,7 @@
 // components/CustomizableAreaCard.jsx
 import React from "react"
 import { ImageIcon, Info, ChevronDown, ChevronUp, Plus, Upload, X } from "lucide-react"
+import ReferenceImageItem from "./ReferenceImageItem"
 
 export default function CustomizableAreaCard({ 
   area, 

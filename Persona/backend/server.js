@@ -15,7 +15,7 @@ app.use(
     origin: ["http://127.0.0.1:5173", "http://localhost:5173", "https://persona-gifts.vercel.app","http://10.34.156.138:5173","https://persona-2klo.onrender.com","https://persona-topaz-eta.vercel.app"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: false
+    credentials: true
   })
 )
 
