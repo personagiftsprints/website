@@ -44,19 +44,25 @@ export default function CardBlockSection({ heading, items }) {
           </span>
         </motion.div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-8"
-        >
-          {items.map((item, index) => (
-            <motion.div key={index} variants={itemVariants}>
-              <Card title={item.title} image={item.image} />
-            </motion.div>
-          ))}
-        </motion.div>
+<motion.div
+  variants={containerVariants}
+  initial="hidden"
+  whileInView="visible"
+  viewport={{ once: true }}
+  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+>
+  {items.map((item, index) => (
+    <motion.div
+      key={index}
+      variants={itemVariants}
+      className="min-w-0"
+    >
+      <Card title={item.title} image={item.image} />
+    </motion.div>
+  ))}
+</motion.div>
+
+
       </div>
     </section>
   )
