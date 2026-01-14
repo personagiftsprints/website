@@ -27,7 +27,7 @@ useEffect(() => {
     <div className="w-full min-h-screen flex flex-col bg-[#d01f1f]">
       <Navbar />
 
-      <main className="w-full relative h-[30vh] lg:h-[45vh]">
+      <main className="w-full relative h-[20vh] lg:h-[50vh]">
         {bannerUrl ? (
           <Image
             src={bannerUrl}

@@ -154,14 +154,7 @@ export default function PrintConfigListPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <p>
-                        <strong>Views:</strong> {Object.keys(config.views || {}).length}
-                      </p>
-                      {config.recommendations && (
-                        <p className="text-green-600">Recommendations set</p>
-                      )}
-                    </div>
+                 
                   </CardContent>
                 </Card>
               </Link>
