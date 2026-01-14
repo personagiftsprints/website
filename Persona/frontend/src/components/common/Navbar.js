@@ -157,7 +157,7 @@ export default function Navbar() {
       </div>
 
       {/* MOBILE SEARCH (ONLY MOBILE) */}
-      <div className="block lg:hidden border-b  px-4 py-3 bg-white">
+      <div className="block lg:hidden   px-4 py-3 bg-white">
         <div className="relative">
           <input
             type="text"
