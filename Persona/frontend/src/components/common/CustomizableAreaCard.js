@@ -1,4 +1,4 @@
-// components/CustomizableAreaCard.jsx
+
 import React from "react"
 import { ImageIcon, Info, ChevronDown, ChevronUp, Plus, Upload, X } from "lucide-react"
 import ReferenceImageItem from "./ReferenceImageItem"
@@ -32,7 +32,7 @@ export default function CustomizableAreaCard({
         )}
         {area.description && (
           <p className="text-gray-600 mt-3 pt-2 border-t border-gray-100 flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <Info className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
             <span>{area.description}</span>
           </p>
         )}

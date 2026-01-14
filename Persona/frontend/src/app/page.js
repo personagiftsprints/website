@@ -8,20 +8,32 @@ import Footer from "@/components/common/Footer"
 import Link from "next/link"
 import { Gift } from "lucide-react"
 import { getBanner } from "@/services/home-content.service"
+import { motion, useAnimation } from "framer-motion"
 
 export default function Home() {
   const [bannerUrl, setBannerUrl] = useState(null)
+  const controls = useAnimation()
 
-useEffect(() => {
-  getBanner()
-   
-    .then((data) => {
-      if (data?.homeBanner?.imageUrl) {
-        setBannerUrl(data.homeBanner.imageUrl)
-      }
-    })
-    .catch(() => {})
-}, [])
+  useEffect(() => {
+    getBanner()
+      .then((data) => {
+        if (data?.homeBanner?.imageUrl) {
+          setBannerUrl(data.homeBanner.imageUrl)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      controls.start({
+        rotate: [0, -12, 12, -12, 12, 0],
+        transition: { duration: 0.6 }
+      })
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [controls])
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-[#d01f1f]">
@@ -69,12 +81,20 @@ useEffect(() => {
 
       <Footer />
 
-      <Link
-        href="/products"
-        className="fixed bottom-6 right-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-400 shadow-xl"
+      <motion.div
+        animate={controls}
+        className="fixed bottom-6 right-6"
       >
-        <Gift className="h-8 w-8 text-black" strokeWidth={2.5} />
-      </Link>
+        
+        <Link
+          href="/products"
+          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-400 shadow-xl"
+        >
+          <Gift className="h-8 w-8 text-black" strokeWidth={2.5} />
+        </Link>
+      </motion.div>
+
+
     </div>
   )
 }

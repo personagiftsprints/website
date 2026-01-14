@@ -129,13 +129,13 @@ export default function Navbar() {
               </Link>
 
               <Link href="/admin/dashboard" className="flex items-center gap-2">
-                <span className="hidden sm:block text-sm text-gray-700">Ezra</span>
+                <span className="hidden sm:block text-sm text-gray-700">Ezza</span>
                 <Image
-                  src="https://img.freepik.com/free-photo/front-view-business-woman-suit_23-2148603018.jpg"
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLXuM2b4djVbMt63hftHrWFFMeQmccyytKlQ&s"
                   alt="User"
                   width={30}
                   height={30}
-                  className="rounded-full object-cover sm:w-[34px] sm:h-[34px]"
+                  className="rounded-full object-cover sm:w-8.5 sm:h-8.5"
                 />
               </Link>
             </div>

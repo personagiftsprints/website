@@ -10,6 +10,11 @@ import MobileCaseConfig, {
   DEFAULT_MOBILE_CASE_PRINT_CONFIG
 } from "../models/print/MobileCaseConfig.model.js"
 
+
+import singlePrintAreaConfigModel, {
+  DEFAULT_SINGLE_PRINT_CONFIG
+} from "../models/print/singlePrintAreaConfig.model.js"
+
 export const initPrintConfigs = async () => {
   const tshirtExists = await TshirtPrintConfig.exists({ isDefault: true })
   if (!tshirtExists) {
@@ -28,4 +33,20 @@ export const initPrintConfigs = async () => {
     await MobileCaseConfig.create(DEFAULT_MOBILE_CASE_PRINT_CONFIG)
     console.log("Default Mobile Case print config created")
   }
+
+
+  
+
+  const generalExists = await singlePrintAreaConfigModel.exists({
+    productType: "general",
+    isDefault: true
+  })
+
+  if (!generalExists) {
+    await singlePrintAreaConfigModel.create(DEFAULT_SINGLE_PRINT_CONFIG)
+    console.log("Default General print config created")
+  }
+
+
 }
+

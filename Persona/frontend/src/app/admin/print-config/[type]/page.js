@@ -30,6 +30,8 @@ export default function PrintConfigDetailPage() {
   const baseImageInputRef = useRef(null)
 
   const isMobileCase = config?.type === "mobileCase"
+  const isGeneralPrint = config?.type === "general"
+
 
   const fetchConfig = useCallback(async () => {
     if (!type) return
@@ -43,12 +45,14 @@ export default function PrintConfigDetailPage() {
       if (!found) throw new Error("Configuration not found")
       setConfig(found)
       
-      // Set initial active view or model
-      if (found.type === "mobileCase") {
-        setActiveModelIndex(0)
-      } else {
-        setActiveView(Object.keys(found.views || {})[0] || null)
-      }
+     if (found.type === "mobileCase") {
+  setActiveModelIndex(0)
+} else if (found.type === "general") {
+  setActiveView("general")
+} else {
+  setActiveView(Object.keys(found.views || {})[0] || null)
+}
+
     } catch (err) {
       setError(err.message)
       console.error("Error fetching config:", err)
@@ -445,7 +449,51 @@ export default function PrintConfigDetailPage() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) :  isGeneralPrint ? (
+  /* GENERAL PRINT CONFIGURATION ONLY */
+  <div className="space-y-6">
+    <section className="border border-gray-200 rounded-xl p-6 bg-white">
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        Print Configuration
+      </h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="border border-gray-200 rounded-lg p-5 bg-gray-50">
+          <h4 className="font-semibold text-gray-900 mb-3">
+            {config.area.name}
+          </h4>
+
+          <div className="space-y-2 text-sm text-gray-700">
+            <p>
+              <span className="text-gray-600">Area ID:</span>{" "}
+              <code className="bg-white px-1.5 py-0.5 rounded font-mono text-xs">
+                {config.area.id}
+              </code>
+            </p>
+
+            <p>
+              <span className="text-gray-600">Max Size:</span>{" "}
+              <span className="font-medium">{config.area.max}</span>
+            </p>
+
+            <p>
+              <span className="text-gray-600">Type:</span>{" "}
+              <span className="capitalize font-medium">
+                {config.area.type}
+              </span>
+            </p>
+
+            {config.area.description && (
+              <p className="text-gray-600 pt-3 mt-3 border-t border-gray-200">
+                {config.area.description}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+) :  (
               /* Regular Product Layout */
               <>
                 {viewKeys.length === 0 ? (
@@ -497,8 +545,10 @@ export default function PrintConfigDetailPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                               {views[activeView].areas.map((area, idx) => (
                                 <CustomizableAreaCard
+
+                                
                                   key={idx}
-                                  area={area}
+                                 area={area}
                                   idx={idx}
                                   isEditing={isEditing}
                                   expandedArea={expandedArea}

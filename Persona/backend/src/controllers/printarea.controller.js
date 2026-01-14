@@ -12,12 +12,22 @@ export const getAvailablePrintModels = async (req, res) => {
 
       if (item.type === "mobileCase") {
         data.push({
+          _id: doc._id,
           name: item.name,
           type: item.type,
           models: doc.models
         })
+      } else if (item.type === "general") {
+        data.push({
+          _id: doc._id,
+          name: item.name,
+          type: item.type,
+          printable: doc.printable,
+          area: doc.area
+        })
       } else {
         data.push({
+          _id: doc._id,
           name: item.name,
           type: item.type,
           views: doc.views
