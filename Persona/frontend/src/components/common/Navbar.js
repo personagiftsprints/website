@@ -7,13 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { montserratBold } from "@/lib/fonts"
 import { ShoppingCart } from "lucide-react"
 import { getBanner } from "@/services/home-content.service"
-
-const messages = [
-  { id: 1, content: "Christmas offer is now available 🎁", link: null },
-  { id: 2, content: "Shop Now →", link: "/products" },
-  { id: 3, content: "Limited-time festive discounts 🎄", link: null },
-]
-
+import Logo from "@/../public/icons/logo.png"
 
 function OfferBanner() {
   const [messages, setMessages] = useState([])
@@ -102,8 +96,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className={`${montserratBold.className} text-2xl sm:text-3xl font-extrabold tracking-wide text-orange-500`}
+            className={`${montserratBold.className} flex flex-row justify-center items-center  text-2xl sm:text-3xl font-extrabold tracking-wide text-[#f9a51b]`}
           >
+            <Image src={Logo} alt="Persona Logo" width={40} height={40} />
             PERSONA
           </Link>
 
