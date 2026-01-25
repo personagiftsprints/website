@@ -67,9 +67,9 @@ export default function Home() {
     <div className="w-full min-h-screen flex flex-col bg-gray-50">
       <Navbar />
 
-      <main className="w-full relative h-[20vh] lg:h-[50vh] px-6 pt-6">
+      <main className="w-full relative h-[20vh] lg:h-[50vh] lg:px-6 px-[2px] pt-6">
         {bannerUrl ? (
-          <div className="relative w-full h-full overflow-hidden rounded-3xl">
+          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl">
             <Image
               src={bannerUrl}
               alt="Persona Banner"
@@ -80,7 +80,7 @@ export default function Home() {
           </div>
         ) : (
           
-          <div className="relative w-full h-full overflow-hidden rounded-3xl">
+          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl rounded-2xl">
             <Image
               src={DefaultBanner}
               alt="Persona Banner"

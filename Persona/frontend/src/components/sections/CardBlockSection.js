@@ -38,7 +38,7 @@ export default function CardBlockSection({ heading, items }) {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="flex justify-center mb-10"
         >
-          <span className="px-8 py-2 bg-orange-400 text-white text-sm font-medium rounded">
+          <span className="px-8 py-2 text-orange-400  text-sm font-medium rounded">
             {heading}
           </span>
         </motion.div>
