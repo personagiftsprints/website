@@ -91,15 +91,15 @@ export default function ProductCard({
             {hasDiscount ? (
               <>
                 <span className="text-lg font-semibold text-gray-900">
-                  ₹{specialPrice}
+                  ${specialPrice}
                 </span>
                 <span className="text-sm line-through text-gray-500">
-                  ₹{basePrice}
+                  ${basePrice}
                 </span>
               </>
             ) : (
               <span className="text-lg font-semibold text-gray-900">
-                ₹{basePrice}
+                ${basePrice}
               </span>
             )}
           </div>

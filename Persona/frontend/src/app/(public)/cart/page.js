@@ -127,7 +127,7 @@ export default function CartPage() {
                   </p>
                 )}
 
-                <p className="text-sm text-gray-600">₹{item.price}</p>
+                <p className="text-sm text-gray-600">${item.price}</p>
 
                 <div className="flex items-center gap-3">
                   <button
@@ -177,7 +177,7 @@ export default function CartPage() {
                 </button>
 
                 <p className="font-semibold">
-                  ₹{item.price * item.quantity}
+                  ${item.price * item.quantity}
                 </p>
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function CartPage() {
 
         {/* <div className="flex justify-between">
           <span>Subtotal</span>
-          <span>₹{subtotal}</span>
+          <span>${subtotal}</span>
         </div> */}
 
         <button

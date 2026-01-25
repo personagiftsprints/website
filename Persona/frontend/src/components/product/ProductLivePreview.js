@@ -40,7 +40,7 @@ const ProductLivePreview = ({ name, category, itemType, photos = [], price }) =>
 
         <div className="flex justify-between font-medium">
           <span>Price</span>
-          <span>{price ? `₹${price}` : "-"}</span>
+          <span>{price ? `$${price}` : "-"}</span>
         </div>
 
         {photos.length > 1 && (

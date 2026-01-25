@@ -69,7 +69,7 @@ export default function Home() {
 
       <main className="w-full relative h-[20vh] lg:h-[50vh] lg:px-6 px-[2px] pt-6">
         {bannerUrl ? (
-          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl">
+          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl rounded-2xl">
             <Image
               src={bannerUrl}
               alt="Persona Banner"
@@ -158,7 +158,7 @@ export default function Home() {
                     {product.title}
                   </h3>
                   <p className="mt-1 text-lg font-bold text-red-600">
-                    ₹{product.price}
+                    ${product.price}
                   </p>
 
                   <button className="mt-3 w-full rounded-xl bg-black py-2 text-sm font-semibold text-white hover:bg-gray-800 active:scale-[0.98] transition">
