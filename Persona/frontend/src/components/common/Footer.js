@@ -46,11 +46,26 @@ export default function Footer() {
             <h3 className="font-semibold text-sm uppercase tracking-wide">
               Contact
             </h3>
-            <ul className="space-y-2 text-sm text-gray-200">
-              <li>Address: To be updated</li>
-              <li>Phone: To be updated</li>
-              <li>Email: personagiftsprints@gmail.com</li>
-            </ul>
+<ul className="space-y-2 text-sm text-gray-200">
+  <li>
+    Address: The Hive Mall, Unit D, 27–31 Sankey Street, Warrington, WA1 1XG, United Kingdom
+  </li>
+  <li>
+    Phone: <a href="tel:01925949939">01925 949939</a>
+  </li>
+  <li>
+    WhatsApp:{" "}
+    <a
+      href="https://wa.me/447436131651?text=hello"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      +44 7436 131651
+    </a>
+  </li>
+  <li>Email: personagiftsprints@gmail.com</li>
+</ul>
+
           </div>
         </div>
 
