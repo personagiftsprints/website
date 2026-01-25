@@ -1,41 +1,66 @@
 import express from "express"
 import cors from "cors"
-// import paymentRoutes from "./src/routes/payment.routes.js"
+
 import productRoutes from "./src/routes/product.routes.js"
 import homeBannerRoutes from "./src/routes/homeContent.routes.js"
 import couponRoutes from "./src/routes/coupon.routes.js"
 import printModelsRoutes from "./src/routes/printModels.routes.js"
-import { connectDB } from "./src/config/db.js"
+import uploadsRoutes from "./src/routes/upload.routes.js"
+import authRoutes from "./src/routes/auth.routes.js"
+import userRoutes from "./src/routes/user.routes.js"
+import adminRoutes from "./src/routes/admin.routes.js"
+import paymentRoutes from "./src/routes/payment.routes.js"
+import stripeWebhookRoutes from "./src/routes/stripe-webhook.routes.js"
 
+import { connectDB } from "./src/config/db.js"
 
 const app = express()
 
+/* ---------------- STRIPE WEBHOOK (RAW BODY FIRST) ---------------- */
+app.use(
+  "/api/webhooks",
+  express.raw({ type: "application/json" }),
+  stripeWebhookRoutes
+)
+
+/* ---------------- CORS ---------------- */
 app.use(
   cors({
-    origin: ["http://127.0.0.1:5173", "http://localhost:5173", "https://persona-gifts.vercel.app","https://persona-topaz-eta.vercel.app"],
+    origin: [
+      "http://127.0.0.1:5173",
+      "http://localhost:5173",
+      "https://persona-gifts.vercel.app",
+      "https://persona-topaz-eta.vercel.app"
+    ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
 )
 
+/* ---------------- JSON (AFTER WEBHOOK) ---------------- */
 app.use(express.json())
 
+/* ---------------- DB ---------------- */
 connectDB()
 
-// app.use("/api/payment", paymentRoutes)
+/* ---------------- ROUTES ---------------- */
 app.use("/api/products", productRoutes)
+app.use("/api/uploads", uploadsRoutes)
 app.use("/api/home-content", homeBannerRoutes)
 app.use("/api/coupon", couponRoutes)
 app.use("/api/print-model", printModelsRoutes)
+app.use("/api/auth", authRoutes)
+app.use("/api/user", userRoutes)
+app.use("/api/admin", adminRoutes)
+app.use("/api/payment", paymentRoutes)
 
-
+/* ---------------- HEALTH ---------------- */
 app.get("/", (req, res) => {
   res.json({ success: true, message: "API running" })
 })
 
-
-
+/* ---------------- START ---------------- */
 const PORT = process.env.PORT || 4000
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

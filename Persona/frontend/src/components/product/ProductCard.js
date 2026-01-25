@@ -1,102 +1,110 @@
 "use client"
 
-import Image from "next/image"
-import { Heart, Star } from "lucide-react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { Star } from "lucide-react"
 
-export default function ProductCard({ product, onClick, onWishlist }) {
-  if (!product) return null
+export default function ProductCard({
+  slug,
+  name,
+  images = [],
+  basePrice,
+  specialPrice,
+  rating = 0,
+  reviewCount = 0,
+  customizationEnabled = false
+}) {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [hovered, setHovered] = useState(false)
 
-  const {
-    name,
-    description,
-    basePrice,      // actual price
-    specialPrice,   // discounted price
-    rating = 0,
-    reviewCount = 0,
-    images = []
-  } = product
+  const hasDiscount =
+    specialPrice && specialPrice < basePrice
+
+  const discountPercent = hasDiscount
+    ? Math.round(((basePrice - specialPrice) / basePrice) * 100)
+    : 0
+
+  useEffect(() => {
+    if (!hovered || images.length <= 1) return
+
+    const interval = setInterval(() => {
+      setActiveIndex(i => (i + 1) % images.length)
+    }, 1200)
+
+    return () => clearInterval(interval)
+  }, [hovered, images.length])
 
   return (
-    <div
-      onClick={onClick}
-      className="group cursor-pointer border bg-white overflow-hidden transition-all duration-300 hover:shadow-xl"
-    >
-      {/* IMAGE */}
-      <div className="relative h-60 w-full bg-gray-100 overflow-hidden">
-        {images[0] && (
-          <Image
-            src={images[0]}
+    <Link href={`/products/${slug}`}>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => {
+          setHovered(false)
+          setActiveIndex(0)
+        }}
+        className="group bg-white border rounded-xl overflow-hidden hover:shadow-xl transition cursor-pointer"
+      >
+        {/* IMAGE */}
+        <div className="relative aspect-square bg-gray-100">
+          <img
+            src={images[activeIndex]?.url}
             alt={name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-        )}
 
-        {/* WISHLIST */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onWishlist?.(product)
-          }}
-          className="absolute top-3 right-3 bg-white/90 hover:bg-white p-2 shadow transition"
-        >
-          <Heart size={18} className="text-gray-700 hover:text-red-500" />
-        </button>
-      </div>
+          {/* Discount Badge */}
+          {hasDiscount && (
+            <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
+              {discountPercent}% OFF
+            </span>
+          )}
 
-      {/* CONTENT */}
-      <div className="p-4 space-y-2">
-        {/* NAME */}
-        <h3 className="text-base font-semibold text-gray-900 line-clamp-1">
-          {name}
-        </h3>
-
-        {/* RATING */}
-        <div className="flex items-center gap-1 text-sm text-gray-600">
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                size={14}
-                className={
-                  i < Math.round(rating)
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-gray-300"
-                }
-              />
-            ))}
-          </div>
-          <span>({reviewCount})</span>
-        </div>
-
-        {/* DESCRIPTION */}
-        {description && (
-          <p className="text-sm text-gray-500 line-clamp-2">
-            {description}
-          </p>
-        )}
-
-        {/* PRICING */}
-        <div className="flex items-end gap-2 pt-2">
-          {specialPrice ? (
-            <>
-              {/* SPECIAL PRICE (PRIMARY) */}
-              <span className="text-lg font-bold text-gray-900">
-                ₹{specialPrice}
-              </span>
-
-              {/* ACTUAL PRICE (STRIKED) */}
-              <span className="text-sm text-gray-500 line-through">
-                ₹{basePrice}
-              </span>
-            </>
-          ) : (
-            <span className="text-lg font-bold text-gray-900">
-              ₹{basePrice}
+          {/* Customization Badge */}
+          {customizationEnabled && (
+            <span className="absolute bottom-3 left-3 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+              Customizable
             </span>
           )}
         </div>
+
+        {/* DETAILS */}
+        <div className="p-4 space-y-1">
+          <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+            {name}
+          </h3>
+
+          {/* Rating */}
+          {rating > 0 && (
+            <div className="flex items-center gap-1 text-sm">
+              <div className="flex items-center gap-0.5 text-yellow-500">
+                <Star size={14} fill="currentColor" />
+                <span className="font-medium">{rating}</span>
+              </div>
+              <span className="text-gray-500">
+                ({reviewCount})
+              </span>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-center gap-2">
+            {hasDiscount ? (
+              <>
+                <span className="text-lg font-semibold text-gray-900">
+                  ₹{specialPrice}
+                </span>
+                <span className="text-sm line-through text-gray-500">
+                  ₹{basePrice}
+                </span>
+              </>
+            ) : (
+              <span className="text-lg font-semibold text-gray-900">
+                ₹{basePrice}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </Link>
   )
 }

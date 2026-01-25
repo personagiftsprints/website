@@ -68,7 +68,7 @@ export default function PrintConfigListPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/print-model`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/print-model/models`)
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
       const data = await response.json()
       setConfigs(data.data || [])

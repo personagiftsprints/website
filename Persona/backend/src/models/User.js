@@ -1,12 +1,42 @@
 import mongoose from "mongoose"
+import bcrypt from "bcryptjs"
 
-const UserSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  phone: String,
-  role: { type: String, default: "user" },
-  isGuest: { type: Boolean, default: false }
-}, { timestamps: true })
+const addressSchema = new mongoose.Schema(
+  {
+    fullName: String,
+    street: String,
+    landmark: String,
+    city: String,
+    county: String,
+    postcode: String,
+    country: { type: String, default: "UK" },
+    phone: String,
+  },
+  { _id: false }
+)
 
-export default mongoose.model("User", UserSchema)
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, unique: true, required: true },
+    password: { type: String, default: null },
+    firstName: String,
+    lastName: String,
+    provider: { type: String, enum: ["email", "google"], required: true },
+    googleId: String,
+    role: {
+      type: String,
+      enum: ["customer", "admin"],
+      default: "customer",
+    },
+    addresses: [addressSchema],
+    isActive: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+)
+
+userSchema.methods.comparePassword = function (password) {
+  if (!this.password) return false
+  return bcrypt.compare(password, this.password)
+}
+
+export default mongoose.model("User", userSchema)

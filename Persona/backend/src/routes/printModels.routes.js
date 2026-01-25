@@ -7,12 +7,8 @@ import {
 
 const router = express.Router()
 
-// Get all available print models
-router.get("/", getAvailablePrintModels)
-
-// Get single print model config by slug
-router.get("/info/:slug", getConfigBySlug)
-router.put("/info/:slug/:configId", updatePrintConfig)
-
+router.get("/models", getAvailablePrintModels)
+router.get("/models/:slug", getConfigBySlug)
+router.put("/models/:slug/:configId", updatePrintConfig)
 
 export default router

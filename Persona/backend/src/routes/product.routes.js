@@ -1,14 +1,26 @@
-import express from "express"
+import express from 'express'
 import {
-  initProduct,
   createProduct,
-  getProductBySlug
-} from "../controllers/product.controller.js"
+  getAllProducts,
+  getProductById,
+  getProductBySlug,
+  getProductsByType,
+  updateProduct,
+  deleteProduct,
+  toggleProductStatus
+} from '../controllers/product.controller.js'
 
 const router = express.Router()
 
-router.post("/admin/products/init", initProduct)
-router.post("/admin/products", createProduct)
-router.get("/products/:slug", getProductBySlug)
+router.post('/', createProduct)
+
+router.get('/', getAllProducts)
+router.get('/type/:type', getProductsByType)   // 👈 ADD THIS
+router.get('/slug/:slug', getProductBySlug)
+router.get('/:id', getProductById)
+
+router.put('/:id', updateProduct)
+router.delete('/:id', deleteProduct)
+router.patch('/:id/status', toggleProductStatus)
 
 export default router

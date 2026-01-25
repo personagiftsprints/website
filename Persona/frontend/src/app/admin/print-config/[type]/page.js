@@ -1,9 +1,10 @@
 "use client"
+
 import React, { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, Edit3, Check, Smartphone, FileImage } from "lucide-react"
 
-// Import components
+// Components
 import LoadingState from "@/components/common/LoadingState"
 import ErrorState from "@/components/common/ErrorState"
 import BaseImageSection from "@/components/common/BaseImageSection"
@@ -14,6 +15,8 @@ export default function PrintConfigDetailPage() {
   const params = useParams()
   const router = useRouter()
   const type = params?.type
+
+  console.log("Type:", type)
 
   const [config, setConfig] = useState(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -32,27 +35,30 @@ export default function PrintConfigDetailPage() {
   const isMobileCase = config?.type === "mobileCase"
   const isGeneralPrint = config?.type === "general"
 
-
   const fetchConfig = useCallback(async () => {
     if (!type) return
+
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/print-model`)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/print-model/models`)
       if (!response.ok) throw new Error("Failed to fetch configurations")
+
       const data = await response.json()
       const found = (data.data || []).find(c => c.type === type)
-      if (!found) throw new Error("Configuration not found")
-      setConfig(found)
-      
-     if (found.type === "mobileCase") {
-  setActiveModelIndex(0)
-} else if (found.type === "general") {
-  setActiveView("general")
-} else {
-  setActiveView(Object.keys(found.views || {})[0] || null)
-}
 
+      if (!found) throw new Error("Configuration not found")
+
+      setConfig(found)
+
+      if (found.type === "mobileCase") {
+        setActiveModelIndex(0)
+      } else if (found.type === "general") {
+        setActiveView("general")
+      } else {
+        setActiveView(Object.keys(found.views || {})[0] || null)
+      }
     } catch (err) {
       setError(err.message)
       console.error("Error fetching config:", err)
@@ -65,256 +71,294 @@ export default function PrintConfigDetailPage() {
     if (type) fetchConfig()
   }, [type, fetchConfig])
 
-  const autoSave = useCallback(async (updatedConfig) => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        setSaving(true)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/print-model/${type}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedConfig)
-        })
-        if (!response.ok) throw new Error("Save failed")
-        console.log("Auto-saved successfully")
-      } catch (err) {
-        console.error("Failed to update:", err)
-        setError("Failed to save changes")
-      } finally {
-        setSaving(false)
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
       }
-    }, 600)
-  }, [type])
-
-  // Update base image for regular products
-  const updateBaseImage = (viewKey, newUrl) => {
-    if (!config?.views?.[viewKey]) return
-    const updatedViews = {
-      ...config.views,
-      [viewKey]: { ...config.views[viewKey], baseImage: newUrl }
     }
-    const newConfig = { ...config, views: updatedViews }
-    setConfig(newConfig)
-    if (isEditing) autoSave(newConfig)
+  }, [])
+
+  const autoSave = useCallback(
+    async (updatedConfig) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          setSaving(true)
+
+          if (!config?._id) {
+            console.error("Cannot auto-save: config._id missing", { type, config })
+            setError("Cannot save — configuration ID missing")
+            return
+          }
+
+          if (!type) {
+            console.error("Cannot auto-save: type missing")
+            return
+          }
+
+          const url = `${process.env.NEXT_PUBLIC_API_URL}/print-model/models/${type}/${config._id}`
+          console.log("Auto-saving to:", url)
+
+          const response = await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedConfig)
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(`Save failed (${response.status}): ${errorText}`)
+          }
+
+          const result = await response.json()
+          console.log("Auto-save success:", result)
+        } catch (err) {
+          console.error("Auto-save error:", err)
+          setError("Failed to save changes — check console")
+        } finally {
+          setSaving(false)
+        }
+      }, 800)
+    },
+    [type, config?._id]
+  )
+
+const updateBaseImage = (viewKey, newUrl) => {
+  if (!config || !config.views || !config.views[viewKey]) return
+
+  const updatedViews = {
+    ...config.views,
+    [viewKey]: {
+      ...config.views[viewKey],
+      baseImage: newUrl
+    }
   }
 
-  // Update base image for mobile case models
+  const newConfig = { ...config, views: updatedViews }
+  setConfig(newConfig)
+
+  if (isEditing) autoSave(newConfig)
+}
+
+
   const updateMobileCaseBaseImage = (modelIndex, newUrl) => {
     if (!config?.models?.[modelIndex]) return
-    
-    const updatedModels = [...config.models]
-    updatedModels[modelIndex] = {
-      ...updatedModels[modelIndex],
-      view: {
-        ...updatedModels[modelIndex].view,
-        baseImage: newUrl
-      }
+    const newModels = [...config.models]
+    newModels[modelIndex] = {
+      ...newModels[modelIndex],
+      view: { ...newModels[modelIndex].view, baseImage: newUrl }
     }
-    
-    const newConfig = { ...config, models: updatedModels }
+    const newConfig = { ...config, models: newModels }
     setConfig(newConfig)
     if (isEditing) autoSave(newConfig)
   }
 
-  // Update reference image for regular products
   const updateReferenceImage = (viewKey, areaIndex, referenceIndex, newUrl) => {
     if (!config?.views?.[viewKey]?.areas?.[areaIndex]) return
-    
-    const updatedAreas = [...config.views[viewKey].areas]
-    const updatedReferences = [...(updatedAreas[areaIndex].references || [])]
-    
-    if (referenceIndex >= 0 && referenceIndex < updatedReferences.length) {
-      updatedReferences[referenceIndex] = newUrl
+
+    const areas = [...config.views[viewKey].areas]
+    const refs = [...(areas[areaIndex].references || [])]
+
+    if (referenceIndex >= 0 && referenceIndex < refs.length) {
+      refs[referenceIndex] = newUrl
     } else {
-      updatedReferences.push(newUrl)
+      refs.push(newUrl)
     }
-    
-    updatedAreas[areaIndex] = {
-      ...updatedAreas[areaIndex],
-      references: updatedReferences
-    }
-    
-    const updatedViews = {
+
+    areas[areaIndex] = { ...areas[areaIndex], references: refs }
+
+    const newViews = {
       ...config.views,
-      [viewKey]: {
-        ...config.views[viewKey],
-        areas: updatedAreas
-      }
+      [viewKey]: { ...config.views[viewKey], areas }
     }
-    
-    const newConfig = { ...config, views: updatedViews }
+
+    const newConfig = { ...config, views: newViews }
     setConfig(newConfig)
     if (isEditing) autoSave(newConfig)
   }
 
-  // Update reference image for mobile case models
   const updateMobileCaseReferenceImage = (modelIndex, areaIndex, referenceIndex, newUrl) => {
     if (!config?.models?.[modelIndex]?.view?.areas?.[areaIndex]) return
-    
-    const updatedModels = [...config.models]
-    const updatedAreas = [...updatedModels[modelIndex].view.areas]
-    const updatedReferences = [...(updatedAreas[areaIndex].references || [])]
-    
-    if (referenceIndex >= 0 && referenceIndex < updatedReferences.length) {
-      updatedReferences[referenceIndex] = newUrl
+
+    const models = [...config.models]
+    const areas = [...models[modelIndex].view.areas]
+    const refs = [...(areas[areaIndex].references || [])]
+
+    if (referenceIndex >= 0 && referenceIndex < refs.length) {
+      refs[referenceIndex] = newUrl
     } else {
-      updatedReferences.push(newUrl)
+      refs.push(newUrl)
     }
-    
-    updatedAreas[areaIndex] = {
-      ...updatedAreas[areaIndex],
-      references: updatedReferences
+
+    areas[areaIndex] = { ...areas[areaIndex], references: refs }
+    models[modelIndex] = {
+      ...models[modelIndex],
+      view: { ...models[modelIndex].view, areas }
     }
-    
-    updatedModels[modelIndex] = {
-      ...updatedModels[modelIndex],
-      view: {
-        ...updatedModels[modelIndex].view,
-        areas: updatedAreas
-      }
-    }
-    
-    const newConfig = { ...config, models: updatedModels }
+
+    const newConfig = { ...config, models }
     setConfig(newConfig)
     if (isEditing) autoSave(newConfig)
   }
 
-  // Remove reference image for regular products
   const removeReferenceImage = (viewKey, areaIndex, referenceIndex) => {
     if (!config?.views?.[viewKey]?.areas?.[areaIndex]) return
-    
-    const updatedAreas = [...config.views[viewKey].areas]
-    const updatedReferences = [...(updatedAreas[areaIndex].references || [])]
-    
-    updatedReferences.splice(referenceIndex, 1)
-    
-    updatedAreas[areaIndex] = {
-      ...updatedAreas[areaIndex],
-      references: updatedReferences
-    }
-    
-    const updatedViews = {
+
+    const areas = [...config.views[viewKey].areas]
+    const refs = [...(areas[areaIndex].references || [])]
+    refs.splice(referenceIndex, 1)
+
+    areas[areaIndex] = { ...areas[areaIndex], references: refs }
+
+    const newViews = {
       ...config.views,
-      [viewKey]: {
-        ...config.views[viewKey],
-        areas: updatedAreas
-      }
+      [viewKey]: { ...config.views[viewKey], areas }
     }
-    
-    const newConfig = { ...config, views: updatedViews }
+
+    const newConfig = { ...config, views: newViews }
     setConfig(newConfig)
     if (isEditing) autoSave(newConfig)
   }
 
-  // Remove reference image for mobile case models
   const removeMobileCaseReferenceImage = (modelIndex, areaIndex, referenceIndex) => {
     if (!config?.models?.[modelIndex]?.view?.areas?.[areaIndex]) return
-    
-    const updatedModels = [...config.models]
-    const updatedAreas = [...updatedModels[modelIndex].view.areas]
-    const updatedReferences = [...(updatedAreas[areaIndex].references || [])]
-    
-    updatedReferences.splice(referenceIndex, 1)
-    
-    updatedAreas[areaIndex] = {
-      ...updatedAreas[areaIndex],
-      references: updatedReferences
+
+    const models = [...config.models]
+    const areas = [...models[modelIndex].view.areas]
+    const refs = [...(areas[areaIndex].references || [])]
+    refs.splice(referenceIndex, 1)
+
+    areas[areaIndex] = { ...areas[areaIndex], references: refs }
+    models[modelIndex] = {
+      ...models[modelIndex],
+      view: { ...models[modelIndex].view, areas }
     }
-    
-    updatedModels[modelIndex] = {
-      ...updatedModels[modelIndex],
-      view: {
-        ...updatedModels[modelIndex].view,
-        areas: updatedAreas
-      }
-    }
-    
-    const newConfig = { ...config, models: updatedModels }
+
+    const newConfig = { ...config, models }
     setConfig(newConfig)
     if (isEditing) autoSave(newConfig)
   }
 
-  const handleFileChange = (viewKey, areaIndex = null, referenceIndex = null, event) => {
-    const file = event.target.files[0]
-    if (!file) return
+  const handleFileChange = async (viewKey, areaIndex, referenceIndex, e) => {
+  const file = e.target.files && e.target.files[0]
+  if (!file) return
 
-    // Create a local URL for preview
-    const localUrl = URL.createObjectURL(file)
-    
-    if (isMobileCase) {
-      // For mobile case models
-      if (areaIndex === null) {
-        // Base image for mobile case
-        updateMobileCaseBaseImage(activeModelIndex, localUrl)
-        setBaseImageInputKey(Date.now())
-      } else {
-        // Reference image for mobile case
-        updateMobileCaseReferenceImage(activeModelIndex, areaIndex, referenceIndex, localUrl)
-        
-        setReferenceInputKeys(prev => ({
-          ...prev,
-          [`mobile-${activeModelIndex}-${areaIndex}-${referenceIndex}`]: Date.now()
-        }))
-      }
+  const previewUrl = URL.createObjectURL(file)
+
+  if (viewKey === "mobile") {
+    if (areaIndex === null) {
+      updateMobileCaseBaseImage(activeModelIndex, previewUrl)
     } else {
-      // For regular products
-      if (areaIndex === null) {
-        // Base image
-        updateBaseImage(viewKey, localUrl)
-        setBaseImageInputKey(Date.now())
-      } else {
-        // Reference image
-        updateReferenceImage(viewKey, areaIndex, referenceIndex, localUrl)
-        
-        setReferenceInputKeys(prev => ({
-          ...prev,
-          [`${viewKey}-${areaIndex}-${referenceIndex}`]: Date.now()
-        }))
-      }
+      updateMobileCaseReferenceImage(
+        activeModelIndex,
+        areaIndex,
+        referenceIndex ?? -1,
+        previewUrl
+      )
+    }
+  } else {
+    if (areaIndex === null) {
+      updateBaseImage(viewKey, previewUrl)
+    } else {
+      updateReferenceImage(
+        viewKey,
+        areaIndex,
+        referenceIndex ?? -1,
+        previewUrl
+      )
     }
   }
 
-  const handleReplaceBaseImageClick = () => {
-    if (baseImageInputRef.current) {
-      baseImageInputRef.current.click()
+  try {
+    const formData = new FormData()
+    formData.append("images", file)
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/uploads/images`,
+      {
+        method: "POST",
+        body: formData
+      }
+    )
+
+    if (!res.ok) throw new Error("Upload failed")
+
+    const json = await res.json()
+    const realUrl = json?.data?.[0]?.url
+
+    if (!realUrl) throw new Error("No URL from server")
+
+    if (viewKey === "mobile") {
+      if (areaIndex === null) {
+        updateMobileCaseBaseImage(activeModelIndex, realUrl)
+      } else {
+        updateMobileCaseReferenceImage(
+          activeModelIndex,
+          areaIndex,
+          referenceIndex ?? -1,
+          realUrl
+        )
+      }
+    } else {
+      if (areaIndex === null) {
+        updateBaseImage(viewKey, realUrl)
+      } else {
+        updateReferenceImage(
+          viewKey,
+          areaIndex,
+          referenceIndex ?? -1,
+          realUrl
+        )
+      }
     }
+
+    URL.revokeObjectURL(previewUrl)
+  } catch (err) {
+    console.error("Upload error:", err)
+    alert("Image upload failed — changes not saved")
+  }
+}
+
+
+  const handleReplaceBaseImageClick = () => {
+    baseImageInputRef.current?.click()
   }
 
   const handleReplaceReferenceClick = (areaIndex, referenceIndex) => {
-    const prefix = isMobileCase ? "mobile" : activeView
+    const prefix = isMobileCase ? "mobile" : activeView ?? "unknown"
     const modelIndex = isMobileCase ? activeModelIndex : 0
-    const inputId = isMobileCase 
+    const inputId = isMobileCase
       ? `ref-input-mobile-${modelIndex}-${areaIndex}-${referenceIndex}`
-      : `ref-input-${activeView}-${areaIndex}-${referenceIndex}`
-    
-    const input = document.getElementById(inputId)
-    if (input) {
-      input.click()
-    }
+      : `ref-input-${prefix}-${areaIndex}-${referenceIndex}`
+
+    document.getElementById(inputId)?.click()
   }
 
   const handleAddReferenceClick = (areaIndex) => {
-    const prefix = isMobileCase ? "mobile" : activeView
+    const prefix = isMobileCase ? "mobile" : activeView ?? "unknown"
     const modelIndex = isMobileCase ? activeModelIndex : 0
-    const inputId = isMobileCase 
+    const inputId = isMobileCase
       ? `add-ref-input-mobile-${modelIndex}-${areaIndex}`
-      : `add-ref-input-${activeView}-${areaIndex}`
-    
-    const input = document.getElementById(inputId)
-    if (input) {
-      input.click()
-    }
+      : `add-ref-input-${prefix}-${areaIndex}`
+
+    document.getElementById(inputId)?.click()
   }
 
   const toggleReferences = (areaIndex) => {
     setExpandedArea(expandedArea === areaIndex ? null : areaIndex)
   }
 
+  // Render
   if (loading) return <LoadingState />
   if (error) return <ErrorState error={error} onBack={() => router.push("/admin/print-config")} />
   if (!config) return null
 
-  const views = !isMobileCase ? config.views || {} : {}
+  const views = !isMobileCase ? (config.views || {}) : {}
   const viewKeys = Object.keys(views)
 
   return (
@@ -346,9 +390,13 @@ export default function PrintConfigDetailPage() {
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isEditing ? (
-                <> <Check className="w-4 h-4 mr-2" /> Editing Mode </>
+                <>
+                  <Check className="w-4 h-4 mr-2" /> Editing Mode
+                </>
               ) : (
-                <> <Edit3 className="w-4 h-4 mr-2" /> Edit Images </>
+                <>
+                  <Edit3 className="w-4 h-4 mr-2" /> Edit Images
+                </>
               )}
               {saving && <span className="ml-2 opacity-80">(saving…)</span>}
             </button>
@@ -364,11 +412,10 @@ export default function PrintConfigDetailPage() {
           </div>
 
           <div className="p-6">
-            {/* Mobile Case Layout */}
+            {/* MOBILE CASE SECTION */}
             {isMobileCase ? (
               <div>
-                {/* Model Selection Tabs */}
-                {config.models?.length > 0 && (
+                {config.models?.length ? (
                   <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-1">
                     {config.models.map((model, idx) => (
                       <button
@@ -387,9 +434,8 @@ export default function PrintConfigDetailPage() {
                       </button>
                     ))}
                   </div>
-                )}
+                ) : null}
 
-                {/* Active Model Content */}
                 {config.models?.[activeModelIndex] && (
                   <div className="space-y-10 lg:space-y-0 lg:flex lg:gap-8">
                     <BaseImageSection
@@ -408,10 +454,8 @@ export default function PrintConfigDetailPage() {
                       showFileInput={true}
                     />
 
-                    {/* Model Specifications */}
                     <ModelSpecifications model={config.models[activeModelIndex]} />
 
-                    {/* Right Column - Customizable Areas */}
                     <section className="lg:w-3/5 xl:w-2/3 border-t lg:border-t-0 lg:border-l lg:border-gray-200 lg:pl-8 pt-8 lg:pt-0">
                       <h3 className="text-lg font-semibold text-gray-900 mb-5">
                         Customizable Areas ({config.models[activeModelIndex].view.areas?.length || 0})
@@ -432,7 +476,7 @@ export default function PrintConfigDetailPage() {
                               onRemoveReference={() => removeMobileCaseReferenceImage(activeModelIndex, idx, 0)}
                               onFileChange={handleFileChange}
                               referenceInputKeys={referenceInputKeys}
-                              onUpdateReferenceImage={(prefix, areaIdx, refIdx, newUrl) => 
+                              onUpdateReferenceImage={(prefix, areaIdx, refIdx, newUrl) =>
                                 updateMobileCaseReferenceImage(activeModelIndex, areaIdx, refIdx, newUrl)
                               }
                               prefix="mobile"
@@ -449,52 +493,41 @@ export default function PrintConfigDetailPage() {
                   </div>
                 )}
               </div>
-            ) :  isGeneralPrint ? (
-  /* GENERAL PRINT CONFIGURATION ONLY */
-  <div className="space-y-6">
-    <section className="border border-gray-200 rounded-xl p-6 bg-white">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">
-        Print Configuration
-      </h3>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="border border-gray-200 rounded-lg p-5 bg-gray-50">
-          <h4 className="font-semibold text-gray-900 mb-3">
-            {config.area.name}
-          </h4>
-
-          <div className="space-y-2 text-sm text-gray-700">
-            <p>
-              <span className="text-gray-600">Area ID:</span>{" "}
-              <code className="bg-white px-1.5 py-0.5 rounded font-mono text-xs">
-                {config.area.id}
-              </code>
-            </p>
-
-            <p>
-              <span className="text-gray-600">Max Size:</span>{" "}
-              <span className="font-medium">{config.area.max}</span>
-            </p>
-
-            <p>
-              <span className="text-gray-600">Type:</span>{" "}
-              <span className="capitalize font-medium">
-                {config.area.type}
-              </span>
-            </p>
-
-            {config.area.description && (
-              <p className="text-gray-600 pt-3 mt-3 border-t border-gray-200">
-                {config.area.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-) :  (
-              /* Regular Product Layout */
+            ) : isGeneralPrint ? (
+              /* GENERAL PRODUCT SECTION */
+              <div className="space-y-6">
+                <section className="border border-gray-200 rounded-xl p-6 bg-white">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Print Configuration</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="border border-gray-200 rounded-lg p-5 bg-gray-50">
+                      <h4 className="font-semibold text-gray-900 mb-3">{config.area?.name}</h4>
+                      <div className="space-y-2 text-sm text-gray-700">
+                        <p>
+                          <span className="text-gray-600">Area ID:</span>{" "}
+                          <code className="bg-white px-1.5 py-0.5 rounded font-mono text-xs">
+                            {config.area?.id}
+                          </code>
+                        </p>
+                        <p>
+                          <span className="text-gray-600">Max Size:</span>{" "}
+                          <span className="font-medium">{config.area?.max}</span>
+                        </p>
+                        <p>
+                          <span className="text-gray-600">Type:</span>{" "}
+                          <span className="capitalize font-medium">{config.area?.type}</span>
+                        </p>
+                        {config.area?.description && (
+                          <p className="text-gray-600 pt-3 mt-3 border-t border-gray-200">
+                            {config.area.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            ) : (
+              /* REGULAR PRODUCTS (T-SHIRT, MUG, etc.) */
               <>
                 {viewKeys.length === 0 ? (
                   <div className="text-center py-16">
@@ -503,9 +536,8 @@ export default function PrintConfigDetailPage() {
                   </div>
                 ) : (
                   <>
-                    {/* View Tabs for regular products */}
                     <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-1">
-                      {viewKeys.map(viewKey => (
+                      {viewKeys.map((viewKey) => (
                         <button
                           key={viewKey}
                           onClick={() => setActiveView(viewKey)}
@@ -520,7 +552,6 @@ export default function PrintConfigDetailPage() {
                       ))}
                     </div>
 
-                    {/* Regular Product Content */}
                     {activeView && views[activeView] && (
                       <div className="space-y-10 lg:space-y-0 lg:flex lg:gap-8">
                         <BaseImageSection
@@ -535,7 +566,6 @@ export default function PrintConfigDetailPage() {
                           showFileInput={true}
                         />
 
-                        {/* Right Column - Customizable Areas */}
                         <section className="lg:w-3/5 xl:w-2/3 border-t lg:border-t-0 lg:border-l lg:border-gray-200 lg:pl-8 pt-8 lg:pt-0">
                           <h3 className="text-lg font-semibold text-gray-900 mb-5">
                             Customizable Areas ({views[activeView].areas?.length || 0})
@@ -545,10 +575,8 @@ export default function PrintConfigDetailPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                               {views[activeView].areas.map((area, idx) => (
                                 <CustomizableAreaCard
-
-                                
                                   key={idx}
-                                 area={area}
+                                  area={area}
                                   idx={idx}
                                   isEditing={isEditing}
                                   expandedArea={expandedArea}
@@ -558,7 +586,7 @@ export default function PrintConfigDetailPage() {
                                   onRemoveReference={() => removeReferenceImage(activeView, idx, 0)}
                                   onFileChange={handleFileChange}
                                   referenceInputKeys={referenceInputKeys}
-                                  onUpdateReferenceImage={(prefix, areaIdx, refIdx, newUrl) => 
+                                  onUpdateReferenceImage={(prefix, areaIdx, refIdx, newUrl) =>
                                     updateReferenceImage(activeView, areaIdx, refIdx, newUrl)
                                   }
                                   prefix={activeView}

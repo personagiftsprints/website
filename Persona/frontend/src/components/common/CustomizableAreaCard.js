@@ -59,7 +59,11 @@ export default function CustomizableAreaCard({
                 {isEditing && (
                   <div className="text-center">
                     <button
-                      onClick={() => onAddReference(idx)}
+                      onClick={() => {
+  const inputId = `add-ref-input-${prefix}-${modelIndex}-${idx}`
+  document.getElementById(inputId)?.click()
+}}
+
                       className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors"
                     >
                       <Plus className="w-4 h-4" />
@@ -77,22 +81,21 @@ export default function CustomizableAreaCard({
 
                 {/* Reference Images */}
                 <div className="flex flex-wrap gap-3">
-                  {area.references?.map((ref, refIdx) => (
-                    <ReferenceImageItem
-                      key={refIdx}
-                      ref={ref}
-                      refIdx={refIdx}
-                      areaIdx={idx}
-                      isEditing={isEditing}
-                      onReplaceReference={() => onReplaceReference(idx, refIdx)}
-                      onRemoveReference={() => onRemoveReference(idx, refIdx)}
-                      onFileChange={onFileChange}
-                      referenceInputKeys={referenceInputKeys}
-                      onUpdateReferenceImage={onUpdateReferenceImage}
-                      prefix={prefix}
-                      modelIndex={modelIndex}
-                    />
-                  ))}
+                {area.references?.map((imageUrl, refIdx) => (
+  <ReferenceImageItem
+    key={refIdx}
+    imageUrl={imageUrl}
+    refIdx={refIdx}
+    areaIdx={idx}
+    isEditing={isEditing}
+    onReplaceReference={() => onReplaceReference(idx, refIdx)}
+    onRemoveReference={() => onRemoveReference(idx, refIdx)}
+    onFileChange={onFileChange}
+    prefix={prefix}
+    modelIndex={modelIndex}
+  />
+))}
+
                 </div>
                 
                 {(!area.references || area.references.length === 0) && (

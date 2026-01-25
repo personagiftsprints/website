@@ -49,7 +49,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-200">
               <li>Address: To be updated</li>
               <li>Phone: To be updated</li>
-              <li>Email: support@personagifts.com</li>
+              <li>Email: personagiftsprints@gmail.com</li>
             </ul>
           </div>
         </div>

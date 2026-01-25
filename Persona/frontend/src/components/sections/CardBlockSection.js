@@ -1,9 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Link from "next/link"
 import Card from "../common/Card"
-import { ShoppingCart } from "lucide-react"
-
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,25 +43,28 @@ export default function CardBlockSection({ heading, items }) {
           </span>
         </motion.div>
 
-<motion.div
-  variants={containerVariants}
-  initial="hidden"
-  whileInView="visible"
-  viewport={{ once: true }}
-  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
->
-  {items.map((item, index) => (
-    <motion.div
-      key={index}
-      variants={itemVariants}
-      className="min-w-0"
-    >
-      <Card title={item.title} image={item.image} />
-    </motion.div>
-  ))}
-</motion.div>
-
-
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+        >
+          {items.map((item, index) => (
+            <motion.div
+              key={index}
+              variants={itemVariants}
+              className="min-w-0"
+            >
+              <Link
+                href={`/collections/${item.type}`}
+                className="block cursor-pointer"
+              >
+                <Card title={item.title} image={item.image} />
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     </section>
   )

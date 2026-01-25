@@ -104,7 +104,7 @@ export default function CartPage() {
           return (
             <div
               key={key}
-              className="flex gap-4 border rounded-lg p-4 bg-white"
+              className="flex gap-4  rounded-lg p-4 bg-white"
             >
               <div className="relative w-24 h-24 bg-gray-100 rounded overflow-hidden">
                 {item.image && (
@@ -189,10 +189,10 @@ export default function CartPage() {
       <div className="bg-white border rounded-lg p-6 h-fit space-y-4">
         <h2 className="text-lg font-semibold">Order Summary</h2>
 
-        <div className="flex justify-between">
+        {/* <div className="flex justify-between">
           <span>Subtotal</span>
           <span>₹{subtotal}</span>
-        </div>
+        </div> */}
 
         <button
           onClick={() => router.push("/checkout?mode=cart")}
