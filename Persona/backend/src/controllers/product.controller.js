@@ -1,6 +1,24 @@
 
 import Product from '../models/Product.model.js'
+import { PRODUCT_TYPE_ATTRIBUTES } from '../constants/productAttributes.js'
 
+export const getProductAttributesByType = (req, res) => {
+  const { type } = req.params
+
+  const attributes = PRODUCT_TYPE_ATTRIBUTES[type]
+
+  if (!attributes) {
+    return res.status(404).json({
+      success: false,
+      message: 'No attributes defined for this product type'
+    })
+  }
+
+  res.json({
+    success: true,
+    data: attributes
+  })
+}
 
 export const createProduct = async (req, res) => {
   try {
@@ -9,7 +27,8 @@ export const createProduct = async (req, res) => {
       pricing,
       inventory,
       customization,
-      images
+      images,
+      productConfig
     } = req.body
 
     if (!basicInfo?.name || !basicInfo?.slug || !basicInfo?.type) {
@@ -27,26 +46,70 @@ export const createProduct = async (req, res) => {
       })
     }
 
+    const hasVariants =
+      productConfig &&
+      productConfig.variants &&
+      productConfig.variants.length > 0
+
+    if (hasVariants && inventory?.manageStock) {
+      return res.status(400).json({
+        success: false,
+        message: 'Disable base inventory when using variants'
+      })
+    }
+
+    if (hasVariants) {
+      const allowedAttributes =
+        PRODUCT_TYPE_ATTRIBUTES[basicInfo.type] || []
+
+      const allowedCodes = allowedAttributes.map(a => a.code)
+
+      const seen = new Set()
+
+    for (const variant of productConfig.variants) {
+  const keys = Object.keys(variant.attributes)
+
+  keys.forEach(k => {
+    if (!allowedCodes.includes(k)) {
+      throw new Error(`Invalid attribute "${k}" for product type`)
+    }
+  })
+
+  const signature = JSON.stringify(
+    Object.entries(variant.attributes).sort()
+  )
+
+  if (seen.has(signature)) {
+    throw new Error('Duplicate variant combination detected')
+  }
+
+  seen.add(signature)
+}
+
+    }
+
     const product = await Product.create({
       ...basicInfo,
       pricing,
-      inventory,
+      inventory: hasVariants ? { manageStock: false } : inventory,
+      productConfig: hasVariants ? productConfig : null,
       customization,
       images
     })
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       data: product
     })
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Failed to create product',
       error: error.message
     })
   }
 }
+
 
 
 
@@ -150,7 +213,6 @@ export const updateProduct = async (req, res) => {
     const { id } = req.params
     const updates = req.body
 
-    // Prevent duplicate slug
     if (updates.basicInfo?.slug) {
       const existing = await Product.findOne({
         slug: updates.basicInfo.slug,
@@ -168,7 +230,7 @@ export const updateProduct = async (req, res) => {
       id,
       { $set: updates },
       { new: true, runValidators: true }
-    ).populate('customization.printConfig.configId')
+    )
 
     if (!product) {
       return res.status(404).json({
@@ -183,7 +245,6 @@ export const updateProduct = async (req, res) => {
       data: product
     })
   } catch (error) {
-    console.error('Update product error:', error)
     res.status(500).json({
       success: false,
       message: 'Failed to update product',

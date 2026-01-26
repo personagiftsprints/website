@@ -1,337 +1,526 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { getProductBySlug } from '@/services/product.service'
 import { getPrintConfigBySlug } from '@/services/printArea.service'
+import { addToCart } from '@/lib/cart'
+import { uploadImagesToCloudinary } from '@/services/upload.service'
+
+
+const FONTS = [
+  { label: 'Sans', value: 'font-sans' },
+  { label: 'Serif', value: 'font-serif' },
+  { label: 'Mono', value: 'font-mono' },
+  { label: 'Display', value: 'font-bold' }
+]
 
 export default function CustomizeProductPage() {
   const { slug } = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const fileInputRef = useRef(null)
+
+  // FIXED: Added proper type handling for lockedAttributes
+  const lockedAttributes = searchParams.get('variant') 
+    ? JSON.parse(searchParams.get('variant'))
+    : {}
 
   const [product, setProduct] = useState(null)
   const [config, setConfig] = useState(null)
-  const [selectedView, setSelectedView] = useState('front')
+
+  const [selectedView, setSelectedView] = useState(null)
   const [selectedArea, setSelectedArea] = useState(null)
-  const [uploadedImage, setUploadedImage] = useState(null)
-  const [uploadedImageUrl, setUploadedImageUrl] = useState(null)
+
+  const [designType, setDesignType] = useState('image')
+  const [designs, setDesigns] = useState({})
+
+  const [textValue, setTextValue] = useState('')
+  const [fontFamily, setFontFamily] = useState(FONTS[0].value)
+
+  const [selectedAttributes, setSelectedAttributes] = useState({})
+  const [selectedVariant, setSelectedVariant] = useState(null)
+
+  const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
 
+  /* ---------------- LOAD PRODUCT ---------------- */
   useEffect(() => {
-    // ──────────────────────────────────────────────
-    // same loading logic as before (unchanged)
-    // ──────────────────────────────────────────────
     if (!slug) return
 
-    const loadProductAndConfig = async () => {
+    const load = async () => {
       try {
         setLoading(true)
-        setError(null)
-
         const productRes = await getProductBySlug(slug)
-        if (!productRes?.success || !productRes.data) {
+        
+        if (!productRes?.success) {
           router.push('/404')
           return
         }
 
-        if (!productRes.data.customization?.enabled) {
-          setError('Customization is not available for this product')
+        const productData = productRes.data
+        
+        if (!productData.customization?.enabled) {
+          setError('Customization not available')
+          setLoading(false)
           return
         }
 
-        setProduct(productRes.data)
+        setProduct(productData)
 
-        const printConfig = productRes.data.customization?.printConfig
-        if (!printConfig?.configType) {
-          setError('Print configuration missing')
-          return
-        }
+        const cfg = await getPrintConfigBySlug(
+          productData.customization.printConfig.configType
+        )
 
-        const configRes = await getPrintConfigBySlug(printConfig.configType)
-        if (!configRes) {
-          setError('Failed to load print configuration')
-          return
-        }
+        setConfig(cfg)
 
-        setConfig(configRes)
-        console.log('Print config:', configRes)
-
-        if (configRes.views?.front?.areas?.length > 0) {
-          setSelectedArea(configRes.views.front.areas[0])
-        }
+        const firstView = Object.keys(cfg.views)[0]
+        setSelectedView(firstView)
+        setSelectedArea(cfg.views[firstView].areas[0])
       } catch (err) {
-        console.error(err)
-        setError('Failed to load product configuration')
+        console.error('Failed to load product:', err)
+        setError('Failed to load product')
       } finally {
         setLoading(false)
       }
     }
 
-    loadProductAndConfig()
+    load()
   }, [slug, router])
 
-  const handleImageUpload = e => {
-    // same as before...
-    const file = e.target.files[0]
-    if (!file) return
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
-    if (!validTypes.includes(file.type)) {
-      setError('Invalid image format')
-      return
+  /* ---------------- LOCK VARIANT ---------------- */
+  useEffect(() => {
+    if (!product?.productConfig?.attributes) return
+    // FIXED: Only set if lockedAttributes has values
+    if (Object.keys(lockedAttributes).length > 0) {
+      setSelectedAttributes(lockedAttributes)
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be under 5MB')
-      return
-    }
+  }, [product])
 
-    setUploadedImage(file)
-    setError(null)
+  /* ---------------- MATCH VARIANT ---------------- */
+  useEffect(() => {
+    if (!product?.productConfig?.variants) return
 
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 10
-      setUploadProgress(progress)
-      if (progress >= 100) {
-        clearInterval(interval)
-        setUploadedImageUrl(URL.createObjectURL(file))
+    const match = product.productConfig.variants.find(v =>
+      Object.entries(selectedAttributes).every(
+        ([k, val]) => v.attributes[k] === val
+      )
+    )
+
+    setSelectedVariant(match || null)
+    setQuantity(1)
+  }, [selectedAttributes, product])
+
+  /* ---------------- OPTION DISABLE ---------------- */
+  const isOptionDisabled = (code, value) => {
+    if (!product?.productConfig?.variants) return true
+    
+    return !product.productConfig.variants.some(v =>
+      v.attributes[code] === value &&
+      Object.entries(selectedAttributes).every(
+        ([k, v2]) => k === code || v.attributes[k] === v2
+      ) &&
+      v.stockQuantity > 0
+    )
+  }
+
+  /* ---------------- PRINT AREA CHANGE ---------------- */
+  const handleAreaChange = area => {
+    if (product?.type === 'tshirt') {
+      const existing = designs[selectedView]?.[selectedArea?.id]
+      if (existing && area.id !== selectedArea.id) {
+        const ok = window.confirm(
+          'You can only select one print position. Change and discard current design?'
+        )
+        if (!ok) return
       }
-    }, 50)
+    }
+    setSelectedArea(area)
   }
 
-  const handleRemoveImage = () => {
-    setUploadedImage(null)
-    setUploadedImageUrl(null)
-    setUploadProgress(0)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+  /* ---------------- IMAGE UPLOAD ---------------- */
+  const handleImageUpload = e => {
+    const file = e.target.files[0]
+    if (!file || !selectedArea) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Max 5MB')
+      return
+    }
+
+    // FIXED: Create object URL for preview
+    const imageUrl = URL.createObjectURL(file)
+    
+    setDesigns(prev => ({
+      ...prev,
+      [selectedView]: {
+        ...prev[selectedView],
+        [selectedArea.id]: {
+          type: 'image',
+          file: file,
+          imageUrl: imageUrl, // Add preview URL
+          name: file.name
+        }
+      }
+    }))
   }
 
-  const handleViewChange = view => {
-    setSelectedView(view)
-    if (config?.views?.[view]?.areas?.length > 0) {
-      setSelectedArea(config.views[view].areas[0])
-    } else {
-      setSelectedArea(null)
+  /* ---------------- TEXT DESIGN ---------------- */
+  useEffect(() => {
+    if (designType !== 'text' || !selectedArea || !selectedView) return
+
+    // Only update if we have text or we want to clear existing text design
+    if (textValue.trim() || designs[selectedView]?.[selectedArea.id]?.type === 'text') {
+      setDesigns(prev => ({
+        ...prev,
+        [selectedView]: {
+          ...prev[selectedView],
+          [selectedArea.id]: {
+            type: 'text',
+            text: textValue,
+            font: fontFamily
+          }
+        }
+      }))
+    }
+  }, [textValue, fontFamily, designType, selectedArea, selectedView])
+
+  /* ---------------- UPLOAD DESIGN IMAGES ---------------- */
+  // FIXED: Added missing function
+
+const uploadDesignImages = async designsObj => {
+  const files = []
+  const indexMap = []
+
+  Object.entries(designsObj).forEach(([viewKey, viewData]) => {
+    Object.entries(viewData).forEach(([areaId, design]) => {
+      if (design.type === 'image' && design.file) {
+        files.push(design.file)
+        indexMap.push({ viewKey, areaId })
+      }
+    })
+  })
+
+  if (!files.length) return designsObj
+
+  const uploadedImages = await uploadImagesToCloudinary(files)
+
+  const uploadedDesigns = structuredClone(designsObj)
+
+  uploadedImages.forEach((img, index) => {
+    const { viewKey, areaId } = indexMap[index]
+
+    uploadedDesigns[viewKey][areaId] = {
+      type: 'image',
+      imageUrl: img.url,
+      publicId: img.publicId,
+      uploaded: true
+    }
+  })
+
+  return uploadedDesigns
+}
+  /* ---------------- CART PAYLOAD ---------------- */
+  const buildCartItem = async () => {
+    if (!selectedVariant || !product) return null
+
+    let finalDesigns = designs
+
+    if (product.customization?.enabled) {
+      finalDesigns = await uploadDesignImages(designs)
+    }
+
+    return {
+      productId: product._id,
+      variant: selectedVariant.attributes,
+      quantity,
+      price: product.pricing.specialPrice ?? product.pricing.basePrice,
+      variantId: selectedVariant._id,
+
+      ...(product.customization?.enabled && {
+        customization: {
+          enabled: true,
+          printConfigType: product.customization.printConfig.configType,
+          designs: finalDesigns
+        }
+      })
     }
   }
 
-  const handleProceedToCheckout = () => {
-    if (!selectedArea) return
-
-    const params = new URLSearchParams({
-      product: product._id,
-      configId: product.customization.printConfig.configId,
-      view: selectedView,
-      area: selectedArea.id,
-      ...(uploadedImageUrl && { customImage: 'true' })
-    })
-
-    router.push(`/checkout?${params.toString()}`)
+  const handleAddToCart = async () => {
+    const item = await buildCartItem()
+    if (!item) {
+      alert('Please select a variant first')
+      return
+    }
+    addToCart(item)
+    alert('Added to cart!')
   }
 
-  const getAreaDimensions = area => area?.max || 'N/A'
+  const handleBuyNow = async () => {
+    const item = await buildCartItem()
+    if (!item) {
+      alert('Please select a variant first')
+      return
+    }
+    addToCart(item)
+    router.push('/checkout')
+  }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-lg font-medium">Preparing your design studio...</p>
-        </div>
-      </div>
-    )
+    return <div className="fixed inset-0 flex items-center justify-center">Loading…</div>
   }
 
-  if (error || !product || !config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md px-6">
-          <p className="text-xl font-semibold text-gray-800 mb-4">
-            {error || 'Studio configuration not available'}
-          </p>
-          <button
-            onClick={() => router.back()}
-            className="px-8 py-3 bg-black text-white rounded-full hover:bg-gray-800 transition"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    )
+  if (error) {
+    return <div className="fixed inset-0 flex items-center justify-center text-red-500">{error}</div>
   }
 
-  const viewData = config.views?.[selectedView]
+  if (!product || !config || !selectedView) {
+    return <div className="fixed inset-0 flex items-center justify-center">Product not found</div>
+  }
+
+  const viewData = config.views[selectedView]
+  const currentDesign = designs[selectedView]?.[selectedArea?.id]
 
   return (
-    <div className="min-h-screen bg-gray-800 w-full flex flex-col">
-      {/* Top bar — quick view switch + title */}
-      <div className="bg-white border-b w-full shadow-sm sticky top-0 z-10">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-            Design Studio — {product.name}
-          </h1>
+    <div className="flex h-screen bg-white">
+      {/* PRODUCT SIDEBAR */}
+      <div className="w-80 border-r p-5 space-y-6 overflow-y-auto">
+        <img src={product.thumbnail} alt={product.name} className="w-full rounded" />
+        <h2 className="text-xl font-semibold">{product.name}</h2>
 
-          <div className="flex gap-2">
-            {Object.keys(config.views).map(view => (
-              <button
-                key={view}
-                onClick={() => handleViewChange(view)}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition ${
-                  selectedView === view
-                    ? 'bg-black text-white shadow'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {view.charAt(0).toUpperCase() + view.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Main content — flex row on lg, column on mobile */}
-      <div className="flex-1 flex flex-col lg:flex-row max-w-8xl  mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 gap-6">
-        {/* LEFT / CENTER → Big preview area (the "canvas") */}
-        <div className="flex-1 flex flex-col gap-6 order-2 lg:order-1">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-            <div className="aspect-[4/3] sm:aspect-[3/2] lg:aspect-[4/3] relative bg-gray-50 flex items-center justify-center p-4 sm:p-8">
-              <img
-                src={viewData.baseImage}
-                alt={`${selectedView} view`}
-                className="max-w-full max-h-full object-contain drop-shadow-2xl"
-              />
-
-              {/* Optional overlay hint for selected area */}
-              {selectedArea && (
-                <div className="absolute inset-0 pointer-events-none">
-                  <div
-                    className="absolute border-2 border-dashed border-blue-500 bg-blue-50 bg-opacity-10 rounded-lg"
-                    style={{
-                      // You'd calculate real position & size based on selectedArea coords
-                      top: '20%',
-                      left: '15%',
-                      width: '70%',
-                      height: '60%'
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Reference designs — horizontal scrollable */}
-          {selectedArea?.references?.length > 0 && (
-            <div className="bg-white p-5 rounded-xl shadow-sm">
-              <h2 className="font-semibold text-lg mb-4">Inspiration / References</h2>
-              <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
-                {selectedArea.references.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    alt={`Reference ${i + 1}`}
-                    className="h-32 sm:h-40 w-auto object-cover rounded-lg shadow-sm snap-start flex-shrink-0"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT SIDEBAR → Tools panel */}
-        <div className="w-full lg:w-96 lg:max-w-md space-y-6 order-1 lg:order-2">
-          {/* Print Areas */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h2 className="font-semibold text-lg mb-4">Print Areas</h2>
-            <div className="space-y-3">
-              {viewData.areas.map(area => (
-                <div
-                  key={area.id}
-                  onClick={() => setSelectedArea(area)}
-                  className={`p-4 border rounded-xl cursor-pointer transition-all ${
-                    selectedArea?.id === area.id
-                      ? 'border-black bg-gray-50 shadow-sm'
-                      : 'border-gray-200 hover:border-gray-400'
-                  }`}
+        {product.productConfig?.attributes?.map(attr => (
+          <div key={attr.code}>
+            <p className="text-sm mb-2">{attr.name}</p>
+            <div className="flex gap-2 flex-wrap">
+              {attr.values?.map(value => (
+                <button
+                  key={value}
+                  disabled={isOptionDisabled(attr.code, value)}
+                  onClick={() =>
+                    setSelectedAttributes(prev => ({
+                      ...prev,
+                      [attr.code]: value
+                    }))
+                  }
+                  className={`px-3 py-2 border rounded transition-colors ${
+                    selectedAttributes[attr.code] === value
+                      ? 'bg-black text-white'
+                      : 'hover:bg-gray-100'
+                  } ${isOptionDisabled(attr.code, value) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  <p className="font-medium">{area.name}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Max: {getAreaDimensions(area)}
-                  </p>
-                </div>
+                  {value}
+                </button>
               ))}
             </div>
           </div>
-
-          {/* Upload Design */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h2 className="font-semibold text-lg mb-4">Your Design</h2>
-
-            {!uploadedImageUrl ? (
-              <div
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <p className="text-gray-600 font-medium">Drop image here or click to upload</p>
-                <p className="text-sm text-gray-500 mt-2">JPG, PNG, WEBP, SVG • max 5MB</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </div>
-            ) : (
-              <div className="relative rounded-xl overflow-hidden shadow-sm">
-                <img
-                  src={uploadedImageUrl}
-                  alt="Uploaded design"
-                  className="w-full h-48 object-cover"
-                />
-                <button
-                  onClick={handleRemoveImage}
-                  className="absolute top-3 right-3 bg-red-600 text-white w-9 h-9 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <div className="mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-black h-2.5 rounded-full transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Bottom action bar */}
-      <div className="bg-white border-t shadow-inner mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <button
-            onClick={() => router.back()}
-            className="px-8 py-3 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition w-full sm:w-auto"
+      {/* CANVAS */}
+      <div className="flex-1 flex items-center justify-center bg-gray-100 relative">
+        <img 
+          src={viewData.baseImage} 
+          alt={`${product.name} - ${selectedView}`} 
+          className="max-h-full object-contain" 
+        />
+        {currentDesign?.type === 'image' && currentDesign.imageUrl && (
+          <img 
+            src={currentDesign.imageUrl} 
+            alt="Custom design" 
+            className="absolute max-h-[60%] max-w-[60%] object-contain" 
+            style={{
+              left: selectedArea?.position?.x || '50%',
+              top: selectedArea?.position?.y || '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          />
+        )}
+        {currentDesign?.type === 'text' && currentDesign.text && (
+          <div 
+            className={`absolute text-3xl ${currentDesign.font}`}
+            style={{
+              left: selectedArea?.position?.x || '50%',
+              top: selectedArea?.position?.y || '50%',
+              transform: 'translate(-50%, -50%)',
+              whiteSpace: 'nowrap'
+            }}
           >
-            Cancel
-          </button>
+            {currentDesign.text}
+          </div>
+        )}
+      </div>
 
-          <button
-            disabled={!selectedArea}
-            onClick={handleProceedToCheckout}
-            className="px-10 py-3 bg-black text-white rounded-full font-medium hover:bg-gray-900 transition disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-          >
-            Proceed to Checkout
-          </button>
+      {/* RIGHT SIDEBAR */}
+      <div className="w-96 border-l p-6 space-y-6 overflow-y-auto">
+        <div className="flex gap-2">
+          {Object.keys(config.views).map(v => (
+            <button
+              key={v}
+              onClick={() => {
+                setSelectedView(v)
+                setSelectedArea(config.views[v].areas[0])
+              }}
+              className={`px-3 py-1 rounded transition-colors ${
+                v === selectedView ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'
+              }`}
+            >
+              {v.replace('_', ' ')}
+            </button>
+          ))}
         </div>
+
+        <div>
+          <h3 className="font-semibold mb-2">Print Area</h3>
+          {viewData.areas.map(area => (
+            <div
+              key={area.id}
+              onClick={() => handleAreaChange(area)}
+              className={`p-3 border rounded mb-2 cursor-pointer transition-colors ${
+                selectedArea?.id === area.id 
+                  ? 'border-black bg-black text-white' 
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              {area.name}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          {['image', 'text'].map(t => (
+            <button
+              key={t}
+              onClick={() => setDesignType(t)}
+              className={`px-3 py-1 rounded transition-colors ${
+                designType === t ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {designType === 'text' && (
+          <>
+            <input
+              value={textValue}
+              onChange={e => setTextValue(e.target.value)}
+              placeholder="Enter your text here"
+              className="w-full border p-2 rounded"
+            />
+            <div className="flex gap-2">
+              {FONTS.map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setFontFamily(f.value)}
+                  className={`px-3 py-1 rounded transition-colors ${
+                    fontFamily === f.value ? 'bg-black text-white' : 'bg-gray-200 hover:bg-gray-300'
+                  } ${f.value}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {designType === 'image' && (
+          <div 
+            onClick={() => fileInputRef.current?.click()} 
+            className="border-dashed border-2 border-gray-300 p-6 text-center cursor-pointer hover:border-gray-400 transition-colors rounded"
+          >
+            <p className="text-gray-600">Click to upload image</p>
+            <p className="text-sm text-gray-500 mt-1">Max 5MB • JPG, PNG, GIF</p>
+            <input 
+              ref={fileInputRef} 
+              type="file" 
+              className="hidden" 
+              onChange={handleImageUpload}
+              accept="image/*"
+            />
+          </div>
+        )}
+
+        {currentDesign && (
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="text-sm font-medium">Current Design:</p>
+            <p className="text-sm text-gray-600">
+              {currentDesign.type === 'image' 
+                ? `Image: ${currentDesign.name || 'Uploaded image'}`
+                : `Text: "${currentDesign.text}"`
+              }
+            </p>
+          </div>
+        )}
+
+        {selectedVariant && (
+          <>
+            <p className={`font-medium ${
+              selectedVariant.stockQuantity > 10 
+                ? 'text-green-600' 
+                : selectedVariant.stockQuantity > 0 
+                  ? 'text-yellow-600' 
+                  : 'text-red-600'
+            }`}>
+              {selectedVariant.stockQuantity > 0 
+                ? `${selectedVariant.stockQuantity} in stock` 
+                : 'Out of stock'}
+            </p>
+
+            <div className="flex gap-3 items-center">
+              <button 
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                className="w-8 h-8 flex items-center justify-center border rounded"
+                disabled={quantity <= 1}
+              >
+                −
+              </button>
+              <input
+                type="number"
+                value={quantity}
+                min="1"
+                max={selectedVariant.stockQuantity}
+                onChange={e => setQuantity(Math.min(selectedVariant.stockQuantity, Math.max(1, Number(e.target.value))))}
+                className="w-16 text-center border rounded py-1"
+              />
+              <button 
+                onClick={() => setQuantity(q => Math.min(selectedVariant.stockQuantity, q + 1))}
+                className="w-8 h-8 flex items-center justify-center border rounded"
+                disabled={quantity >= selectedVariant.stockQuantity}
+              >
+                +
+              </button>
+            </div>
+          </>
+        )}
+
+        <button 
+          onClick={handleAddToCart} 
+          disabled={!selectedVariant || selectedVariant.stockQuantity === 0}
+          className={`w-full py-3 rounded transition-colors ${
+            !selectedVariant || selectedVariant.stockQuantity === 0
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-gray-900 hover:bg-black text-white'
+          }`}
+        >
+          {!selectedVariant ? 'Select Variant' : 
+           selectedVariant.stockQuantity === 0 ? 'Out of Stock' : 
+           'Add to Cart'}
+        </button>
+
+        <button 
+          onClick={handleBuyNow} 
+          disabled={!selectedVariant || selectedVariant.stockQuantity === 0}
+          className={`w-full py-3 rounded transition-colors ${
+            !selectedVariant || selectedVariant.stockQuantity === 0
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-black hover:bg-gray-800 text-white'
+          }`}
+        >
+          Buy Now
+        </button>
       </div>
     </div>
   )

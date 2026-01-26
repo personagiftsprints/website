@@ -19,6 +19,22 @@ export default function ProductDetailPage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  const [selectedAttributes, setSelectedAttributes] = useState({})
+const [selectedVariant, setSelectedVariant] = useState(null)
+
+
+useEffect(() => {
+  if (!product?.productConfig?.variants) return
+
+  const match = product.productConfig.variants.find(v =>
+    Object.entries(selectedAttributes).every(
+      ([key, value]) => v.attributes[key] === value
+    )
+  )
+
+  setSelectedVariant(match || null)
+}, [selectedAttributes, product])
+
 
   useEffect(() => {
     if (!slug) return
@@ -93,6 +109,19 @@ const handleAddToCart = () => {
     router.push("/cart")
   }
 
+  const isOutOfStock =
+  product.productConfig?.variants?.length > 0 &&
+  (!selectedVariant || selectedVariant.stockQuantity === 0)
+
+  const isConfigRequired =
+  product.customization?.enabled &&
+  product.productConfig?.variants?.length > 0
+
+const isConfigSelected =
+  !isConfigRequired ||
+  (selectedVariant && selectedVariant.stockQuantity > 0)
+
+
   return (
     <>
       <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -142,6 +171,52 @@ const handleAddToCart = () => {
             )}
           </div>
 
+          {product.productConfig?.attributes?.length > 0 && (
+  <div className="space-y-4">
+    {product.productConfig.attributes.map(attr => (
+      <div key={attr.code}>
+        <p className="text-sm font-medium mb-2">
+          {attr.name}
+        </p>
+
+        <div className="flex gap-2 flex-wrap">
+          {attr.values.map(value => {
+            const active = selectedAttributes[attr.code] === value
+
+            return (
+              <button
+                key={value}
+                onClick={() =>
+                  setSelectedAttributes(prev => ({
+                    ...prev,
+                    [attr.code]: value
+                  }))
+                }
+                className={`px-4 py-2 rounded border text-sm ${
+                  active
+                    ? "border-black bg-black text-white"
+                    : "border-gray-300"
+                }`}
+              >
+                {value}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
+{selectedVariant && (
+  <p className="text-sm text-gray-600">
+    {selectedVariant.stockQuantity > 0
+      ? `${selectedVariant.stockQuantity} available`
+      : "Out of stock"}
+  </p>
+)}
+
+
           {inventory.manageStock && (
             <p className="text-sm text-gray-500">
               {inventory.stockQuantity > 0
@@ -167,23 +242,40 @@ const handleAddToCart = () => {
 
           {/* Actions */}
           <div className="flex gap-4 pt-4">
-            {customization?.enabled ? (
-              <button
-                onClick={() =>
-                  router.push(`/products/customize/${product.slug}`)
-                }
-                className="px-6 py-3 bg-black text-white rounded-lg"
-              >
-                Customize Now
-              </button>
-            ) : (
-              <button
-                onClick={handleBuyNow}
-                className="px-6 py-3 bg-black text-white rounded-lg"
-              >
-                Buy Now
-              </button>
-            )}
+           {customization?.enabled && (
+  <div className="space-y-2">
+    <button
+      disabled={!isConfigSelected}
+      onClick={() =>
+        router.push(
+          `/products/customize/${product.slug}?variant=${encodeURIComponent(
+            JSON.stringify(selectedVariant.attributes)
+          )}&type=${product.type}`
+        )
+      }
+      className={`px-6 py-3 rounded-lg w-full ${
+        isConfigSelected
+          ? "bg-black text-white"
+          : "bg-gray-300 cursor-not-allowed"
+      }`}
+    >
+      Customize Now
+    </button>
+
+    {!isConfigSelected && (
+      <p className="text-sm text-gray-500">
+        Please select product options (color, size, etc.) to continue
+      </p>
+    )}
+
+    {selectedVariant && selectedVariant.stockQuantity === 0 && (
+      <p className="text-sm text-red-600">
+        Selected variant is out of stock
+      </p>
+    )}
+  </div>
+)}
+
 
             {!customization?.enabled && (
               <>

@@ -54,6 +54,17 @@ export const getProductById = async (id) => {
   }
 };
 
+export const getProductAttribute = async (type) => {
+  try {
+    const response = await api.get(`/products/product-attributes/${type}`);
+    return response.data;
+  } catch (error) {
+    console.error('Fetch product error:', error);
+    throw error;
+  }
+};
+
+
 // Get by Slug
 export const getProductBySlug = async (slug) => {
   try {

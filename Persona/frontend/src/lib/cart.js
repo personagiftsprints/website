@@ -13,22 +13,9 @@ export const getCartCount = () => {
 }
 
 export const addToCart = item => {
-  const cart = getCart()
-
-  const existing = cart.find(
-    i =>
-      i.productId === item.productId &&
-      i.isCustom === item.isCustom &&
-      JSON.stringify(i.design) === JSON.stringify(item.design)
-  )
-
-  if (existing) {
-    existing.quantity += item.quantity
-  } else {
-    cart.push(item)
-  }
-
-  saveCart(cart)
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+  cart.push(item)
+  localStorage.setItem('cart', JSON.stringify(cart))
 }
 
 export const removeFromCart = id => {

@@ -23,11 +23,9 @@ import GeneralRenderer from "@/components/GeneralRenderer";
 import ViewRenderer from "@/components/ViewRenderer";
 import ModelRenderer from "@/components/ModelRenderer";
 import Toggle from "@/components/Toggle";
-import { createProductAPI, uploadImagesAPI } from "@/services/product.service";
+import { createProductAPI, uploadImagesAPI,getProductAttribute } from "@/services/product.service";
 import {
   validateNumberInput,
-  buildProductPayload,
-  validateProductForm,
 } from "@/utils/productUtils";
 
 export default function CreateProductPage() {
@@ -55,8 +53,42 @@ export default function CreateProductPage() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [productConfig, setProductConfig] = useState(null)
+
+useEffect(() => {
+  if (!formData.type) {
+    setProductConfig(null)
+    return
+  }
+
+  const fetchAttributes = async () => {
+    const res = await getProductAttribute(formData.type)
+
+    const variants = generateVariants(res.data)
+
+    setProductConfig({
+      attributes: res.data,
+      variants
+    })
+  }
+
+  fetchAttributes()
+}, [formData.type])
+
+
 
   const fileInputRef = useRef(null);
+
+
+  useEffect(() => {
+  if (productConfig?.variants?.length) {
+    setFormData(prev => ({
+      ...prev,
+      manageStock: false,
+      stockQuantity: '0'
+    }))
+  }
+}, [productConfig])
 
   // Effects
   useEffect(() => {
@@ -79,6 +111,29 @@ export default function CreateProductPage() {
       setActiveTab("preview");
     }
   }, [customizationEnabled, selectedConfig]);
+
+  const generateVariants = (attributes) => {
+  const combine = (index, current, result) => {
+    if (index === attributes.length) {
+      result.push({
+        attributes: current,
+        stockQuantity: 0
+      })
+      return
+    }
+
+    attributes[index].values.forEach(value => {
+      combine(index + 1, {
+        ...current,
+        [attributes[index].code]: value
+      }, result)
+    })
+  }
+
+  const result = []
+  combine(0, {}, result)
+  return result
+}
 
   // Event handlers
   const handleInputChange = (field, value) => {
@@ -172,6 +227,12 @@ export default function CreateProductPage() {
       }
     }
   };
+const findVariant = (variants, selected) =>
+  variants.find(v =>
+    Object.entries(selected).every(
+      ([k, v2]) => v.attributes[k] === v2
+    )
+  )
 
   const removeImage = (imageId) => {
     setFormData((prev) => ({
@@ -220,6 +281,10 @@ export default function CreateProductPage() {
           manageStock: formData.manageStock,
           stockQuantity: Number(formData.stockQuantity) || 0,
         },
+        productConfig: productConfig?.variants?.length
+  ? productConfig
+  : null,
+
         customization: {
           enabled: customizationEnabled,
           ...(customizationEnabled &&
@@ -433,6 +498,46 @@ export default function CreateProductPage() {
                         </select>
                       </div>
 
+                     {productConfig?.variants?.length > 0 && (
+  <div className="mt-6 rounded-xl border bg-white shadow-sm">
+    <div className="border-b px-5 py-3">
+      <h4 className="text-sm font-semibold text-gray-800">
+        Variant Stock Management
+      </h4>
+    </div>
+
+    <div className="divide-y">
+      {productConfig.variants.map((variant, i) => (
+        <div
+          key={i}
+          className="grid grid-cols-[1fr_120px] items-center gap-4 px-5 py-3"
+        >
+          <div className="text-sm text-gray-700 font-medium">
+            {Object.values(variant.attributes).join(" / ")}
+          </div>
+
+          <input
+            type="number"
+            min="0"
+            className="h-9 w-full rounded-md border px-2 text-sm focus:border-black focus:outline-none"
+            value={variant.stockQuantity}
+            onChange={(e) => {
+              const qty = Number(e.target.value)
+              setProductConfig(prev => {
+                const copy = structuredClone(prev)
+                copy.variants[i].stockQuantity = qty
+                return copy
+              })
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+
+
                       {/* Product Description */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -521,75 +626,7 @@ export default function CreateProductPage() {
                         </div>
                       </div>
 
-                      {/* Inventory Management */}
-                      <div className="pt-4 border-t">
-                        <h4 className="font-medium text-gray-900 mb-3">
-                          Inventory Management
-                        </h4>
-
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Manage Stock
-                              </label>
-                              <p className="text-xs text-gray-500">
-                                Enable stock tracking for this product
-                              </p>
-                            </div>
-                            <div className="flex items-center">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleInputChange(
-                                    "manageStock",
-                                    !formData.manageStock,
-                                  )
-                                }
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                  formData.manageStock
-                                    ? "bg-blue-600"
-                                    : "bg-gray-200"
-                                }`}
-                              >
-                                <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    formData.manageStock
-                                      ? "translate-x-6"
-                                      : "translate-x-1"
-                                  }`}
-                                />
-                              </button>
-                            </div>
-                          </div>
-
-                          {formData.manageStock && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Stock Quantity *
-                              </label>
-                              <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                  <PackageIcon className="w-4 h-4 text-gray-500" />
-                                </div>
-                                <input
-                                  type="text"
-                                  value={formData.stockQuantity}
-                                  onChange={(e) =>
-                                    handleStockQuantityChange(e.target.value)
-                                  }
-                                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="0"
-                                />
-                              </div>
-                              <p className="text-xs text-gray-500 mt-1">
-                                Enter the initial stock quantity for this
-                                product
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                    
                     </div>
                   </div>
 

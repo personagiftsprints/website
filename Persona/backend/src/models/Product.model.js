@@ -38,6 +38,34 @@ const inventorySchema = new mongoose.Schema(
   { _id: false }
 )
 
+/* ---------------- PRODUCT CONFIG ---------------- */
+const productConfigSchema = new mongoose.Schema(
+  {
+    attributes: [
+      {
+        code: { type: String, required: true },
+        name: { type: String, required: true },
+        values: [{ type: String, required: true }]
+      }
+    ],
+    variants: [
+      {
+        sku: { type: String },
+        attributes: {
+          type: Map,
+          of: String,
+          required: true
+        },
+        stockQuantity: { type: Number, required: true, min: 0 },
+        soldQuantity: { type: Number, default: 0 },
+        priceOverride: { type: Number }
+      }
+    ]
+  },
+  { _id: false }
+)
+
+
 /* ---------------- PRODUCT ---------------- */
 const productSchema = new mongoose.Schema(
   {
@@ -58,6 +86,10 @@ const productSchema = new mongoose.Schema(
         'other'
       ]
     },
+    productConfig: {
+  type: productConfigSchema,
+  default: null
+},
 
     description: String,
     material: String,
