@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/AuthContext"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -54,7 +56,7 @@ function SidebarContent({ onItemClick }) {
           <NavItem href="/admin/products" icon={Package} label="Products" onClick={onItemClick} />
           <NavItem href="/admin/print-config" icon={Printer} label="Print Config" onClick={onItemClick} />
           <NavItem href="/admin/coupons" icon={Ticket} label="Coupons & Discounts" onClick={onItemClick} />
-            <NavItem href="/admin/transactions" icon={Ticket} label="Transactions" onClick={onItemClick} />
+          <NavItem href="/admin/transactions" icon={Ticket} label="Transactions" onClick={onItemClick} />
         </div>
 
         <div>
@@ -115,9 +117,19 @@ function AdminDeviceModal({ type, onContinue }) {
 }
 
 export default function AdminLayout({ children }) {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
   const [open, setOpen] = useState(false)
   const [device, setDevice] = useState(null)
   const [acknowledged, setAcknowledged] = useState(false)
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) router.replace("/")
+      else if (user.role !== "admin") router.replace("/")
+    }
+  }, [user, loading, router])
 
   useEffect(() => {
     const check = () => {
@@ -132,10 +144,9 @@ export default function AdminLayout({ children }) {
     return () => window.removeEventListener("resize", check)
   }, [])
 
-  if (!device) return null
+  if (loading || !user || user.role !== "admin" || !device) return null
 
-  const allowAdmin =
-    device === "desktop" || acknowledged
+  const allowAdmin = device === "desktop" || acknowledged
 
   return (
     <div className="h-screen bg-white overflow-hidden">

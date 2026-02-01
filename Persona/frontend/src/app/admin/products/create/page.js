@@ -56,13 +56,13 @@ export default function CreateProductPage() {
   const [productConfig, setProductConfig] = useState(null)
 
 useEffect(() => {
-  if (!formData.type) {
+  if (formData.type !== "tshirt") {
     setProductConfig(null)
     return
   }
 
   const fetchAttributes = async () => {
-    const res = await getProductAttribute(formData.type)
+    const res = await getProductAttribute("tshirt")
 
     const variants = generateVariants(res.data)
 
@@ -80,15 +80,16 @@ useEffect(() => {
   const fileInputRef = useRef(null);
 
 
-  useEffect(() => {
+useEffect(() => {
   if (productConfig?.variants?.length) {
     setFormData(prev => ({
       ...prev,
       manageStock: false,
-      stockQuantity: '0'
+      stockQuantity: "0"
     }))
   }
 }, [productConfig])
+
 
   // Effects
   useEffect(() => {
@@ -262,48 +263,64 @@ const findVariant = (variants, selected) =>
       const images = await uploadImagesAPI(formData.images.map((i) => i.file));
 
       // 2️⃣ Build JSON payload (NO FormData)
-      const payload = {
-        basicInfo: {
-          name: formData.name,
-          slug: formData.slug,
-          type: formData.type,
-          description: formData.description,
-          material: formData.material,
-          isActive: formData.isActive,
-        },
-        pricing: {
-          basePrice: Number(formData.price) || 0,
-          specialPrice: formData.specialPrice
-            ? Number(formData.specialPrice)
-            : null,
-        },
-        inventory: {
-          manageStock: formData.manageStock,
-          stockQuantity: Number(formData.stockQuantity) || 0,
-        },
-        productConfig: productConfig?.variants?.length
-  ? productConfig
-  : null,
+  const payload = {
+  basicInfo: {
+    name: formData.name,
+    slug: formData.slug,
+    type: formData.type,
+    description: formData.description,
+    material: formData.material,
+    isActive: formData.isActive
+  },
 
-        customization: {
-          enabled: customizationEnabled,
-          ...(customizationEnabled &&
-            selectedConfig && {
-              printConfig: {
-                configId: selectedConfig._id,
-                configName: selectedConfig.name,
-                configType: selectedConfig.type, // tshirt, mobileCase, etc
-              },
-            }),
+  pricing: {
+    basePrice: Number(formData.price) || 0,
+    specialPrice: formData.specialPrice
+      ? Number(formData.specialPrice)
+      : null
+  },
+
+  inventory:
+    formData.type === "tshirt"
+      ? { manageStock: false }
+      : {
+          manageStock: formData.manageStock,
+          stockQuantity: Number(formData.stockQuantity) || 0
         },
-        images: images.map((img, i) => ({
-          url: img.url,
-          publicId: img.publicId,
-          name: img.name,
-          isMain: i === 0,
-          order: i + 1,
-        })),
-      };
+
+  productConfig:
+    formData.type === "tshirt" && productConfig
+      ? {
+          attributes: productConfig.attributes,
+          variants: productConfig.variants.map(v => ({
+            sku: Object.values(v.attributes).join("-").toUpperCase(),
+            attributes: Object.entries(v.attributes), // 👈 Map-safe
+            stockQuantity: v.stockQuantity
+          }))
+        }
+      : null,
+
+  customization: {
+    enabled: customizationEnabled,
+    ...(customizationEnabled &&
+      selectedConfig && {
+        printConfig: {
+          configId: selectedConfig._id,
+          configName: selectedConfig.name,
+          configType: selectedConfig.type
+        }
+      })
+  },
+
+  images: images.map((img, i) => ({
+    url: img.url,
+    publicId: img.publicId,
+    name: img.name,
+    isMain: i === 0,
+    order: i + 1
+  }))
+}
+
 
       // 3️⃣ Create product (JSON ONLY)
       const response = await createProductAPI(payload);

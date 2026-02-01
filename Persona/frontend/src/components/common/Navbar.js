@@ -101,7 +101,7 @@ function UserMenuDesktop() {
             My Account
           </Link>
 
-          <Link href="/orders" className="block px-4 py-2.5 text-sm hover:bg-gray-50">
+          <Link href="/order" className="block px-4 py-2.5 text-sm hover:bg-gray-50">
             My Orders
           </Link>
 
@@ -237,7 +237,7 @@ export default function Navbar() {
               {/* MOBILE NAV LINKS */}
               <Link href="/" onClick={() => setOpen(false)}>Home</Link>
               <Link href="/collections" onClick={() => setOpen(false)}>Collection</Link>
-              <Link href="/orders" onClick={() => setOpen(false)}>Orders</Link>
+              <Link href="/order" onClick={() => setOpen(false)}>Orders</Link>
               <Link href="/cart" onClick={() => setOpen(false)}>Cart</Link>
             </div>
           </aside>

@@ -17,7 +17,7 @@ export const productSchema = Joi.object({
   pricing: Joi.object({
     basePrice: Joi.number().min(0).required(),
     specialPrice: Joi.number().min(0).allow(null),
-    currency: Joi.string().default('USD'),
+    currency: Joi.string().default('GDP'),
     taxInclusive: Joi.boolean().default(true)
     // Removed discountPercentage — let backend calculate it
   }).required(),

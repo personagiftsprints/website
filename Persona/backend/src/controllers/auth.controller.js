@@ -6,7 +6,7 @@ const signToken = user =>
   jwt.sign(
     { _id: user._id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "30m" }
+    { expiresIn: "1d" }
   )
 
 export const emailCheck = async (req, res) => {

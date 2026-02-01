@@ -10,17 +10,15 @@ import authRoutes from "./src/routes/auth.routes.js"
 import userRoutes from "./src/routes/user.routes.js"
 import adminRoutes from "./src/routes/admin.routes.js"
 import paymentRoutes from "./src/routes/payment.routes.js"
-import stripeWebhookRoutes from "./src/routes/stripe-webhook.routes.js"
-
+import orderRoutes from "./src/routes/order.routes.js"
 import { connectDB } from "./src/config/db.js"
 
 const app = express()
 
 /* ---------------- STRIPE WEBHOOK (RAW BODY FIRST) ---------------- */
 app.use(
-  "/api/webhooks",
-  express.raw({ type: "application/json" }),
-  stripeWebhookRoutes
+  "/api/payment/webhook",
+  express.raw({ type: "application/json" })
 )
 
 /* ---------------- CORS ---------------- */
@@ -54,6 +52,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/payment", paymentRoutes)
+app.use("/api/orders", orderRoutes)
 
 /* ---------------- HEALTH ---------------- */
 app.get("/", (req, res) => {

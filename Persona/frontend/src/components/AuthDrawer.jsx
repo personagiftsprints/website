@@ -214,16 +214,20 @@ export default function AuthDrawer({ open, onClose }) {
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          <button
-            className="w-full py-3 border rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50"
+          <div className="w-full justify-center items-center flex   ">
+              <button
+            className=" py-3 border border-gray-200 p-2 rounded-full font-medium flex items-center justify-center gap-2 hover:bg-gray-50"
             onClick={() => console.log("Google login")}
           >
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
               className="w-5 h-5"
             />
-            Continue with Google
+           
           </button>
+
+          </div>
+        
         </div>
       </div>
     </div>

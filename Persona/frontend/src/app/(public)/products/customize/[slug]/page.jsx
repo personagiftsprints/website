@@ -221,42 +221,51 @@ const uploadDesignImages = async designsObj => {
 
   return uploadedDesigns
 }
-  /* ---------------- CART PAYLOAD ---------------- */
-  const buildCartItem = async () => {
-    if (!selectedVariant || !product) return null
 
-    let finalDesigns = designs
 
-    if (product.customization?.enabled) {
-      finalDesigns = await uploadDesignImages(designs)
-    }
+const buildCartItem = async () => {
+  if (!selectedVariant || !product) return null
 
-    return {
-      productId: product._id,
-      variant: selectedVariant.attributes,
-      quantity,
-      price: product.pricing.specialPrice ?? product.pricing.basePrice,
-      variantId: selectedVariant._id,
+  let finalDesigns = designs
 
-      ...(product.customization?.enabled && {
-        customization: {
+  if (product.customization?.enabled) {
+    finalDesigns = await uploadDesignImages(designs)
+  }
+
+  return {
+    productId: product._id,
+    slug: product.slug,
+    name: product.name,
+    type: product.type,
+
+    image: product.thumbnail,
+    price: product.pricing.specialPrice ?? product.pricing.basePrice,
+
+    quantity,
+
+    variant: selectedVariant.attributes || null,
+
+    customization: product.customization?.enabled
+      ? {
           enabled: true,
           printConfigType: product.customization.printConfig.configType,
-          designs: finalDesigns
+          design: finalDesigns
         }
-      })
-    }
+      : { enabled: false }
   }
+}
 
-  const handleAddToCart = async () => {
-    const item = await buildCartItem()
-    if (!item) {
-      alert('Please select a variant first')
-      return
-    }
-    addToCart(item)
-    alert('Added to cart!')
+
+const handleAddToCart = async () => {
+  const item = await buildCartItem()
+  if (!item) {
+    alert('Please select a variant first')
+    return
   }
+  addToCart(item)
+  alert('Added to cart!')
+}
+
 
   const handleBuyNow = async () => {
     const item = await buildCartItem()

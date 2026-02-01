@@ -154,4 +154,117 @@ router.get("/transactions/:sessionId", async (req, res) => {
   }
 })
 
+/* =====================================================
+   ADMIN – GET ALL ORDERS
+===================================================== */
+router.get(
+  "/orders",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const page = Number(req.query.page) || 1
+      const limit = 20
+      const skip = (page - 1) * limit
+
+      const [orders, total] = await Promise.all([
+        Order.find()
+          .populate("user", "email role")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit),
+        Order.countDocuments()
+      ])
+
+      res.json({
+        success: true,
+        orders,
+        pagination: {
+          page,
+          totalPages: Math.ceil(total / limit),
+          total
+        }
+      })
+    } catch (err) {
+      console.error("ADMIN GET ORDERS ERROR ❌", err)
+      res.status(500).json({ message: "Failed to fetch orders" })
+    }
+  }
+)
+
+
+/* =====================================================
+   ADMIN – GET ORDER BY ID
+===================================================== */
+router.get(
+  "/orders/:orderId",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { orderId } = req.params
+
+      const order = await Order.findById(orderId)
+        .populate("user", "email role")
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" })
+      }
+
+      res.json({
+        success: true,
+        order
+      })
+    } catch (err) {
+      console.error("ADMIN GET ORDER ERROR ❌", err)
+      res.status(500).json({ message: "Failed to fetch order" })
+    }
+  }
+)
+
+
+router.patch(
+  "/orders/:orderId/status",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { orderId } = req.params
+      const { status } = req.body
+
+      const allowedStatuses = [
+        "created",
+        "paid",
+        "processing",
+        "printing",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ]
+
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid order status" })
+      }
+
+      const order = await Order.findById(orderId)
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" })
+      }
+
+      order.orderStatus = status
+      await order.save()
+
+      res.json({
+        success: true,
+        order
+      })
+    } catch (err) {
+      console.error("ADMIN UPDATE STATUS ERROR ❌", err)
+      res.status(500).json({ message: "Failed to update order status" })
+    }
+  }
+)
+
+
 export default router

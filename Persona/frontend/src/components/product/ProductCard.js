@@ -42,7 +42,7 @@ export default function ProductCard({
           setHovered(false)
           setActiveIndex(0)
         }}
-        className="group bg-white border rounded-xl overflow-hidden hover:shadow-xl transition cursor-pointer"
+        className="group bg-white border  overflow-hidden transition cursor-pointer"
       >
         {/* IMAGE */}
         <div className="relative aspect-square bg-gray-100">
@@ -73,18 +73,6 @@ export default function ProductCard({
             {name}
           </h3>
 
-          {/* Rating */}
-          {rating > 0 && (
-            <div className="flex items-center gap-1 text-sm">
-              <div className="flex items-center gap-0.5 text-yellow-500">
-                <Star size={14} fill="currentColor" />
-                <span className="font-medium">{rating}</span>
-              </div>
-              <span className="text-gray-500">
-                ({reviewCount})
-              </span>
-            </div>
-          )}
 
           {/* Price */}
           <div className="flex items-center gap-2">

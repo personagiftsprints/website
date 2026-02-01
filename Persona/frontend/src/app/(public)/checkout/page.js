@@ -320,7 +320,7 @@ useEffect(() => {
                 {item.name}
               </Link>
 
-              <p className="font-semibold">${item.price}</p>
+              <p className="font-semibold">£{item.price}</p>
 
               <div className="flex items-center gap-3">
                 <button onClick={() => updateQuantity(index, item.quantity - 1)} className="w-8 h-8 border rounded">−</button>
@@ -336,13 +336,13 @@ useEffect(() => {
               </button>
             </div>
 
-            <div className="font-semibold">${(item.price * item.quantity).toFixed(0)}</div>
+            <div className="font-semibold">£{(item.price * item.quantity).toFixed(0)}</div>
           </div>
         ))}
 
         {deliveryCharge > 0 && (
           <p className="text-xs text-gray-500">
-            Add ${DELIVERY_THRESHOLD - subtotal} more for FREE delivery
+            Add £{DELIVERY_THRESHOLD - subtotal} more for FREE delivery
           </p>
         )}
       </div>
@@ -361,7 +361,7 @@ useEffect(() => {
           {applied && (
             <div className="flex justify-between text-green-600">
               <span>Coupon Discount</span>
-              <span>-${discountAmount.toFixed(2)}</span>
+              <span>-£{discountAmount.toFixed(2)}</span>
             </div>
           )}
 
@@ -370,13 +370,13 @@ useEffect(() => {
             {deliveryCharge === 0 ? (
               <span className="text-green-600">FREE</span>
             ) : (
-              <span>${deliveryCharge}</span>
+              <span>£{deliveryCharge}</span>
             )}
           </div>
 
           <div className="flex justify-between font-semibold border-t pt-3">
             <span>Total</span>
-            <span>${total.toFixed(0)}</span>
+            <span>£{total.toFixed(0)}</span>
           </div>
         </div>
 

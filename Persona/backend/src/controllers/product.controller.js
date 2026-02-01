@@ -28,17 +28,33 @@ export const createProduct = async (req, res) => {
       inventory,
       customization,
       images,
-      productConfig
+      productConfig,
+
+      name,
+      slug,
+      type,
+      description,
+      material,
+      isActive
     } = req.body
 
-    if (!basicInfo?.name || !basicInfo?.slug || !basicInfo?.type) {
+    const finalBasicInfo = basicInfo || {
+      name,
+      slug,
+      type,
+      description,
+      material,
+      isActive
+    }
+
+    if (!finalBasicInfo?.name || !finalBasicInfo?.slug || !finalBasicInfo?.type) {
       return res.status(400).json({
         success: false,
         message: 'Name, slug, and type are required'
       })
     }
 
-    const exists = await Product.findOne({ slug: basicInfo.slug })
+    const exists = await Product.findOne({ slug: finalBasicInfo.slug })
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -47,8 +63,7 @@ export const createProduct = async (req, res) => {
     }
 
     const hasVariants =
-      productConfig &&
-      productConfig.variants &&
+      productConfig?.variants &&
       productConfig.variants.length > 0
 
     if (hasVariants && inventory?.manageStock) {
@@ -58,38 +73,46 @@ export const createProduct = async (req, res) => {
       })
     }
 
+    /* ---------------- VARIANT VALIDATION + MAP FIX ---------------- */
+
     if (hasVariants) {
       const allowedAttributes =
-        PRODUCT_TYPE_ATTRIBUTES[basicInfo.type] || []
+        PRODUCT_TYPE_ATTRIBUTES[finalBasicInfo.type] || []
 
       const allowedCodes = allowedAttributes.map(a => a.code)
-
       const seen = new Set()
 
-    for (const variant of productConfig.variants) {
-  const keys = Object.keys(variant.attributes)
+      productConfig.variants = productConfig.variants.map(variant => {
+        // Convert attributes array -> Map
+        const attrMap = new Map(variant.attributes)
 
-  keys.forEach(k => {
-    if (!allowedCodes.includes(k)) {
-      throw new Error(`Invalid attribute "${k}" for product type`)
+        // Validate attribute codes
+        for (const key of attrMap.keys()) {
+          if (!allowedCodes.includes(key)) {
+            throw new Error(`Invalid attribute "${key}" for product type`)
+          }
+        }
+
+        // Prevent duplicate variant combinations
+        const signature = JSON.stringify([...attrMap.entries()].sort())
+        if (seen.has(signature)) {
+          throw new Error('Duplicate variant combination detected')
+        }
+        seen.add(signature)
+
+        return {
+          ...variant,
+          attributes: attrMap,
+          stockQuantity: Number(variant.stockQuantity) || 0,
+          soldQuantity: 0
+        }
+      })
     }
-  })
 
-  const signature = JSON.stringify(
-    Object.entries(variant.attributes).sort()
-  )
-
-  if (seen.has(signature)) {
-    throw new Error('Duplicate variant combination detected')
-  }
-
-  seen.add(signature)
-}
-
-    }
+    /* ---------------- CREATE PRODUCT ---------------- */
 
     const product = await Product.create({
-      ...basicInfo,
+      ...finalBasicInfo,
       pricing,
       inventory: hasVariants ? { manageStock: false } : inventory,
       productConfig: hasVariants ? productConfig : null,
@@ -104,11 +127,11 @@ export const createProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to create product',
-      error: error.message
+      message: error.message
     })
   }
 }
+
 
 
 
@@ -226,9 +249,22 @@ export const updateProduct = async (req, res) => {
       }
     }
 
+    const updatePayload = {}
+
+    if (updates.basicInfo) {
+      Object.assign(updatePayload, updates.basicInfo)
+    } else {
+      Object.assign(updatePayload, updates)
+    }
+
+    if (updates.productConfig?.variants?.length > 0) {
+      updatePayload.inventory = { manageStock: false }
+      updatePayload.productConfig = updates.productConfig
+    }
+
     const product = await Product.findByIdAndUpdate(
       id,
-      { $set: updates },
+      { $set: updatePayload },
       { new: true, runValidators: true }
     )
 
@@ -241,17 +277,16 @@ export const updateProduct = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Product updated successfully',
       data: product
     })
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to update product',
-      error: error.message
+      message: error.message
     })
   }
 }
+
 
 // 6. Delete product
 export const deleteProduct = async (req, res) => {

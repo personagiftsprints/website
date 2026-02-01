@@ -12,8 +12,7 @@ export async function uploadImagesToCloudinary(files) {
   })
 
   const response = await api.post('/uploads/images', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
+    headers: {      'Content-Type': 'multipart/form-data'
     }
   })
 

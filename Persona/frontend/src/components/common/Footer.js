@@ -1,3 +1,4 @@
+
 import Image from "next/image"
 import Link from "next/link"
 import Logo from "@/../public/icons/logo.png"
@@ -37,7 +38,8 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2 text-sm text-gray-200">
               <li><Link href="/faq">FAQ</Link></li>
-              <li><Link href="/privacy-policy">Privacy Policy</Link></li>
+              <li><Link href="/privacy">Privacy Policy</Link></li>
+          
               <li><Link href="/terms">Terms & Conditions</Link></li>
             </ul>
           </div>

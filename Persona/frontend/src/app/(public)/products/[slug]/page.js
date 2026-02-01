@@ -304,17 +304,7 @@ const isConfigSelected =
             </p>
           )}
 
-          {customization?.enabled && (
-            <div className="p-4 border rounded-lg bg-gray-50">
-              <p className="font-medium">Customization Available</p>
-              <p className="text-sm text-gray-600">
-                Config: {customization.printConfig.configName}
-              </p>
-              <p className="text-sm text-gray-600">
-                Type: {customization.printConfig.configType}
-              </p>
-            </div>
-          )}
+          
         </div>
       </div>
 
