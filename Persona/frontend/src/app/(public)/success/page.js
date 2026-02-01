@@ -1,6 +1,6 @@
 // React example: src/pages/OrderSuccess.jsx
 import { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams } from "next/navigation"
 import { CheckCircle } from 'lucide-react' // or any icon library
 
 export default function OrderSuccess() {
