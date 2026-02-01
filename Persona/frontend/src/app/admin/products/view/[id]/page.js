@@ -40,8 +40,15 @@ export default function ViewProductPage() {
     )
   }
 
+  const isVariantProduct =
+    product.type === "tshirt" &&
+    Array.isArray(product.productConfig?.variants)
+
+  const hasCustomization = product.customization?.enabled === true
+
   return (
-    <div className="max-w-8xl mx-auto p-6 space-y-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -54,34 +61,41 @@ export default function ViewProductPage() {
 
         <button
           onClick={() => router.push(`/admin/products/${id}`)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
         >
           <Pencil size={18} />
           Edit Product
         </button>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* STATUS */}
+      <div className="flex flex-wrap items-center gap-3">
         {product.isActive ? (
-          <div className="inline-flex items-center gap-1.5 text-green-600 text-sm">
-            <CheckCircle2 size={16} />
-            Active
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-green-600 text-sm">
+            <CheckCircle2 size={16} /> Active
+          </span>
         ) : (
-          <div className="inline-flex items-center gap-1.5 text-gray-500 text-sm">
-            <EyeOff size={16} />
-            Inactive
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-gray-500 text-sm">
+            <EyeOff size={16} /> Inactive
+          </span>
         )}
 
-        {product.customization?.enabled && (
+        {hasCustomization && (
           <span className="px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700">
-            Customization Enabled
+            Customizable Product
+          </span>
+        )}
+
+        {isVariantProduct && (
+          <span className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+            Variant Based (Size / Color)
           </span>
         )}
       </div>
 
+      {/* CONTENT */}
       <div className="grid md:grid-cols-2 gap-8">
+        {/* IMAGES */}
         <div>
           <h2 className="font-semibold mb-3">Product Images</h2>
 
@@ -108,10 +122,13 @@ export default function ViewProductPage() {
               ))}
             </div>
           ) : (
-            <div className="text-sm text-gray-400">No images available</div>
+            <div className="text-sm text-gray-400">
+              No images available
+            </div>
           )}
         </div>
 
+        {/* DETAILS */}
         <div className="space-y-6">
           <div>
             <h3 className="text-sm font-medium text-gray-500">Description</h3>
@@ -122,37 +139,72 @@ export default function ViewProductPage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-medium text-gray-500">Base Price</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Base Price
+              </h3>
               <p className="mt-1 font-semibold">
-                {product.pricing?.basePrice != null
-                  ? `$${product.pricing.basePrice}`
-                  : "—"}
+                £{product.pricing?.basePrice ?? "—"}
               </p>
             </div>
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500">Special Price</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Special Price
+              </h3>
               <p className="mt-1 font-semibold">
                 {product.pricing?.specialPrice
-                  ? `$${product.pricing.specialPrice}`
+                  ? `£${product.pricing.specialPrice}`
                   : "—"}
               </p>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-500">Stock Quantity</h3>
-              <p className="mt-1 font-semibold">
-                {product.inventory?.stockQuantity ?? "—"}
-              </p>
-            </div>
+            {!isVariantProduct && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">
+                  Stock Quantity
+                </h3>
+                <p className="mt-1 font-semibold">
+                  {product.inventory?.stockQuantity ?? "—"}
+                </p>
+              </div>
+            )}
 
             <div>
-              <h3 className="text-sm font-medium text-gray-500">Material</h3>
+              <h3 className="text-sm font-medium text-gray-500">
+                Material
+              </h3>
               <p className="mt-1 font-semibold">
                 {product.material || "—"}
               </p>
             </div>
           </div>
+
+          {/* VARIANTS (T-SHIRT ETC) */}
+          {isVariantProduct && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                Variants
+              </h3>
+
+              <div className="border rounded-lg divide-y">
+                {product.productConfig.variants.map(v => (
+                  <div
+                    key={v.sku}
+                    className="flex items-center justify-between px-4 py-3 text-sm"
+                  >
+                    <span className="font-medium">
+                      {Object.values(v.attributes).join(" / ")}
+                    </span>
+                    <span className="text-gray-600">
+                      Stock: {v.stockQuantity}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        
         </div>
       </div>
     </div>

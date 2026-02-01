@@ -138,7 +138,7 @@ export default function AdminProductsPage() {
             <thead className="bg-gray-50 text-sm text-gray-600">
               <tr>
                 <th className="px-6 py-4 text-left">Product</th>
-                <th className="px-6 py-4">Stock</th>
+             
                 <th className="px-6 py-4">Price</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -158,16 +158,13 @@ export default function AdminProductsPage() {
                     <p className="text-xs text-gray-500">{product.slug}</p>
                   </td>
 
-                  <td className="px-6 py-4 text-center">
-                    {product.inventory.stockQuantity}
-                  </td>
-
+                 
                   <td className="px-6 py-4 text-center font-medium">
                     ${product.pricing.specialPrice ?? product.pricing.basePrice}
                   </td>
 
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full border text-xs ${statusClass(product.isActive)}`}>
+                    <span className={`px-3   py-1 rounded-full border text-xs ${statusClass(product.isActive)}`}>
                       {product.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
