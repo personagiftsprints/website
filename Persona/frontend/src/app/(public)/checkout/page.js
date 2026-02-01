@@ -24,6 +24,7 @@ export default function CheckoutClient() {
     line1: "",
     city: "",
     state: "",
+    email:"",
     postcode: ""
   });
 
@@ -140,7 +141,8 @@ useEffect(() => {
         cart,
         couponCode: coupon || null,
         address,
-        email: user?.email || null
+       email: address?.email || null
+
       })
 
       console.log("CHECKOUT RESPONSE:", data)
@@ -236,6 +238,16 @@ useEffect(() => {
                 onChange={e => setAddressForm({ ...addressForm, name: e.target.value })}
                 className="border rounded px-3 py-2 text-sm"
               />
+              <input
+  placeholder="Email Address"
+  type="email"
+  value={addressForm.email}
+  onChange={e =>
+    setAddressForm({ ...addressForm, email: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
+
 
               <input
                 placeholder="Mobile Number"
@@ -284,13 +296,15 @@ useEffect(() => {
               />
 
               <button
-                disabled={
-                  !addressForm.name ||
-                  !addressForm.phone ||
-                  !addressForm.line1 ||
-                  !addressForm.city ||
-                  !addressForm.postcode
-                }
+             disabled={
+  !addressForm.name ||
+  !addressForm.phone ||
+  !addressForm.line1 ||
+  !addressForm.city ||
+  !addressForm.postcode ||
+  !addressForm.email
+}
+
                 onClick={() => {
                   const newAddress = {
                     ...addressForm,

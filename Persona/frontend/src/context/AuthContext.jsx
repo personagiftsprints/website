@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { getSession, clearSession } from "@/lib/auth-storage"
+import { getSession } from "@/lib/auth-storage"
 
 const AuthContext = createContext(null)
 
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const logout = () => {
-    clearSession()
+    localStorage.removeItem("auth")
     setUser(null)
   }
 

@@ -28,7 +28,7 @@ router.get("/my-orders", authMiddleware, async (req, res) => {
 /* =====================================================
    GET SINGLE ORDER BY ORDER ID (USER / ADMIN)
 ===================================================== */
-router.get("/:orderId", authMiddleware, async (req, res) => {
+router.get("/:orderId", async (req, res) => {
   const { orderId } = req.params
 
   const order = await Order.findById(orderId)
@@ -37,14 +37,7 @@ router.get("/:orderId", authMiddleware, async (req, res) => {
     return res.status(404).json({ message: "Order not found" })
   }
 
-  // 🔐 User can see ONLY their order
-  if (
-    order.user &&
-    order.user.toString() !== req.user._id &&
-    req.user.role !== "admin"
-  ) {
-    return res.status(403).json({ message: "Forbidden" })
-  }
+  
 
   res.json({
     success: true,

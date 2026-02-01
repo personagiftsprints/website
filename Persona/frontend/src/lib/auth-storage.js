@@ -1,4 +1,4 @@
-const SESSION_DURATION = 30 * 60 * 1000
+const SESSION_DURATION = 24 * 60 * 60 * 1000 // 1 day
 
 export const saveSession = ({ token, user }) => {
   const expiresAt = Date.now() + SESSION_DURATION
@@ -14,13 +14,9 @@ export const getSession = () => {
 
   const session = JSON.parse(raw)
   if (Date.now() > session.expiresAt) {
-    clearSession()
+    localStorage.removeItem("auth")
     return null
   }
 
   return session
 }
-
-// export const clearSession = () => {
-//   localStorage.removeItem("auth")
-// }

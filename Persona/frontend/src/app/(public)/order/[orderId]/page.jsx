@@ -102,6 +102,8 @@ export default function OrderDetailsPage() {
                   £{item.productSnapshot.finalPrice} × {item.quantity}
                 </p>
               </div>
+
+              
             </div>
           ))}
         </div>

@@ -267,7 +267,7 @@ router.post("/webhook", async (req, res) => {
       order.deliveryAddress?.email
 
     if (customerEmail) {
-      const orderLink = `${process.env.CLIENT_URL}/order/${order._id}`
+      const orderLink = `${process.env.CLIENT_URL_BASE}/order/${order._id}`
 
       const email = orderPlacedTemplate({
         name: order.deliveryAddress?.fullName || "Customer",
