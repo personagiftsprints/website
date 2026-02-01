@@ -16,6 +16,21 @@ api.interceptors.request.use(config => {
   return config
 })
 
+export const getAdmins = async () => {
+  const { data } = await api.get("/admin/admins")
+  return data
+}
+
+/* =================================================
+   GRANT ADMIN ACCESS (EMAIL + ROLE)
+================================================= */
+export const grantAdminAccess = async ({ email, role }) => {
+  const { data } = await api.post("/admin/admins", {
+    email,
+    role
+  })
+  return data
+}
 /* =================================================
    GET ALL ORDERS (ADMIN)
 ================================================= */
