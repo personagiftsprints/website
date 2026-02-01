@@ -10,9 +10,10 @@ const addressSchema = new mongoose.Schema(
     county: String,
     postcode: String,
     country: { type: String, default: "UK" },
+    email:String,
     phone: String,
   },
-  { _id: false }
+  { _id: true }
 )
 
 const userSchema = new mongoose.Schema(

@@ -3,6 +3,9 @@ import Stripe from "stripe"
 import Order from "../models/Order.js"
 import mongoose from "mongoose"
 import { optionalAuth } from "../middlewares/optionalAuth.js"
+import { sendMail } from "../utils/mailer.js"
+import { orderPlacedTemplate } from "../utils/emailTemplates.js"
+
 
 const router = express.Router()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -49,6 +52,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
         fullName: address?.name || '',
         phone: address?.phone || '',
         addressLine1: address?.line1 || '',
+          email: address?.email || '',
         city: address?.city || '',
         state: address?.state || '',
         postalCode: address?.postcode || '',
@@ -106,6 +110,10 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       mode: 'payment',
       success_url: `${clientUrl}/order/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order._id}`,
       cancel_url: `${clientUrl}/cart`,
+      customer_email:
+    email ||
+    address?.email ||
+    req.user?.email,
       metadata: {
         orderId: order._id.toString()
       },
@@ -206,15 +214,13 @@ router.get("/order/:orderId", async (req, res) => {
   }
 })
 
-// Webhook endpoint for Stripe
-// ❌ NO express.raw() HERE
 router.post("/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"]
 
   let event
   try {
     event = stripe.webhooks.constructEvent(
-      req.body, // already RAW from server.js
+      req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     )
@@ -227,16 +233,21 @@ router.post("/webhook", async (req, res) => {
     const session = event.data.object
     const orderId = session.metadata?.orderId
 
-    if (!orderId) return res.json({ received: true })
+    if (!orderId) {
+      return res.json({ received: true })
+    }
 
     const order = await Order.findById(orderId)
-    if (!order) return res.json({ received: true })
+    if (!order) {
+      return res.json({ received: true })
+    }
 
-    // ✅ Idempotent guard
+    // ✅ Idempotency guard
     if (order.payment?.status === "paid") {
       return res.json({ received: true })
     }
 
+    // ✅ Mark order as paid
     order.orderStatus = "paid"
     order.payment = {
       provider: "stripe",
@@ -246,12 +257,45 @@ router.post("/webhook", async (req, res) => {
     }
 
     await order.save()
+
     console.log(`✅ Order ${order.orderNumber} marked as PAID`)
+
+    /* ---------------- SEND EMAIL ---------------- */
+
+    const customerEmail =
+      session.customer_email ||
+      order.deliveryAddress?.email
+
+    if (customerEmail) {
+      const orderLink = `${process.env.CLIENT_URL}/order/${order._id}`
+
+      const email = orderPlacedTemplate({
+        name: order.deliveryAddress?.fullName || "Customer",
+        orderId: order.orderNumber,
+        total: order.totalAmount.toFixed(2),
+        orderLink
+      })
+
+      console.log("Email sends:")
+      console.log(order.deliveryAddress.email)
+
+      try {
+        await sendMail({
+          to: customerEmail,
+          subject: email.subject,
+          text: email.text,
+          html: email.html
+        })
+
+        console.log("📧 Order confirmation email sent")
+      } catch (err) {
+        console.error("❌ Failed to send email:", err.message)
+      }
+    }
   }
 
   res.json({ received: true })
 })
-
 // Test endpoint
 router.get("/test", (req, res) => {
   res.json({

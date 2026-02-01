@@ -15,7 +15,8 @@ router.post("/address", authMiddleware, async (req, res) => {
     county,
     postcode,
     country,
-    phone
+    phone,
+    email
   } = req.body
 
   user.addresses.push({
@@ -26,12 +27,32 @@ router.post("/address", authMiddleware, async (req, res) => {
     county,
     postcode,
     country,
-    phone
+    phone,email
   })
 
   await user.save()
 
   res.json({ status: "success", addresses: user.addresses })
+})
+
+router.delete("/address/:addressId", authMiddleware, async (req, res) => {
+  const { addressId } = req.params
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    return res.status(404).json({ status: "error", message: "User not found" })
+  }
+
+  user.addresses = user.addresses.filter(
+    addr => addr._id.toString() !== addressId
+  )
+
+  await user.save()
+
+  res.json({
+    status: "success",
+    addresses: user.addresses
+  })
 })
 
 

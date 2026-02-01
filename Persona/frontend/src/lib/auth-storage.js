@@ -21,6 +21,6 @@ export const getSession = () => {
   return session
 }
 
-export const clearSession = () => {
-  localStorage.removeItem("auth")
-}
+// export const clearSession = () => {
+//   localStorage.removeItem("auth")
+// }

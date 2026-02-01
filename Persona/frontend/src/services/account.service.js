@@ -25,6 +25,11 @@ export const addAddress = async payload => {
   return data
 }
 
+export const removeAddress = async (addressId) => {
+  const res = await api.delete(`/user/address/${addressId}`)
+  return res
+}
+
 export const updateMyName = async payload => {
   const { data } = await api.put("/user/me", payload)
   return data
