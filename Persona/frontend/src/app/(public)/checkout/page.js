@@ -41,7 +41,7 @@ const [loadingAddresses, setLoadingAddresses] = useState(false)
 
 
   const DELIVERY_THRESHOLD = 100;
-  const DELIVERY_CHARGE = 40;
+  const DELIVERY_CHARGE = 20;
 
   /* ---------------- LOAD DATA ---------------- */
 
@@ -170,7 +170,7 @@ useEffect(() => {
       <div className="space-y-4">
 
         {/* DELIVERY ADDRESS */}
-        <div className="bg-white border rounded-lg p-4 space-y-4">
+        <div className="bg-white border border-gray-100 p-4 space-y-4">
 
           <div className="flex justify-between items-start">
             {user && (
@@ -324,7 +324,7 @@ useEffect(() => {
 
         {/* CART ITEMS */}
         {items.map((item, index) => (
-          <div key={index} className="bg-white border rounded-lg p-4 flex gap-4">
+          <div key={index} className="bg-white p-4 flex gap-4">
             <Link href={`/products/${item.slug}`} className="w-28 h-28 relative">
               <Image src={item.image} alt={item.name} fill className="object-cover rounded" />
             </Link>
@@ -362,7 +362,7 @@ useEffect(() => {
       </div>
 
       {/* RIGHT SIDE - Summary */}
-      <div className="bg-white border rounded-lg p-5 space-y-4 sticky top-24 h-fit relative">
+      <div className="bg-white  border-l-1 border-l-gray-200 p-5 space-y-4 sticky top-24 h-fit relative">
 
         <h3 className="font-semibold text-lg">Price Details</h3>
 

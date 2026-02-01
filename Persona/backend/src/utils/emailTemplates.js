@@ -1,21 +1,84 @@
 export const passwordResetTemplate = ({ name, resetLink }) => ({
-  subject: "Reset your password",
-  text: `Hi ${name},
+  subject: "Reset Your Password • Persona Gifts & Prints",
 
-We received a request to reset your password.
+  text: `Hello ${name},
 
-Reset link:
+We received a request to reset your Persona Gifts & Prints account password.
+
+Reset your password using the link below:
 ${resetLink}
 
-If you did not request this, please ignore this email.`,
+If you did not request this, you can safely ignore this email.
+
+— Persona Gifts & Prints
+`,
+
   html: `
-    <h2>Password Reset</h2>
-    <p>Hi ${name},</p>
-    <p>Click the link below to reset your password:</p>
-    <p><a href="${resetLink}">Reset Password</a></p>
-    <p>If you didn’t request this, ignore this email.</p>
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+              background-color:#f9fafb;
+              padding:24px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;
+                border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
+
+      <!-- HEADER -->
+      <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;
+                  display:flex;align-items:center;gap:12px;">
+        <img src="https://i.ibb.co/rfKSd0yj/logo.png"
+             alt="Persona Gifts & Prints"
+             style="height:36px;width:auto;" />
+        <div>
+          <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">
+            Persona Gifts & Prints
+          </p>
+          <p style="margin:2px 0 0;font-size:12px;color:#6b7280;">
+            Password Reset
+          </p>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:24px;color:#374151;font-size:14px;line-height:1.6;">
+        <p>Hello ${name},</p>
+
+        <p>
+          We received a request to reset your account password.
+          Click the button below to choose a new password.
+        </p>
+
+        <p style="text-align:center;margin:24px 0;">
+          <a href="${resetLink}"
+             style="display:inline-block;padding:12px 22px;
+                    background:#111827;color:#ffffff;
+                    text-decoration:none;border-radius:6px;
+                    font-weight:500;">
+            Reset Password
+          </a>
+        </p>
+
+        <p>
+          If you didn’t request a password reset, no action is required.
+          Your account remains secure.
+        </p>
+
+        <p>
+          Regards,<br />
+          <strong>Persona Gifts & Prints</strong>
+        </p>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:16px 24px;background:#f9fafb;
+                  border-top:1px solid #e5e7eb;
+                  font-size:12px;color:#6b7280;text-align:center;">
+        © ${new Date().getFullYear()} Persona Gifts & Prints.<br />
+        This is an automated email. Do not share your reset link.
+      </div>
+
+    </div>
+  </div>
   `
 })
+
 
 
 
@@ -153,15 +216,86 @@ If you have any questions, please contact our support team.
 
 
 
-export const deliveryStatusTemplate = ({ name, orderId, status }) => ({
-  subject: `Order ${orderId} - ${status}`,
-  text: `Hi ${name},
+export const deliveryStatusTemplate = ({ name, orderId, status, orderLink }) => ({
+  subject: `Order Update • ${orderId}`,
 
-Your order ${orderId} status is now: ${status}.`,
+  text: `Hello ${name},
+
+Your order (${orderId}) status has been updated.
+
+Current Status: ${status}
+
+View your order:
+${orderLink}
+
+— Persona Gifts & Prints
+`,
+
   html: `
-    <h2>Order Update</h2>
-    <p>Hi ${name},</p>
-    <p>Your order <b>${orderId}</b> status:</p>
-    <p><b>${status}</b></p>
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+              background-color:#f9fafb;
+              padding:24px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;
+                border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
+
+      <!-- HEADER -->
+      <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;
+                  display:flex;align-items:center;gap:12px;">
+        <img src="https://i.ibb.co/rfKSd0yj/logo.png"
+             alt="Persona Gifts & Prints"
+             style="height:36px;width:auto;" />
+        <div>
+          <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">
+            Persona Gifts & Prints
+          </p>
+          <p style="margin:2px 0 0;font-size:12px;color:#6b7280;">
+            Order Status Update
+          </p>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:24px;color:#374151;font-size:14px;line-height:1.6;">
+        <p>Hello ${name},</p>
+
+        <p>
+          Your order status has been updated. Below are the latest details:
+        </p>
+
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;
+                    border-radius:6px;padding:16px;margin:20px 0;">
+          <p style="margin:0 0 8px 0;">
+            <strong>Order ID:</strong> ${orderId}
+          </p>
+          <p style="margin:0;">
+            <strong>Status:</strong> ${status}
+          </p>
+        </div>
+
+        <p style="text-align:center;margin:24px 0;">
+          <a href="${orderLink}"
+             style="display:inline-block;padding:12px 22px;
+                    background:#111827;color:#ffffff;
+                    text-decoration:none;border-radius:6px;
+                    font-weight:500;">
+            View Order
+          </a>
+        </p>
+
+        <p>
+          Thank you for shopping with us.<br />
+          <strong>Persona Gifts & Prints</strong>
+        </p>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:16px 24px;background:#f9fafb;
+                  border-top:1px solid #e5e7eb;
+                  font-size:12px;color:#6b7280;text-align:center;">
+        © ${new Date().getFullYear()} Persona Gifts & Prints.
+      </div>
+
+    </div>
+  </div>
   `
 })

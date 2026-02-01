@@ -1,6 +1,5 @@
 import mongoose from "mongoose"
 
-/* ================== ADDRESS ================== */
 const addressSchema = new mongoose.Schema(
   {
     fullName: String,
@@ -16,7 +15,6 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 )
 
-/* ================== PRODUCT SNAPSHOT ================== */
 const productSnapshotSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -28,7 +26,6 @@ const productSnapshotSchema = new mongoose.Schema(
   { _id: false }
 )
 
-/* ================== ORDER ITEM ================== */
 const orderItemSchema = new mongoose.Schema(
   {
     productId: {
@@ -36,23 +33,19 @@ const orderItemSchema = new mongoose.Schema(
       ref: "Product",
       required: true
     },
-
     productSnapshot: {
       type: productSnapshotSchema,
       required: true
     },
-
     variant: {
       size: String,
       color: String
     },
-
     quantity: {
       type: Number,
       required: true,
       min: 1
     },
-
     customization: {
       enabled: { type: Boolean, default: false },
       printConfigType: String,
@@ -62,13 +55,9 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 )
 
-/* ================== ORDER ================== */
 const orderSchema = new mongoose.Schema(
   {
-    orderNumber: {
-      type: String,
-      unique: true
-    },
+    orderNumber: { type: String, unique: true },
 
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -87,17 +76,17 @@ const orderSchema = new mongoose.Schema(
       validate: v => Array.isArray(v) && v.length > 0
     },
 
-    subtotal: {
-      type: Number,
-      required: true,
-      min: 0
+    subtotal: { type: Number, required: true },
+
+    discount: {
+      code: String,
+      percent: { type: Number, default: 0 },
+      amount: { type: Number, default: 0 }
     },
 
-    totalAmount: {
-      type: Number,
-      required: true,
-      min: 0
-    },
+    deliveryCharge: { type: Number, default: 0 },
+
+    totalAmount: { type: Number, required: true },
 
     deliveryAddress: addressSchema,
 
@@ -125,7 +114,6 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-/* ================== ORDER NUMBER ================== */
 orderSchema.pre("save", function () {
   if (!this.orderNumber) {
     const ts = Date.now().toString(36).toUpperCase()
@@ -133,10 +121,5 @@ orderSchema.pre("save", function () {
     this.orderNumber = `ORD-${ts}-${rand}`
   }
 })
-
-/* ================== INDEXES ================== */
-orderSchema.index({ user: 1, createdAt: -1 })
-orderSchema.index({ orderStatus: 1 })
-orderSchema.index({ "payment.status": 1 })
 
 export default mongoose.model("Order", orderSchema)

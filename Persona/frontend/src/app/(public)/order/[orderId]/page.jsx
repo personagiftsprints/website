@@ -6,13 +6,12 @@ import Link from "next/link"
 import { getOrderById } from "@/services/order.service"
 
 const STATUS_STYLE = {
-  paid: "bg-emerald-50 text-emerald-700",
-  processing: "bg-amber-50 text-amber-700",
-  printing: "bg-purple-50 text-purple-700",
-  shipped: "bg-blue-50 text-blue-700",
-  delivered: "bg-green-50 text-green-700",
-  cancelled: "bg-red-50 text-red-700",
+  paid: "text-emerald-600",
+  printing: "text-purple-600",
+  shipped: "text-blue-600",
 }
+
+const STATUS_FLOW = ["paid", "printing", "shipped"]
 
 export default function OrderDetailsPage() {
   const { orderId } = useParams()
@@ -22,6 +21,7 @@ export default function OrderDetailsPage() {
 
   useEffect(() => {
     if (!orderId) return
+
     getOrderById(orderId)
       .then(res => setOrder(res.order || res))
       .catch(err => setError(err.message))
@@ -30,7 +30,7 @@ export default function OrderDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center text-sm text-slate-500">
+      <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">
         Loading order…
       </div>
     )
@@ -38,48 +38,69 @@ export default function OrderDetailsPage() {
 
   if (!order || error) {
     return (
-      <div className="min-h-screen grid place-items-center text-center space-y-4">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2">
         <p className="text-slate-600">Order not found</p>
-        <Link href="/" className="text-sm underline">
+        <Link href="/" className="underline text-sm">
           Go home
         </Link>
       </div>
     )
   }
 
-  const statusClass =
-    STATUS_STYLE[order.orderStatus] || STATUS_STYLE.paid
+  const orderStatus = STATUS_FLOW.includes(order.orderStatus)
+    ? order.orderStatus
+    : "paid"
+
+  const currentStatusIndex = STATUS_FLOW.indexOf(orderStatus)
 
   return (
     <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-4xl mx-auto px-4 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 space-y-10">
 
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">
-              Order #{order.orderNumber}
-            </h1>
-            <p className="text-sm text-slate-500">
-              {new Date(order.createdAt).toLocaleDateString()}
-            </p>
-          </div>
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold">
+            Order #{order.orderNumber}
+          </h1>
 
-       
+          <p className="text-sm text-slate-500">
+            {new Date(order.createdAt).toLocaleDateString()}
+            {" · "}
+            <span className={`capitalize ${STATUS_STYLE[orderStatus]}`}>
+              {orderStatus}
+            </span>
+          </p>
+
+          {/* Status flow */}
+          <div className="text-sm">
+            {STATUS_FLOW.map((status, index) => (
+              <span
+                key={status}
+                className={
+                  index <= currentStatusIndex
+                    ? "font-medium text-slate-900"
+                    : "text-slate-400"
+                }
+              >
+                {status}
+                {index < STATUS_FLOW.length - 1 && " → "}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Items */}
-        <div className="bg-white border rounded-lg divide-y">
+        <div className="space-y-6">
           {order.items.map((item, i) => (
-            <div key={i} className="p-4 flex gap-4">
+            <div key={i} className="flex gap-4">
               <img
                 src={item.productSnapshot.image}
-                className="w-20 h-20 object-cover rounded border"
+                className="w-20 h-20 object-cover"
                 alt=""
               />
 
               <div className="flex-1">
-                <p className="font-medium text-slate-900">
+                <p className="font-medium">
                   {item.productSnapshot.name}
                 </p>
                 <p className="text-sm text-slate-500">
@@ -102,18 +123,15 @@ export default function OrderDetailsPage() {
                   £{item.productSnapshot.finalPrice} × {item.quantity}
                 </p>
               </div>
-
-              
             </div>
           ))}
         </div>
 
-        {/* Info Grid */}
-        <div className="grid sm:grid-cols-2 gap-6">
+        {/* Address & Summary */}
+        <div className="grid sm:grid-cols-2 gap-10 text-sm">
 
-          {/* Address */}
-          <div className="bg-white border rounded-lg p-4 text-sm">
-            <p className="font-medium mb-2">Delivery Address</p>
+          <div className="space-y-1">
+            <p className="font-medium">Delivery address</p>
             <p>{order.deliveryAddress.fullName}</p>
             <p>{order.deliveryAddress.addressLine1}</p>
             <p>
@@ -126,37 +144,46 @@ export default function OrderDetailsPage() {
             </p>
           </div>
 
-          {/* Summary */}
-          <div className="bg-white border rounded-lg p-4 text-sm space-y-2">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Subtotal</span>
-              <span>£{order.subtotal.toFixed(2)}</span>
-            </div>
+       <div className="space-y-2">
+  <div className="flex justify-between">
+    <span className="text-slate-500">Subtotal</span>
+    <span>£{order.subtotal.toFixed(2)}</span>
+  </div>
 
-            <div className="flex justify-between font-medium border-t pt-2">
-              <span>Total</span>
-              <span>£{order.totalAmount.toFixed(2)}</span>
-            </div>
+  {order.discount?.amount > 0 && (
+    <div className="flex justify-between text-emerald-600">
+      <span>
+        Coupon code added
+      </span>
+      <span>-£{order.discount.amount.toFixed(2)}</span>
+    </div>
+  )}
 
-            <p className="text-xs text-slate-500 mt-2">
-              Paid via {order.payment?.provider}
-            </p>
-          </div>
+  <div className="flex justify-between">
+    <span className="text-slate-500">Delivery</span>
+    <span>£{order.deliveryCharge.toFixed(2)}</span>
+  </div>
+
+  <div className="flex justify-between font-semibold">
+    <span>Total</span>
+    <span>£{order.totalAmount.toFixed(2)}</span>
+  </div>
+
+  <p className="text-xs text-slate-500">
+    Paid via {order.payment?.provider}
+  </p>
+</div>
+
+
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <Link
-            href="/products"
-            className="flex-1 text-center bg-slate-900 text-white py-2 rounded-md text-sm"
-          >
+        <div className="flex gap-6 text-sm">
+          <Link href="/products" className="underline">
             Continue shopping
           </Link>
 
-          <Link
-            href="/order"
-            className="flex-1 text-center border py-2 rounded-md text-sm"
-          >
+          <Link href="/order" className="underline">
             View all orders
           </Link>
         </div>

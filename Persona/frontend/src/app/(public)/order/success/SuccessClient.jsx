@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { CheckCircle } from "lucide-react"
+import Lottie from "lottie-react"
+import orderAnimation from "@/assets/order.json"
+import { getOrderBySessionId } from "@/services/order.service"
 
 export default function SuccessClient() {
   const searchParams = useSearchParams()
@@ -12,26 +14,31 @@ export default function SuccessClient() {
 
   const [loading, setLoading] = useState(true)
   const [order, setOrder] = useState(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem("auth"))
+       localStorage.removeItem("cart")
+
     if (!sessionId) {
       setLoading(false)
       return
     }
 
-    fetch(`/api/orders/session/${sessionId}`)
-      .then(res => res.json())
-      .then(data => {
-        setOrder(data)
+    const loadOrder = async () => {
+      try {
+        const res = await getOrderBySessionId(sessionId)
+        setOrder(res.order)
         localStorage.removeItem("cart")
+      } catch {
+        setOrder(null)
+      } finally {
         setLoading(false)
+      }
+    }
 
-        if (localStorage.getItem("auth")) {
-          setTimeout(() => router.replace("/orders"), 3000)
-        }
-      })
-      .catch(() => setLoading(false))
-  }, [sessionId, router])
+    loadOrder()
+  }, [sessionId])
 
   if (loading) {
     return (
@@ -42,9 +49,22 @@ export default function SuccessClient() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-center space-y-4">
-      <CheckCircle className="w-16 h-16 text-green-500" />
-      <h1 className="text-2xl font-semibold">Order Confirmed</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center text-center space-y-4 px-4">
+      <div className="w-64 h-64">
+        <Lottie
+          animationData={orderAnimation}
+          loop={false}
+          onComplete={() => {
+            if (isLoggedIn) {
+              router.replace("/order")
+            }
+          }}
+        />
+      </div>
+
+      <h1 className="text-2xl font-semibold">
+        Order Confirmed
+      </h1>
 
       {order && (
         <p className="text-gray-600">
@@ -52,13 +72,23 @@ export default function SuccessClient() {
         </p>
       )}
 
-      <div className="flex gap-4">
+      {!isLoggedIn && (
+        <p className="text-sm text-gray-500 max-w-md">
+          You are not logged in.  
+          Order details will be sent to your email shortly.
+        </p>
+      )}
+
+      <div className="flex gap-4 mt-4">
         <Link href="/" className="underline">
           Continue Shopping
         </Link>
-        <Link href="/orders" className="underline">
-          View Orders
-        </Link>
+
+        {isLoggedIn && (
+          <Link href="/order" className="underline">
+            View Orders
+          </Link>
+        )}
       </div>
     </div>
   )
