@@ -2,39 +2,23 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import {
-  getProductBySlug,
-  getProductsByType
-} from "@/services/product.service"
+import { getProductBySlug } from "@/services/product.service"
 import { addToCart } from "@/lib/cart"
+import sizeChart from "@/../public/images/sizeChart.jpg"
+import Image from "next/image"
 
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const router = useRouter()
 
   const [product, setProduct] = useState(null)
-  const [similarProducts, setSimilarProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeImage, setActiveImage] = useState(null)
-  const [previewOpen, setPreviewOpen] = useState(false)
+  const [selectedAttributes, setSelectedAttributes] = useState({})
+  const [selectedVariant, setSelectedVariant] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
-  const [selectedAttributes, setSelectedAttributes] = useState({})
-const [selectedVariant, setSelectedVariant] = useState(null)
-
-
-useEffect(() => {
-  if (!product?.productConfig?.variants) return
-
-  const match = product.productConfig.variants.find(v =>
-    Object.entries(selectedAttributes).every(
-      ([key, value]) => v.attributes[key] === value
-    )
-  )
-
-  setSelectedVariant(match || null)
-}, [selectedAttributes, product])
-
+  const [showSizeChart, setShowSizeChart] = useState(false)
 
   useEffect(() => {
     if (!slug) return
@@ -42,22 +26,15 @@ useEffect(() => {
     const fetchProduct = async () => {
       try {
         const res = await getProductBySlug(slug)
-        if (res?.success) {
-          setProduct(res.data)
+        if (!res?.success) return router.push("/404")
 
-          const mainImg =
-            res.data.images?.find(img => img.isMain)?.url ||
-            res.data.thumbnail
+        setProduct(res.data)
 
-          setActiveImage(mainImg)
+        const main =
+          res.data.images?.find(i => i.isMain)?.url ||
+          res.data.thumbnail
 
-          const similarRes = await getProductsByType(res.data.type)
-          if (similarRes?.success) {
-            setSimilarProducts(
-              similarRes.data.filter(p => p._id !== res.data._id)
-            )
-          }
-        }
+        setActiveImage(main)
       } catch {
         router.push("/404")
       } finally {
@@ -69,295 +46,279 @@ useEffect(() => {
   }, [slug, router])
 
   useEffect(() => {
-    const handleEsc = e => {
-      if (e.key === "Escape") setPreviewOpen(false)
-    }
-    window.addEventListener("keydown", handleEsc)
-    return () => window.removeEventListener("keydown", handleEsc)
-  }, [])
+    if (!product?.productConfig?.variants) return
 
-  if (loading) {
-    return <div className="p-10 text-center">Loading...</div>
-  }
+    const match = product.productConfig.variants.find(v =>
+      Object.entries(selectedAttributes).every(
+        ([k, val]) => v.attributes[k] === val
+      )
+    )
 
-  if (!product) {
-    return <div className="p-10 text-center">Product not found</div>
-  }
+    setSelectedVariant(match || null)
+  }, [selectedAttributes, product])
 
-  const { pricing, customization, inventory } = product
+  if (loading) return <div className="p-10 text-center">Loading…</div>
+  if (!product) return <div className="p-10 text-center">Not found</div>
+
+  const { pricing, customization, inventory, productConfig } = product
   const price = pricing.specialPrice ?? pricing.basePrice
 
-const handleAddToCart = () => {
-  addToCart({
-    id: crypto.randomUUID(),
-    productId: product._id,
-    slug: product.slug, // ✅ ADD THIS
-    name: product.name,
-    image: activeImage,
-    price,
-    quantity,
-    isCustom: false,
-    design: null,
-    addedAt: Date.now()
-  })
-  setAdded(true)
-}
+  const isVariantProduct = productConfig?.attributes?.length > 0
+  const isCustom = customization?.enabled
 
+  const isConfigSelected =
+    !isVariantProduct ||
+    (selectedVariant && selectedVariant.stockQuantity > 0)
 
-  const handleBuyNow = () => {
-    handleAddToCart()
-    router.push("/cart")
+  const formattedPrice = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: pricing.currency || "USD"
+  }).format(price)
+
+  const formattedBasePrice = pricing.basePrice
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: pricing.currency || "USD"
+      }).format(pricing.basePrice)
+    : null
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: crypto.randomUUID(),
+      productId: product._id,
+      slug: product.slug,
+      name: product.name,
+      image: activeImage,
+      price,
+      quantity,
+      isCustom: false,
+      design: null,
+      addedAt: Date.now()
+    })
+    setAdded(true)
   }
 
-  const isOutOfStock =
-  product.productConfig?.variants?.length > 0 &&
-  (!selectedVariant || selectedVariant.stockQuantity === 0)
+  const isValueAvailable = (attrCode, value) => {
+    if (!productConfig?.variants) return true
 
-  const isConfigRequired =
-  product.customization?.enabled &&
-  product.productConfig?.variants?.length > 0
-
-const isConfigSelected =
-  !isConfigRequired ||
-  (selectedVariant && selectedVariant.stockQuantity > 0)
-
+    return productConfig.variants.some(v =>
+      v.attributes[attrCode] === value &&
+      Object.entries(selectedAttributes).every(
+        ([k, val]) =>
+          k === attrCode || v.attributes[k] === val
+      ) &&
+      v.stockQuantity > 0
+    )
+  }
 
   return (
-    <>
-      <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-10">
-        {/* Images */}
-        <div className="space-y-4">
-          <img
-            src={activeImage}
-            onClick={() => setPreviewOpen(true)}
-            className="w-full h-[420px] object-cover rounded-xl cursor-zoom-in"
-            alt={product.name}
-          />
+    <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
+      {/* LEFT IMAGES */}
+      <div>
+        <img
+          src={activeImage}
+          className="w-full h-[460px] object-contain bg-gray-50 rounded-xl"
+        />
 
-          <div className="flex gap-3">
-            {product.images?.map(img => (
-              <img
-                key={img.publicId}
-                src={img.url}
-                onClick={() => setActiveImage(img.url)}
-                className={`w-20 h-20 object-cover rounded-lg border cursor-pointer ${
-                  activeImage === img.url ? "border-black" : ""
-                }`}
-                alt=""
-              />
-            ))}
-          </div>
+        <div className="flex gap-3 mt-4">
+          {product.images?.map(img => (
+            <img
+              key={img.publicId}
+              src={img.url}
+              onClick={() => setActiveImage(img.url)}
+              className={`w-20 h-20 rounded-lg object-contain bg-gray-50 cursor-pointer border ${
+                activeImage === img.url
+                  ? "border-black"
+                  : "border-transparent"
+              }`}
+            />
+          ))}
         </div>
+      </div>
 
-        {/* Product Info */}
-        <div className="space-y-6">
+      {/* RIGHT CONTENT */}
+      <div className="space-y-8">
+        <div>
           <h1 className="text-3xl font-semibold">{product.name}</h1>
-          <p className="text-gray-600">{product.description}</p>
+          <p className="text-gray-600 mt-2">{product.description}</p>
+        </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-3xl font-bold">
-              {pricing.currency} {price}
+        <div className="flex items-end gap-4">
+          <span className="text-4xl font-bold">
+            {formattedPrice}
+          </span>
+
+          {pricing.specialPrice && (
+            <span className="line-through text-gray-400">
+              {formattedBasePrice}
             </span>
-
-            {pricing.discountPercentage > 0 && (
-              <>
-                <span className="line-through text-gray-400">
-                  {pricing.currency} {pricing.basePrice}
-                </span>
-                <span className="text-green-600 font-medium">
-                  {pricing.discountPercentage}% OFF
-                </span>
-              </>
-            )}
-          </div>
-
-          {product.productConfig?.attributes?.length > 0 && (
-  <div className="space-y-4">
-    {product.productConfig.attributes.map(attr => (
-      <div key={attr.code}>
-        <p className="text-sm font-medium mb-2">
-          {attr.name}
-        </p>
-
-        <div className="flex gap-2 flex-wrap">
-          {attr.values.map(value => {
-            const active = selectedAttributes[attr.code] === value
-
-            return (
-              <button
-                key={value}
-                onClick={() =>
-                  setSelectedAttributes(prev => ({
-                    ...prev,
-                    [attr.code]: value
-                  }))
-                }
-                className={`px-4 py-2 rounded border text-sm ${
-                  active
-                    ? "border-black bg-black text-white"
-                    : "border-gray-300"
-                }`}
-              >
-                {value}
-              </button>
-            )
-          })}
+          )}
         </div>
-      </div>
-    ))}
-  </div>
-)}
 
-{selectedVariant && (
-  <p className="text-sm text-gray-600">
-    {selectedVariant.stockQuantity > 0
-      ? `${selectedVariant.stockQuantity} available`
-      : "Out of stock"}
-  </p>
-)}
+        {/* VARIANTS */}
+        {productConfig?.attributes?.length > 0 && (
+          <div className="space-y-6">
+            {productConfig.attributes.map(attr => (
+              <div key={attr.code}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium">{attr.name}</p>
 
+                  {attr.code === "size" && (
+                    <button
+                      onClick={() => setShowSizeChart(true)}
+                      className="text-sm underline text-gray-600 hover:text-black"
+                      type="button"
+                    >
+                      Size Chart
+                    </button>
+                  )}
+                </div>
 
-          {inventory.manageStock && (
-            <p className="text-sm text-gray-500">
-              {inventory.stockQuantity > 0
-                ? `${inventory.stockQuantity} in stock`
-                : "Out of stock"}
-            </p>
-          )}
+                <div className="flex flex-wrap gap-2">
+                  {attr.values.map(value => {
+                    const active =
+                      selectedAttributes[attr.code] === value
+                    const available =
+                      isValueAvailable(attr.code, value)
 
-          {!customization?.enabled && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium">Quantity</span>
-              <input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={e =>
-                  setQuantity(Math.max(1, Number(e.target.value)))
-                }
-                className="w-20 border rounded px-3 py-2"
-              />
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-4 pt-4">
-           {customization?.enabled && (
-  <div className="space-y-2">
-    <button
-      disabled={!isConfigSelected}
-      onClick={() =>
-        router.push(
-          `/products/customize/${product.slug}?variant=${encodeURIComponent(
-            JSON.stringify(selectedVariant.attributes)
-          )}&type=${product.type}`
-        )
-      }
-      className={`px-6 py-3 rounded-lg w-full ${
-        isConfigSelected
-          ? "bg-black text-white"
-          : "bg-gray-300 cursor-not-allowed"
-      }`}
-    >
-      Customize Now
-    </button>
-
-    {!isConfigSelected && (
-      <p className="text-sm text-gray-500">
-        Please select product options (color, size, etc.) to continue
-      </p>
-    )}
-
-    {selectedVariant && selectedVariant.stockQuantity === 0 && (
-      <p className="text-sm text-red-600">
-        Selected variant is out of stock
-      </p>
-    )}
-  </div>
-)}
-
-
-            {!customization?.enabled && (
-              <>
-                {!added ? (
-                  <button
-                    onClick={handleAddToCart}
-                    className="px-6 py-3 border border-black rounded-lg"
-                  >
-                    Add to Cart
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => router.push("/cart")}
-                    className="px-6 py-3 border border-black rounded-lg bg-gray-100"
-                  >
-                    View Cart
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          {added && (
-            <p className="text-sm text-green-600">
-              ✓ Added to cart
-            </p>
-          )}
-
-          
-        </div>
-      </div>
-
-      {/* Similar Products (unchanged) */}
-      {similarProducts.length > 0 && (
-        <div className="max-w-6xl mx-auto px-6 py-10">
-          <h2 className="text-2xl font-semibold mb-6">
-            Similar Products
-          </h2>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {similarProducts.map(item => (
-              <div
-                key={item._id}
-                onClick={() =>
-                  router.push(`/products/${item.slug}`)
-                }
-                className="border rounded-lg p-3 cursor-pointer hover:shadow"
-              >
-                <img
-                  src={item.thumbnail}
-                  className="w-full h-40 object-cover rounded-md"
-                  alt={item.name}
-                />
-                <h3 className="mt-2 font-medium">{item.name}</h3>
-                <p className="text-sm text-gray-600">
-                  {item.pricing.currency}{" "}
-                  {item.pricing.specialPrice}
-                </p>
+                    return (
+                      <button
+                        key={value}
+                        disabled={!available}
+                        onClick={() =>
+                          setSelectedAttributes(p => ({
+                            ...p,
+                            [attr.code]: value
+                          }))
+                        }
+                        className={`px-4 py-2 rounded-full border text-sm ${
+                          active
+                            ? "bg-black text-white border-black"
+                            : available
+                            ? "border-gray-300 hover:border-black"
+                            : "border-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {previewOpen && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
-          onClick={() => setPreviewOpen(false)}
-        >
-          <img
-            src={activeImage}
-            className="max-w-[90%] max-h-[90%] object-contain"
-            alt=""
-          />
-          <button
-            onClick={() => setPreviewOpen(false)}
-            className="absolute top-6 right-6 text-white text-3xl"
+        {selectedVariant && (
+          <p
+            className={`text-sm ${
+              selectedVariant.stockQuantity > 0
+                ? "text-gray-600"
+                : "text-red-600"
+            }`}
           >
-            ×
-          </button>
+            {selectedVariant.stockQuantity > 0
+              ? `${selectedVariant.stockQuantity} available`
+              : "Out of stock"}
+          </p>
+        )}
+
+        {!isCustom && !isVariantProduct && inventory.manageStock && (
+          <p className="text-sm text-gray-600">
+            {inventory.stockQuantity > 0
+              ? `${inventory.stockQuantity} in stock`
+              : "Out of stock"}
+          </p>
+        )}
+
+        {!isCustom && (
+          <div className="flex items-center gap-4">
+            <span className="font-medium text-sm">Quantity</span>
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={e =>
+                setQuantity(Math.max(1, Number(e.target.value)))
+              }
+              className="w-24 border rounded-lg px-3 py-2"
+            />
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {isCustom ? (
+            <button
+              disabled={!isConfigSelected}
+              onClick={() =>
+                router.push(
+                  `/products/customize/${product.slug}?variant=${encodeURIComponent(
+                    JSON.stringify(selectedVariant?.attributes)
+                  )}&type=${product.type}`
+                )
+              }
+              className={`w-full py-4 rounded-xl text-lg ${
+                isConfigSelected
+                  ? "bg-black text-white"
+                  : "bg-gray-300 cursor-not-allowed"
+              }`}
+            >
+              Customize Now
+            </button>
+          ) : !added ? (
+            <button
+              disabled={isVariantProduct && !isConfigSelected}
+              onClick={handleAddToCart}
+              className="w-full py-4 rounded-xl border border-black text-lg"
+            >
+              Add to Cart
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push("/cart")}
+              className="w-full py-4 rounded-xl bg-gray-100 border"
+            >
+              View Cart
+            </button>
+          )}
+
+          {added && (
+            <p className="text-green-600 text-sm">
+              ✓ Added to cart
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* SIZE CHART MODAL */}
+      {showSizeChart && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setShowSizeChart(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-3xl w-full p-4 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowSizeChart(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-lg font-semibold mb-4">
+              Size Chart
+            </h2>
+
+            <Image
+              src={sizeChart}
+              alt="Size Chart"
+              className="w-full object-contain"
+            />
+          </div>
         </div>
       )}
-    </>
+    </div>
   )
 }

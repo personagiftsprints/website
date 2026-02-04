@@ -1,4 +1,11 @@
-const nextConfig = {
+const nextConfig = { webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/,
+      issuer: /\.[jt]sx?$/,
+      use: ["@svgr/webpack"]
+    })
+    return config
+  },
   reactStrictMode: true,
 
   allowedDevOrigins: [
@@ -19,7 +26,10 @@ const nextConfig = {
        { protocol: "https", hostname: "i.ebayimg.com" },
        { protocol: "https", hostname: "cdn.example.com" },
         { protocol: "https", hostname: "res.cloudinary.com" },
-          { protocol: "https", hostname: "images.unsplash.com" }
+          { protocol: "https", hostname: "images.unsplash.com" },
+            { protocol: "https", hostname: "i.ibb.co" }
+
+         
        
       
 

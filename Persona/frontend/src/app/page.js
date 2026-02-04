@@ -109,7 +109,7 @@ export default function Home() {
           {
             title: "Phone Cases",
             image: "https://m.media-amazon.com/images/I/71z8bQorkML.jpg",
-            type: "case",
+            type: "mobileCase",
           },
           {
             title: "Gifts",

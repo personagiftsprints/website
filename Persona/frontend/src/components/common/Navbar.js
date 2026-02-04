@@ -8,7 +8,8 @@ import { ShoppingCart, ChevronDown } from "lucide-react"
 import { getBanner } from "@/services/home-content.service"
 import Logo from "@/../public/icons/logo.png"
 import { useAuth } from "@/context/AuthContext"
-import { getCartCount } from "@/lib/cart"
+import cartManager from "@/lib/cart"
+// import { getCartCount } from "@/lib/cart"
 
 /* ---------------- OFFER BANNER ---------------- */
 
@@ -136,18 +137,18 @@ export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
 
-  useEffect(() => {
-    const updateCount = () => setCartCount(getCartCount())
+  // useEffect(() => {
+  //   const updateCount = () => setCartCount(cartManager.getCartCount())
 
-    updateCount()
-    window.addEventListener("cart-updated", updateCount)
-    window.addEventListener("storage", updateCount)
+  //   updateCount()
+  //   window.addEventListener("cart-updated", updateCount)
+  //   window.addEventListener("storage", updateCount)
 
-    return () => {
-      window.removeEventListener("cart-updated", updateCount)
-      window.removeEventListener("storage", updateCount)
-    }
-  }, [])
+  //   return () => {
+  //     window.removeEventListener("cart-updated", updateCount)
+  //     window.removeEventListener("storage", updateCount)
+  //   }
+  // }, [])
 
   return (
     <header className="sticky top-0 z-50 bg-white">

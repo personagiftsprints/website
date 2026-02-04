@@ -1,110 +1,117 @@
-"use client"
+import PrintConfigRenderer from '@/components/print-debug/PrintConfigRenderer'
 
-import { useEffect, useRef, useState } from "react"
-import * as fabric from "fabric"
 
-export default function TshirtStudio() {
-  const canvasRef = useRef(null)
-  const fabricCanvasRef = useRef(null)
-
-  useEffect(() => {
-    if (!canvasRef.current) return
-
-    const canvas = new fabric.Canvas(canvasRef.current, {
-      width: 420,
-      height: 540,
-      preserveObjectStacking: true
-    })
-
-    fabricCanvasRef.current = canvas
-
-    // Load T-shirt background
-    fabric.Image.fromURL("/images/tshirt-front.png", img => {
-      img.selectable = false
-      img.evented = false
-
-      canvas.setBackgroundImage(
-        img,
-        canvas.renderAll.bind(canvas),
-        {
-          scaleX: canvas.width / img.width,
-          scaleY: canvas.height / img.height
-        }
-      )
-    })
-
-    // Print area
-    const printArea = new fabric.Rect({
-      left: 110,
-      top: 130,
-      width: 200,
-      height: 260,
-      fill: "rgba(0,0,0,0)",
-      stroke: "#00ff00",
-      strokeDashArray: [5, 5],
-      selectable: false,
-      evented: false
-    })
-
-    canvas.add(printArea)
-    printArea.moveTo(0)
-
-    return () => {
-      canvas.dispose()
-    }
-  }, [])
-
-  const handleUpload = () => {
-    const canvas = fabricCanvasRef.current
-    if (!canvas) return
-
-    const input = document.createElement("input")
-    input.type = "file"
-    input.accept = "image/*"
-
-    input.onchange = e => {
-      const file = e.target.files?.[0]
-      if (!file) return
-
-      const reader = new FileReader()
-      reader.onload = () => {
-        fabric.Image.fromURL(reader.result, img => {
-          const printArea = canvas.getObjects().find(obj => obj.fill === "rgba(0,0,0,0)")
-          
-          img.set({
-            left: printArea ? printArea.left + 20 : 100,
-            top: printArea ? printArea.top + 20 : 100,
-            scaleX: 0.3,
-            scaleY: 0.3,
-            cornerSize: 8,
-            transparentCorners: false
-          })
-
-          canvas.add(img)
-          img.moveTo(canvas.getObjects().length - 1)
-          canvas.setActiveObject(img)
-          canvas.requestRenderAll()
-        })
-      }
-
-      reader.readAsDataURL(file)
-    }
-
-    input.click()
-  }
-
+function TshirtLayout({ config }) {
   return (
-    <div>
-      <button 
-        onClick={handleUpload}
-        className="mb-4 px-4 py-2 bg-blue-500 text-white rounded"
-      >
-        Upload Image
-      </button>
-      <canvas
-        ref={canvasRef}
-        className="border bg-white"
-      />
+    <section>
+      <h2 className="font-semibold">T-Shirt Print Areas</h2>
+
+      {Object.entries(config.views || {}).map(([viewKey, view]) => (
+        <div key={viewKey} className="border p-3 mb-4">
+          <h3>View: {viewKey}</h3>
+          <pre>Base Image: {view.baseImage}</pre>
+
+          {view.areas.map(area => (
+            <AreaBlock key={area.id} area={area} />
+          ))}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+function MugLayout({ config }) {
+  return (
+    <section>
+      <h2 className="font-semibold">Mug Print Areas</h2>
+
+      {Object.entries(config.views || {}).map(([viewKey, view]) => (
+        <div key={viewKey} className="border p-3 mb-4">
+          <h3>View: {viewKey}</h3>
+          <pre>Base Image: {view.baseImage}</pre>
+
+          {view.areas.map(area => (
+            <AreaBlock key={area.id} area={area} />
+          ))}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+
+function MobileCaseLayout({ config }) {
+  return (
+    <section>
+      <h2 className="font-semibold">Mobile Case Models</h2>
+
+      {config.models.map(model => (
+        <div key={model.modelCode} className="border p-3 mb-4">
+          <h3>
+            {model.modelName} ({model.modelCode})
+          </h3>
+
+          <pre>Base Image: {model.view.baseImage}</pre>
+
+          {model.view.areas.map(area => (
+            <AreaBlock key={area.id} area={area} />
+          ))}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+
+function GeneralLayout({ config }) {
+  return (
+    <section>
+      <h2 className="font-semibold">General Print Area</h2>
+      <AreaBlock area={config.area} />
+    </section>
+  )
+}
+
+
+function UnknownLayout({ config }) {
+  return (
+    <pre>{JSON.stringify(config, null, 2)}</pre>
+  )
+}
+
+
+function AreaBlock({ area }) {
+  return (
+    <div className="ml-4 mt-3 border-l pl-3">
+      <p><b>ID:</b> {area.id}</p>
+      <p><b>Name:</b> {area.name}</p>
+      <p><b>Max:</b> {area.max}</p>
+
+      {area.type && <p><b>Type:</b> {area.type}</p>}
+      {area.description && <p><b>Description:</b> {area.description}</p>}
+
+      <p><b>References:</b></p>
+      <pre>{JSON.stringify(area.references || [], null, 2)}</pre>
     </div>
   )
 }
+
+
+
+
+return (
+  <div className="p-6 space-y-6 text-sm">
+    <h1 className="text-xl font-bold">Customization Debug View</h1>
+
+    <pre>{JSON.stringify({
+      product: {
+        id: product._id,
+        name: product.name,
+        type: product.type
+      },
+      printConfigType: config?.type
+    }, null, 2)}</pre>
+
+    <PrintConfigRenderer config={config} />
+  </div>
+)

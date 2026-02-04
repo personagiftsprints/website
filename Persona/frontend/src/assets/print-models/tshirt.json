@@ -1,0 +1,24 @@
+{
+  "tshirt": {
+    "black": {
+      "label": "Black",
+      "front": "https://i.ibb.co/SXcmSKBp/black.png",
+      "back": "https://i.ibb.co/YB989kGy/black.png"
+    },
+    "green": {
+      "label": "Green",
+      "front": "https://i.ibb.co/M5MgWGt3/green.png",
+      "back": "https://i.ibb.co/0ysm9QGw/green.png"
+    },
+    "red": {
+      "label": "Red",
+      "front": "https://i.ibb.co/CdkhWTD/red.png",
+      "back": "https://i.ibb.co/7xz7Cmpb/red.png"
+    },
+    "white": {
+      "label": "White",
+      "front": "https://i.ibb.co/m52PJZTS/white.png",
+      "back": "https://i.ibb.co/ynJYFDG8/white.png"
+    }
+  }
+}
