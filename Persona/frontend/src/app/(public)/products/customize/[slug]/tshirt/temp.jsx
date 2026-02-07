@@ -1,11 +1,11 @@
 "use client"
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useParams, useSearchParams } from "next/navigation"
-import Image from "next/image"
 import { toPng } from 'html-to-image'
-
+import Link from "next/link"
+import cartManager from '@/lib/cart';
 import tshirtData from "@/assets/print-models/tshirt.json"
-import { getProductBySlug } from "@/services/product.service"
+import { getProductBySlug, uploadImagesAPI } from "@/services/product.service"
 import { getPrintConfigBySlug } from "@/services/printArea.service"
 
 export default function TshirtColorPreview() {
@@ -19,6 +19,35 @@ export default function TshirtColorPreview() {
   const [previewGenerated, setPreviewGenerated] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewImageUrl, setPreviewImageUrl] = useState(null)
+  const [savedDesignId, setSavedDesignId] = useState(null)
+  const [selectedSize, setSelectedSize] = useState('M')
+
+  const [cloudinaryPreviewUrls, setCloudinaryPreviewUrls] = useState(null)
+const [showCloudinaryPreview, setShowCloudinaryPreview] = useState(false)
+
+const handlePreviewImage = async () => {
+  if (Object.keys(uploadedImages).length === 0) {
+    alert("Please add at least one design.")
+    return
+  }
+
+  try {
+    setIsAddingToCart(true)
+
+    const uploadedUrls = await uploadAllImagesToCloudinary()
+
+    setCloudinaryPreviewUrls(uploadedUrls)
+    setShowCloudinaryPreview(true)
+
+  } catch (error) {
+    console.error(error)
+    alert("Failed to generate preview URLs")
+  } finally {
+    setIsAddingToCart(false)
+  }
+}
+
+
 
   // New state for controlling area visibility
   const [showCenterChest, setShowCenterChest] = useState(false)
@@ -171,7 +200,7 @@ export default function TshirtColorPreview() {
             willChange: 'transform'
           }
         });
-        
+
         // Restore Next.js images
         nextImages.forEach(img => {
           img.style.opacity = '1';
@@ -193,248 +222,261 @@ export default function TshirtColorPreview() {
     link.click();
   };
 
-  // Show preview modal
-// Add to the existing component, after other functions
-
-// Function to save design to localStorage
-const saveDesignToLocalStorage = async (dataUrl) => {
-  if (!dataUrl) return null;
-  
-  try {
-    // Create design object
-    const designData = {
-      id: `design-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      previewImage: dataUrl,
-      productId: product?.id || '',
-      productSlug: slug || '',
-      productName: product?.name || '',
-      color: selectedColor,
-      view: view,
-      imagePositions: { ...imagePositions },
-      uploadedImages: Object.keys(uploadedImages),
-      totalUploadedAreas: Object.keys(uploadedImages).length,
-      metadata: {
-        selectedColor,
-        view,
-        imagePositions: { ...imagePositions },
-        selectedAreas: Object.keys(uploadedImages),
-        totalUploadedAreas: Object.keys(uploadedImages).length,
-        previewGenerated: true,
-        timestamp: new Date().toISOString(),
-      },
-      savedAt: new Date().toISOString(),
-      price: product?.pricing?.specialPrice || '0',
-      currency: product?.pricing?.currency || '$'
-    };
-
-    // Get existing designs from localStorage
-    const existingDesigns = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
+  // Function to save design to localStorage
+  const saveDesignToLocalStorage = async (dataUrl, cloudinaryUrls = {}) => {
+    if (!dataUrl) return null;
     
-    // Add new design
-    existingDesigns.unshift(designData);
-    
-    // Keep only last 50 designs to prevent localStorage overflow
-    const limitedDesigns = existingDesigns.slice(0, 50);
-    
-    // Save to localStorage
-    localStorage.setItem('tshirtDesigns', JSON.stringify(limitedDesigns));
-    
-    console.log('Design saved to localStorage:', designData.id);
-    return designData.id;
-    
-  } catch (error) {
-    console.error('Error saving to localStorage:', error);
-    return null;
-  }
-};
-
-// Function to generate and save individual area previews
-const generateAreaPreviews = async () => {
-  const areaPreviews = {};
-  
-  for (const [areaId, previewUrl] of Object.entries(imagePreviews)) {
     try {
-      // Create a canvas for each area
-      const canvas = document.createElement('canvas');
-      canvas.width = 300;
-      canvas.height = 300;
-      const ctx = canvas.getContext('2d');
+      // Create design object with ALL coordinates and positions
+      const designData = {
+        id: `design-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        previewImage: dataUrl,
+        productId: product?.id || '',
+        productSlug: slug || '',
+        productName: product?.name || '',
+        color: selectedColor,
+        view: view,
+        imagePositions: JSON.parse(JSON.stringify(imagePositions)), // Deep clone
+        uploadedImages: Object.keys(uploadedImages),
+        totalUploadedAreas: Object.keys(uploadedImages).length,
+        cloudinaryUrls: cloudinaryUrls, // Store Cloudinary URLs
+        areaConfigurations: currentViewAreas.map(area => ({
+          id: area.id,
+          name: area.name,
+          position: area.position,
+          width: area.width,
+          height: area.height,
+          max: area.max,
+          hasImage: !!uploadedImages[area.id],
+          imagePosition: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 },
+          cloudinaryUrl: cloudinaryUrls[area.id] || null
+        })),
+        metadata: {
+          selectedColor,
+          view,
+          imagePositions: JSON.parse(JSON.stringify(imagePositions)),
+          selectedAreas: Object.keys(uploadedImages),
+          totalUploadedAreas: Object.keys(uploadedImages).length,
+          previewGenerated: true,
+          timestamp: new Date().toISOString(),
+          tshirtImageUrl: current[view],
+          productSlug: slug,
+          showCenterChest,
+          showLeftChest,
+          cloudinaryUrls: cloudinaryUrls
+        },
+        savedAt: new Date().toISOString(),
+        price: product?.pricing?.specialPrice || '0',
+        currency: product?.pricing?.currency || '$',
+        productDetails: {
+          name: product?.name,
+          description: product?.description,
+          material: product?.material,
+          price: product?.pricing?.specialPrice,
+          currency: product?.pricing?.currency
+        }
+      };
+
+      // Get existing designs from localStorage
+      const existingDesigns = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
       
-      // Create white background
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Add new design
+      existingDesigns.unshift(designData);
       
-      // Load the image
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Keep only last 20 designs to prevent localStorage overflow
+      const limitedDesigns = existingDesigns.slice(0, 20);
       
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = previewUrl;
-      });
+      // Save to localStorage
+      localStorage.setItem('tshirtDesigns', JSON.stringify(limitedDesigns));
       
-      const position = imagePositions[areaId] || { x: 0, y: 0, scale: 0.5, rotate: 0 };
+      console.log('✅ Design saved to localStorage:', designData.id);
+      return designData.id;
       
-      // Apply transformations
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((position.rotate * Math.PI) / 180);
-      ctx.scale(position.scale, position.scale);
-      
-      // Draw image
-      ctx.drawImage(
-        img,
-        position.x - (canvas.width / 2) + (canvas.width * (1 - position.scale) / 2),
-        position.y - (canvas.height / 2) + (canvas.height * (1 - position.scale) / 2),
-        canvas.width * position.scale,
-        canvas.height * position.scale
-      );
-      
-      ctx.restore();
-      
-      areaPreviews[areaId] = canvas.toDataURL('image/png');
     } catch (error) {
-      console.error(`Error generating preview for area ${areaId}:`, error);
+      console.error('Error saving to localStorage:', error);
+      return null;
     }
-  }
-  
-  return areaPreviews;
-};
+  };
 
-// Updated handleConfirmAndAddToCart to save to localStorage
-const handleConfirmAndAddToCart = async () => {
-  if (!previewImageUrl) return;
+  // Function to generate and save individual area previews
+  const generateAreaPreviews = async () => {
+    const areaPreviews = {};
+    
+    for (const [areaId, previewUrl] of Object.entries(imagePreviews)) {
+      try {
+        // Create a canvas for each area
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+        
+        // Create white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Load the image
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = previewUrl;
+        });
+        
+        const position = imagePositions[areaId] || { x: 0, y: 0, scale: 0.5, rotate: 0 };
+        
+        // Apply transformations
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((position.rotate * Math.PI) / 180);
+        ctx.scale(position.scale, position.scale);
+        
+        // Draw image centered
+        const scaledWidth = canvas.width * position.scale;
+        const scaledHeight = canvas.height * position.scale;
+        
+        ctx.drawImage(
+          img,
+          -scaledWidth / 2 + (position.x * 2),
+          -scaledHeight / 2 + (position.y * 2),
+          scaledWidth,
+          scaledHeight
+        );
+        
+        ctx.restore();
+        
+        areaPreviews[areaId] = canvas.toDataURL('image/png');
+      } catch (error) {
+        console.error(`Error generating preview for area ${areaId}:`, error);
+      }
+    }
+    
+    return areaPreviews;
+  };
+
+  // Function to upload all images to Cloudinary using your existing API
+// Function to upload all images to Cloudinary using your existing API
+const uploadAllImagesToCloudinary = async () => {
+  const uploadedUrls = {};
   
   try {
-    // Download the preview
-    downloadPreview(previewImageUrl);
-    setPreviewGenerated(true);
-    setShowPreviewModal(false);
+    // Check if there are any images to upload
+    const imageFiles = Object.values(uploadedImages);
     
-    // Wait a moment for download to start
-    await new Promise(resolve => setTimeout(resolve, 500));
+    if (imageFiles.length === 0) {
+      console.log('No images to upload');
+      return uploadedUrls;
+    }
+
+    console.log('🔄 Starting Cloudinary upload...', {
+      fileCount: imageFiles.length,
+      files: imageFiles.map(f => ({
+        name: f.name,
+        type: f.type,
+        size: f.size
+      }))
+    });
+
+    // Use your existing uploadImagesAPI function
+    const uploadResults = await uploadImagesAPI(imageFiles);
     
-    // Generate area previews
-    const areaPreviews = await generateAreaPreviews();
+    console.log('📦 Upload API response:', uploadResults);
     
-    // Create enhanced metadata with area previews
-    const designMetadata = {
-      imagePositions,
-      selectedColor,
-      view,
-      selectedAreas: Object.keys(uploadedImages),
-      totalUploadedAreas: Object.keys(uploadedImages).length,
-      previewGenerated: true,
-      areaPreviews, // Add individual area previews
-      tshirtModel: selectedColor,
-      timestamp: new Date().toISOString(),
-    };
+    if (!uploadResults || !Array.isArray(uploadResults)) {
+      console.error('❌ Invalid response from upload API:', uploadResults);
+      throw new Error('Invalid response from upload API');
+    }
+
+    // Map uploaded URLs back to area IDs
+    const areaIds = Object.keys(uploadedImages);
     
-    // Save to localStorage FIRST
-    const savedDesignId = await saveDesignToLocalStorage(previewImageUrl);
+    console.log('🗺️ Mapping URLs to area IDs:', areaIds);
     
-    if (savedDesignId) {
-      console.log('Design saved to localStorage with ID:', savedDesignId);
+    uploadResults.forEach((imageData, index) => {
+      const areaId = areaIds[index];
+      if (areaId && imageData.url) {
+        uploadedUrls[areaId] = imageData.url;
+        console.log(`✅ Uploaded image for area ${areaId}:`, imageData.url);
+      } else {
+        console.warn(`⚠️ Could not map upload result ${index} to area ID`, imageData);
+      }
+    });
+
+    console.log('🎉 Upload completed successfully:', uploadedUrls);
+    return uploadedUrls;
+    
+  } catch (error) {
+    console.error('❌ Cloudinary upload error:', error);
+    
+    // Show error to user
+    alert(`Upload failed: ${error.message}. Using local previews instead.`);
+    
+    // Fallback: Use local preview URLs if upload fails
+    console.log('🔄 Using local preview URLs as fallback');
+    Object.entries(imagePreviews).forEach(([areaId, previewUrl]) => {
+      uploadedUrls[areaId] = previewUrl;
+    });
+    
+    return uploadedUrls;
+  }
+};
+
+  // Show preview modal
+  const handleShowPreview = async () => {
+    if (Object.keys(uploadedImages).length === 0) {
+      alert("Please add at least one design to preview.");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      const dataUrl = await generatePreviewImage();
+      setPreviewImageUrl(dataUrl);
+      setShowPreviewModal(true);
+    } catch (error) {
+      console.error("Failed to generate preview:", error);
+      alert(error.message || "Failed to generate preview. Please try again.");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  // Download from preview modal
+  const handleDownloadFromPreview = () => {
+    if (previewImageUrl) {
+      downloadPreview(previewImageUrl);
+      setPreviewGenerated(true);
+      setShowPreviewModal(false);
+      alert("Design preview downloaded!");
+    }
+  };
+
+  // Quick preview button (just download)
+  const handleQuickPreview = async () => {
+    if (Object.keys(uploadedImages).length === 0) {
+      alert("Please add at least one design to preview.");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      const dataUrl = await generatePreviewImage();
+      downloadPreview(dataUrl);
       
-      // Update metadata with localStorage ID
-      designMetadata.localStorageId = savedDesignId;
+      // Save to localStorage
+      const savedId = await saveDesignToLocalStorage(dataUrl);
+      if (savedId) setSavedDesignId(savedId);
+      
+      setPreviewGenerated(true);
+      alert("Design downloaded and saved to local storage!");
+    } catch (error) {
+      console.error("Failed to generate preview:", error);
+      alert(error.message || "Failed to generate preview. Please try again.");
+    } finally {
+      setIsAddingToCart(false);
     }
-    
-    // Step 2: Save to cart (existing API call)
-    const blob = await fetch(previewImageUrl).then(res => res.blob());
-
-    const formData = new FormData();
-    formData.append('design', blob, 'design.png');
-    formData.append('productId', product?.id || '');
-    formData.append('productSlug', slug || '');
-    formData.append('color', selectedColor);
-    formData.append('view', view);
-    
-    Object.entries(uploadedImages).forEach(([areaId, file]) => {
-      formData.append(`area_${areaId}`, file);
-    });
-
-    formData.append('designMetadata', JSON.stringify(designMetadata));
-
-    const response = await fetch('/api/add-to-cart', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to add to cart');
-    }
-
-    const result = await response.json();
-    
-    // Show success message with localStorage info
-    alert(`✅ Design saved and added to cart successfully!\n\nYour design has been:\n1. Downloaded to your computer\n2. Saved to localStorage (ID: ${savedDesignId?.slice(-8) || 'N/A'})\n3. Added to your cart\n\nYou can view saved designs in "My Designs" page.`);
-    
-  } catch (error) {
-    console.error("Failed to process design:", error);
-    alert(error.message || "Failed to save your design. Please try again.");
-  } finally {
-    setIsAddingToCart(false);
-  }
-};
-
-// Also update handleQuickPreview to save to localStorage
-const handleQuickPreview = async () => {
-  if (Object.keys(uploadedImages).length === 0) {
-    alert("Please add at least one design to preview.");
-    return;
-  }
-
-  try {
-    setIsAddingToCart(true);
-    const dataUrl = await generatePreviewImage();
-    downloadPreview(dataUrl);
-    
-    // Save to localStorage
-    await saveDesignToLocalStorage(dataUrl);
-    
-    setPreviewGenerated(true);
-    alert("Design preview downloaded and saved to local storage! You can now add it to cart.");
-  } catch (error) {
-    console.error("Failed to generate preview:", error);
-    alert(error.message || "Failed to generate preview. Please try again.");
-  } finally {
-    setIsAddingToCart(false);
-  }
-};
-
-// Add a button to the component to view saved designs
-// Add this in your JSX, near the action buttons:
-{previewGenerated && (
-  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-    <p className="text-sm text-blue-700 text-center">
-      ✅ Design preview has been downloaded! Check your downloads folder.
-    </p>
-    <div className="flex gap-2 mt-2 justify-center">
-      <button
-        onClick={() => window.open('/my-designs', '_blank')}
-        className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        View All Saved Designs
-      </button>
-      <button
-        onClick={() => {
-          const designs = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
-          if (designs.length > 0) {
-            // Open the latest design
-            const latestDesign = designs[0];
-            window.open(`/design-viewer?id=${latestDesign.id}`, '_blank');
-          }
-        }}
-        className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-      >
-        View Latest Design
-      </button>
-    </div>
-  </div>
-)}
+  };
 
   // Combined handler that shows preview first, then adds to cart
   const handlePreviewAndAddToCart = async () => {
@@ -453,19 +495,6 @@ const handleQuickPreview = async () => {
       setPreviewImageUrl(dataUrl);
       setShowPreviewModal(true);
       
-      // Wait for user to confirm download
-      return new Promise((resolve) => {
-        // This will be resolved when user confirms download from modal
-        const handleModalDownload = () => {
-          downloadPreview(dataUrl);
-          setPreviewGenerated(true);
-          setShowPreviewModal(false);
-          resolve(dataUrl);
-        };
-        
-        // We'll handle this in the modal buttons
-      });
-      
     } catch (error) {
       console.error("Failed to generate preview:", error);
       alert(error.message || "Failed to generate preview. Please try again.");
@@ -473,8 +502,110 @@ const handleQuickPreview = async () => {
     }
   };
 
- 
+  // Handler for when user confirms download and wants to add to cart
+// Handler for when user confirms download and wants to add to cart
+const handleConfirmAndAddToCart = async () => {
+  if (!previewImageUrl) return;
   
+  try {
+    // 1. Download the preview
+    downloadPreview(previewImageUrl);
+    setPreviewGenerated(true);
+    setShowPreviewModal(false);
+    
+    // 2. Upload images to Cloudinary with timeout
+    let uploadedImageUrls = {};
+    try {
+      console.log('🔄 Starting image upload process...');
+      uploadedImageUrls = await Promise.race([
+        uploadAllImagesToCloudinary(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+        )
+      ]);
+      console.log('✅ Upload completed:', uploadedImageUrls);
+    } catch (uploadError) {
+      console.error('❌ Upload failed, using fallback:', uploadError);
+      // Use local URLs as fallback
+      Object.entries(imagePreviews).forEach(([areaId, previewUrl]) => {
+        uploadedImageUrls[areaId] = previewUrl;
+      });
+    }
+    
+    // 3. Generate area previews
+    const areaPreviews = await generateAreaPreviews();
+    
+    // 4. Save design to localStorage
+    const savedId = await saveDesignToLocalStorage(previewImageUrl, uploadedImageUrls);
+    if (savedId) setSavedDesignId(savedId);
+    
+    // ... rest of your code remains the same
+    // 5. Prepare cart item data
+    const cartItemData = {
+      // ... your cart item data
+    };
+    
+    // 6. Add to cart using cart manager
+    const result = cartManager.addToCart(cartItemData);
+    
+    if (result.success) {
+      let message = `✅ Design added to cart!\n\n`;
+      message += `Item: ${cartItemData.productName}\n`;
+      message += `Size: ${cartItemData.variant.size}\n`;
+      message += `Color: ${cartItemData.variant.color}\n`;
+      message += `Price: ${cartItemData.currency}${cartItemData.price}\n`;
+      message += `\nCart now has ${cartManager.getItemCount()} items`;
+      
+      // Check if upload was successful
+      const hasCloudinaryUrls = Object.values(uploadedImageUrls).some(url => 
+        url && url.includes('cloudinary') || url.includes('res.cloudinary.com')
+      );
+      
+      if (hasCloudinaryUrls) {
+        message += '\n✅ Images uploaded to Cloudinary';
+      } else {
+        message += '\n⚠️ Using local image previews (upload failed)';
+      }
+      
+      alert(message);
+      
+      // Update cart badge
+      updateCartBadge();
+      
+    } else {
+      alert('Failed to add to cart. Please try again.');
+    }
+    
+  } catch (error) {
+    console.error("❌ Failed to process design:", error);
+    alert(`Failed to save your design: ${error.message}`);
+  } finally {
+    setIsAddingToCart(false);
+  }
+};
+
+  // Helper function to update cart badge
+  const updateCartBadge = () => {
+    const itemCount = cartManager.getItemCount();
+    const badgeElement = document.getElementById('cart-badge');
+    if (badgeElement) {
+      badgeElement.textContent = itemCount > 9 ? '9+' : itemCount;
+      badgeElement.style.display = itemCount > 0 ? 'flex' : 'none';
+    }
+  };
+
+  // Load cart badge on component mount
+  useEffect(() => {
+    updateCartBadge();
+  }, []);
+
+  // Load saved designs count
+  const [savedDesignsCount, setSavedDesignsCount] = useState(0);
+  
+  useEffect(() => {
+    const designs = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
+    setSavedDesignsCount(designs.length);
+  }, [previewGenerated]);
 
   useEffect(() => {
     if (!slug) return;
@@ -907,6 +1038,9 @@ const handleQuickPreview = async () => {
 
   const totalUploadedAreas = Object.keys(uploadedImages).length;
 
+  // Size options
+  const sizes = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+
   return (
     <div className="bg-white overflow-x-hidden lg:px-32">
       {/* Preview Modal */}
@@ -1024,6 +1158,26 @@ const handleQuickPreview = async () => {
                 ))}
               </div>
             </div>
+
+            {/* Size Selector */}
+            <div className="w-full mt-6">
+              <h4 className="font-semibold mb-3 text-sm">Size</h4>
+              <div className="flex flex-wrap gap-2">
+                {sizes.map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`px-4 py-2 border rounded-lg transition-all ${
+                      selectedSize === size
+                        ? 'bg-black text-white border-black'
+                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -1133,6 +1287,24 @@ const handleQuickPreview = async () => {
         </main>
 
         <aside className="space-y-6 w-full">
+          {/* Saved Designs Banner */}
+          {savedDesignsCount > 0 && (
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold">📁 Saved Designs</h3>
+                  <p className="text-sm opacity-90">{savedDesignsCount} design{savedDesignsCount !== 1 ? 's' : ''} in local storage</p>
+                </div>
+                <Link
+                  href="/my-designs"
+                  className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  View All
+                </Link>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-2xl shadow-xl border p-6 space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Areas</h2>
@@ -1302,6 +1474,26 @@ const handleQuickPreview = async () => {
               </div>
             )}
 
+            {/* Size Selector for Mobile */}
+            <div className="lg:hidden">
+              <h3 className="font-semibold mb-3">Size</h3>
+              <div className="flex flex-wrap gap-2">
+                {sizes.map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`px-4 py-2 border rounded-lg transition-all ${
+                      selectedSize === size
+                        ? 'bg-black text-white border-black'
+                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* ACTION BUTTONS */}
             <div className="space-y-3">
               {totalUploadedAreas > 0 && (
@@ -1338,9 +1530,19 @@ const handleQuickPreview = async () => {
                 </>
               )}
 
+
+              {totalUploadedAreas > 0 && (
+  <button
+    onClick={handlePreviewImage}
+    disabled={isAddingToCart}
+    className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-black text-white hover:bg-gray-900 disabled:opacity-50"
+  >
+    {isAddingToCart ? "Generatingddd Preview..." : "👁️ Previewddd Image"}
+  </button>
+)}
+
               <button
                 onClick={() => {
-                  // Show preview first, then handle cart addition in modal
                   handlePreviewAndAddToCart().catch(console.error);
                 }}
                 disabled={isAddingToCart || totalUploadedAreas === 0}
@@ -1364,11 +1566,36 @@ const handleQuickPreview = async () => {
                 )}
               </button>
               
+              {/* Success Message */}
               {previewGenerated && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-700 text-center">
-                    ✅ Design preview has been downloaded! Check your downloads folder.
-                  </p>
+                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-green-700 font-semibold">
+                        ✅ Design saved successfully!
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Design ID: {savedDesignId?.slice(-8) || 'N/A'}
+                      </p>
+                      <p className="text-xs text-green-600">
+                        Size: {selectedSize} • Color: {selectedColor}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/design-viewer?id=${savedDesignId}`}
+                        className="px-3 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      >
+                        View Design
+                      </Link>
+                      <Link
+                        href="/my-designs"
+                        className="px-3 py-1 text-xs border border-green-600 text-green-600 rounded-lg hover:bg-green-50"
+                      >
+                        All Designs
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               )}
               

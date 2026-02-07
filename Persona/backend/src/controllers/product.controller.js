@@ -288,6 +288,49 @@ export const updateProduct = async (req, res) => {
 }
 
 
+export const getLandingProducts = async (req, res) => {
+  try {
+    const [trending, tshirts, mugs, hoodies] = await Promise.all([
+      Product.find({ isActive: true })
+        .sort({ 'inventory.soldQuantity': -1 })
+        .limit(6)
+        .select('name slug thumbnail pricing type'),
+
+      Product.find({ isActive: true, type: 'tshirt' })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .select('name slug thumbnail pricing'),
+
+      Product.find({ isActive: true, type: 'mug' })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .select('name slug thumbnail pricing'),
+
+      Product.find({ isActive: true, type: 'hoodie' })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .select('name slug thumbnail pricing')
+    ])
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        trending,
+        tshirts,
+        mugs,
+        hoodies
+      }
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch landing products',
+      error: error.message
+    })
+  }
+}
+
+
 // 6. Delete product
 export const deleteProduct = async (req, res) => {
   try {

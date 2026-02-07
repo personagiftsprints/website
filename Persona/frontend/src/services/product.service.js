@@ -94,6 +94,12 @@ export const uploadImagesAPI = async files => {
 }
 
 
+export const TrendingProducts = async ()=>{
+  const res = await api.get('/trending-products')
+
+  return res.data.data
+}
+
 
 
 export const updateProductStatus = async (id, isActive) => {

@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { AuthProvider } from "@/context/AuthContext"
-import AuthDrawer from "@/components/AuthDrawer"
+import { AuthProvider } from "../context/AuthContext"
+import AuthDrawer from "../components/AuthDrawer"
 import "./globals.css"
 
 export default function RootLayout({ children }) {

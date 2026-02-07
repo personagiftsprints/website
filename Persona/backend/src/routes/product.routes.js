@@ -8,7 +8,8 @@ import {
   updateProduct,
   deleteProduct,
   toggleProductStatus,
-  getProductAttributesByType
+  getProductAttributesByType,
+  getLandingProducts
 } from '../controllers/product.controller.js'
 
 const router = express.Router()
@@ -16,6 +17,8 @@ const router = express.Router()
 router.post('/', createProduct)
 
 router.get('/', getAllProducts)
+
+router.get('/trending-products', getLandingProducts)
 router.get('/type/:type', getProductsByType)   // 👈 ADD THIS
 router.get('/slug/:slug', getProductBySlug)
 router.get('/:id', getProductById)

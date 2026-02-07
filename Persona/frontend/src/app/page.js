@@ -120,60 +120,18 @@ export default function Home() {
         ]}
       />
 
-      <section className="w-full px-4 lg:px-16 py-14 bg-white">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl lg:text-3xl font-bold text-black">
-            Trending Products
-          </h2>
-          <Link
-            href="/products"
-            className="text-sm font-semibold text-red-600 hover:underline"
-          >
-            View all
-          </Link>
+      <div>
+        <h1>Trending products</h1>
+        <div>
+          
+
         </div>
+      </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {trendingProducts.map(product => (
-            <Link
-              key={product.id}
-              href={`/products/${product.id}`}
-              className="group"
-            >
-              <motion.div
-                whileHover={{ y: -6 }}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden"
-              >
-                <div className="relative w-full h-48">
-                  <Image
-                    src={product.image}
-                    alt={product.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition"
-                  />
-                </div>
-
-                <div className="p-4">
-                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
-                    {product.title}
-                  </h3>
-                  <p className="mt-1 text-lg font-bold text-red-600">
-                    ${product.price}
-                  </p>
-
-                  <button className="mt-3 w-full rounded-xl bg-black py-2 text-sm font-semibold text-white hover:bg-gray-800 active:scale-[0.98] transition">
-                    View Product
-                  </button>
-                </div>
-              </motion.div>
-            </Link>
-          ))}
-        </div>
-      </section>
 
       <Footer />
 
-      <motion.div animate={controls} className="fixed bottom-6 right-6">
+      {/* <motion.div animate={controls} className="fixed bottom-6 right-6">
         <Link
           href="/products"
           aria-label="Browse products"
@@ -181,7 +139,7 @@ export default function Home() {
         >
           <Gift className="h-8 w-8 text-black" strokeWidth={2.5} />
         </Link>
-      </motion.div>
+      </motion.div> */}
     </div>
   )
 }
