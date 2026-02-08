@@ -143,7 +143,7 @@ const isLoading = !productsData
       />
 
 
-<div className="px-32">
+<div className="lg:px-32">
     <CategorySection
   title="Trending Products"
   products={productsData?.trending || []}

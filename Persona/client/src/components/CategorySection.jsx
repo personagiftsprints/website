@@ -6,7 +6,7 @@ export default function CategorySection({
   title,
   products = [],
   loading,
-  columns = "grid-cols-2 sm:grid-cols-3 md:grid-cols-7 lg:grid-cols-9",
+  columns = "grid-cols-3 sm:grid-cols-3 md:grid-cols-7 lg:grid-cols-9",
 }) {
   if (!loading && products.length === 0) {
     return null
