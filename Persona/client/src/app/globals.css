@@ -30,3 +30,65 @@
 .marquee:hover .marquee-track {
   animation-play-state: paused;
 }
+
+
+
+.cookie-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.cookie-box {
+  background: #fff;
+  max-width: 420px;
+  padding: 24px;
+  border-radius: 18px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.cookie-box h3 {
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.cookie-box p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.cookie-box a {
+  color: #e48900;
+  text-decoration: underline;
+}
+
+.cookie-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cookie-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cookie-actions .outline {
+  border: 2px solid #f38a00;
+  background: transparent;
+  color: #f38a00;
+}
+
+.cookie-actions .filled {
+  border: none;
+  background: #f38a00;
+  color: #fff;
+}
