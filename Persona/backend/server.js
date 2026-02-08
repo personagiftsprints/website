@@ -28,10 +28,10 @@ app.use(
       "http://127.0.0.1:5173",
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://persona-gifts.vercel.app",
-      "https://persona-topaz-eta.vercel.app"
+      "https://persona-gift.vercel.app",
+      "https://personagifts.co.uk"
     ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
