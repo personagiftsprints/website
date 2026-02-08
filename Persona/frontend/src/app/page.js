@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import Navbar from "@/components/common/Navbar"
-import CardBlockSection from "@/components/sections/CardBlockSection"
-import Footer from "@/components/common/Footer"
+import Navbar from "../components/common/Navbar"
+import CardBlockSection from "../components/sections/CardBlockSection"
+import Footer from "../components/common/Footer"
 import Link from "next/link"
 import { Gift } from "lucide-react"
-import { getBanner } from "@/services/home-content.service"
+import { getBanner } from "../services/home-content.service"
 import { motion, useAnimation } from "framer-motion"
-import DefaultBanner from "@/../public/images/banner.jpg"
+import DefaultBanner from "../../public/images/banner.jpg"
 
 export default function Home() {
   const [bannerUrl, setBannerUrl] = useState(null)
