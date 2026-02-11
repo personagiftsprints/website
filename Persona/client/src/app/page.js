@@ -91,7 +91,7 @@ const isLoading = !productsData
 
       <main className="w-full relative h-[20vh] lg:h-[50vh] lg:px-6 px-[2px] pt-6">
         {bannerUrl ? (
-          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl rounded-2xl">
+          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl ">
             <Image
               src={bannerUrl}
               alt="Persona Banner"
@@ -102,7 +102,7 @@ const isLoading = !productsData
           </div>
         ) : (
           
-          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl rounded-2xl">
+          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl">
             <Image
               src={DefaultBanner}
               alt="Persona Banner"

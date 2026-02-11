@@ -140,18 +140,6 @@ export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [cartCount, setCartCount] = useState(0)
 
-  // useEffect(() => {
-  //   const updateCount = () => setCartCount(cartManager.getCartCount())
-
-  //   updateCount()
-  //   window.addEventListener("cart-updated", updateCount)
-  //   window.addEventListener("storage", updateCount)
-
-  //   return () => {
-  //     window.removeEventListener("cart-updated", updateCount)
-  //     window.removeEventListener("storage", updateCount)
-  //   }
-  // }, [])
 
   return (
     <header className="sticky top-0 z-50 bg-white">
@@ -204,49 +192,87 @@ export default function Navbar() {
             className="fixed inset-0 bg-black/40 z-40"
           />
 
-          <aside className="fixed top-0 right-0 h-full w-72 bg-white z-50 shadow-xl">
-            <div className="p-6 space-y-6">
+       <aside className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl">
+  <div className="h-full flex flex-col">
 
-              {/* MOBILE USER SECTION */}
-              <div className="border-b pb-4">
-                <p className="text-sm text-gray-500">
-                  {user ? `Hi, ${user.firstName}` : "Hi, Guest"}
-                </p>
+    <div className="px-6 py-5 border-b">
+      <p className="text-xs text-gray-500">
+        {user ? "Welcome back" : "Welcome"}
+      </p>
 
-                {!user && (
-                  <button
-                    onClick={() => {
-                      setOpen(false)
-                      window.dispatchEvent(new Event("open-auth"))
-                    }}
-                    className="mt-2 text-sm text-blue-600"
-                  >
-                    Login
-                  </button>
-                )}
+      <p className="text-lg font-semibold text-gray-900 mt-1">
+        {user ? user.firstName : "Guest"}
+      </p>
 
-                {user && (
-                  <button
-                    onClick={() => {
-                      logout()
-                      setOpen(false)
-                    }}
-                    className="mt-2 text-sm text-red-600"
-                  >
-                    Logout
-                  </button>
-                )}
-              </div>
+      {!user && (
+        <button
+          onClick={() => {
+            setOpen(false)
+            window.dispatchEvent(new Event("open-auth"))
+          }}
+          className="mt-4 w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium"
+        >
+          Login
+        </button>
+      )}
 
-              {/* MOBILE NAV LINKS */}
-              <Link href="/" onClick={() => setOpen(false)}>Home</Link>
-              <Link href="/collections" onClick={() => setOpen(false)}>Collection</Link>
-              <Link href="/order" onClick={() => setOpen(false)}>Orders</Link>
-              <Link href="/cart" onClick={() => setOpen(false)}>Cart</Link>
-            </div>
-          </aside>
+      
+    </div>
+
+    <nav className="flex-1 px-4 py-4 space-y-1">
+      <Link
+        href="/"
+        onClick={() => setOpen(false)}
+        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
+      >
+        Home
+      </Link>
+
+      <Link
+        href="/collections"
+        onClick={() => setOpen(false)}
+        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
+      >
+        Collections
+      </Link>
+
+      <Link
+        href="/order"
+        onClick={() => setOpen(false)}
+        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
+      >
+        Orders
+      </Link>
+
+      <Link
+        href="/cart"
+        onClick={() => setOpen(false)}
+        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
+      >
+        Cart
+      </Link>
+    </nav>
+
+    <div className="px-6 py-4 border-t text-xs text-gray-400">
+     {user && (
+        <button
+          onClick={() => {
+            logout()
+            setOpen(false)
+          }}
+          className="mt-4 w-full py-2.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium"
+        >
+          Logout
+        </button>
+      )}
+    </div>
+  </div>
+</aside>
+
         </>
       )}
+
+
     </header>
   )
 }

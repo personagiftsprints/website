@@ -290,7 +290,7 @@ export const updateProduct = async (req, res) => {
 
 export const getLandingProducts = async (req, res) => {
   try {
-    const [trending, tshirts, mugs, hoodies] = await Promise.all([
+    const [trending, tshirts, mugs, hoodies,mobileCase] = await Promise.all([
       Product.find({ isActive: true })
         .sort({ 'inventory.soldQuantity': -1 })
         .limit(10)
@@ -324,7 +324,9 @@ export const getLandingProducts = async (req, res) => {
         trending,
         tshirts,
         mugs,
+        mobileCase,
         hoodies
+        
       }
     })
   } catch (error) {

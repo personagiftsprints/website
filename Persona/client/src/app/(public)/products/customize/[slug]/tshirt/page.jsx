@@ -3,7 +3,6 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { toPng } from 'html-to-image'
 import Link from "next/link"
-import cartManager from '@/lib/cart';
 import tshirtData from "@/assets/print-models/tshirt.json"
 import { getProductBySlug, uploadImagesAPI } from "@/services/product.service"
 import { getPrintConfigBySlug } from "@/services/printArea.service"
@@ -53,9 +52,90 @@ export default function TshirtColorPreview() {
   const dragStartRef = useRef({ x: 0, y: 0 })
   const currentAreaRef = useRef(null)
 
-  // Function to log structured product data
-  const logStructuredProductData = (cloudinaryUrlsData) => {
-    if (!product) return;
+  // Cart state
+  const [cartItemCount, setCartItemCount] = useState(0)
+  const [savedDesignsCount, setSavedDesignsCount] = useState(0)
+
+  // Simple cart manager
+  const cartManager = {
+    addItem: async (item) => {
+      try {
+        console.log('🛒 Adding to cart:', item);
+        
+        // Get existing cart from localStorage
+        const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+        
+        // Check if item already exists
+        const existingIndex = cartItems.findIndex(cartItem => 
+          cartItem.productId === item.productId &&
+          cartItem.variant.size === item.variant.size &&
+          cartItem.variant.color === item.variant.color &&
+          JSON.stringify(cartItem.designData) === JSON.stringify(item.designData)
+        );
+        
+        if (existingIndex > -1) {
+          // Update quantity if exists
+          cartItems[existingIndex].quantity += item.quantity;
+        } else {
+          // Add new item
+          cartItems.push({
+            ...item,
+            id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            addedAt: new Date().toISOString()
+          });
+        }
+        
+        // Save back to localStorage
+        localStorage.setItem('cart', JSON.stringify(cartItems));
+        
+        // Also save to a separate designs storage
+        const designs = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
+        designs.push({
+          ...item,
+          id: `design_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          saved_at: new Date().toISOString()
+        });
+        localStorage.setItem('tshirtDesigns', JSON.stringify(designs));
+        
+        console.log('✅ Cart saved to localStorage:', cartItems);
+        
+        return {
+          success: true,
+          message: 'Added to cart successfully',
+          cartCount: cartItems.length
+        };
+      } catch (error) {
+        console.error('❌ Error adding to cart:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+    },
+    
+    getItems: () => {
+      try {
+        return JSON.parse(localStorage.getItem('cart') || '[]');
+      } catch (error) {
+        console.error('Error getting cart items:', error);
+        return [];
+      }
+    },
+    
+    getItemCount: () => {
+      const items = JSON.parse(localStorage.getItem('cart') || '[]');
+      return items.reduce((total, item) => total + item.quantity, 0);
+    },
+    
+    clearCart: () => {
+      localStorage.removeItem('cart');
+      return { success: true, message: 'Cart cleared' };
+    }
+  };
+
+  // Function to get structured product data for cart
+  const getStructuredProductDataForCart = (cloudinaryUrlsData) => {
+    if (!product) return null;
     
     // Get print area configurations
     const printAreas = {};
@@ -64,19 +144,19 @@ export default function TshirtColorPreview() {
     const frontAreas = printConfig?.views?.front?.areas || [];
     frontAreas.forEach(area => {
       if (uploadedImages[area.id] && cloudinaryUrlsData[area.id]) {
-        const areaKey = area.name.toLowerCase().replace(/\s+/g, '_');
-        const orientationId = `ori_${areaKey}`;
-        
         printAreas.front = {
           enabled: true,
-          area: areaKey,
-          orientation_id: orientationId,
+          area: area.name.toLowerCase().replace(/\s+/g, '_'),
+          orientation_id: `ori_${area.name.toLowerCase().replace(/\s+/g, '_')}`,
           image: {
             url: cloudinaryUrlsData[area.id],
-            width: 1200, // Default values, you can adjust based on actual image data
-            height: 1400
+            width: 1200,
+            height: 1400,
+            source: 'cloudinary',
+            position: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
           },
-          print_price: 100 // Default print price
+  
+          view: 'front'
         };
       }
     });
@@ -85,50 +165,44 @@ export default function TshirtColorPreview() {
     const backAreas = printConfig?.views?.back?.areas || [];
     backAreas.forEach(area => {
       if (uploadedImages[area.id] && cloudinaryUrlsData[area.id]) {
-        const areaKey = area.name.toLowerCase().replace(/\s+/g, '_');
-        const orientationId = `ori_${areaKey}`;
-        
         printAreas.back = {
           enabled: true,
-          area: areaKey,
-          orientation_id: orientationId,
+          area: area.name.toLowerCase().replace(/\s+/g, '_'),
+          orientation_id: `ori_${area.name.toLowerCase().replace(/\s+/g, '_')}`,
           image: {
             url: cloudinaryUrlsData[area.id],
             width: 1600,
-            height: 2000
+            height: 2000,
+            source: 'cloudinary',
+            position: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
           },
-          print_price: 150 // Default print price
+          
+          view: 'back'
         };
       }
     });
-    
-    // Get quantity from product stock (simplified)
-    const maxQuantity = product.stock || 10;
-    const quantity = Math.min(1, maxQuantity); // Default to 1
-    
-    // Calculate total price
-    const basePrice = parseFloat(product.pricing?.basePrice || 0);
-    const specialPrice = parseFloat(product.pricing?.specialPrice || 0);
-    const printPrice = Object.values(printAreas).reduce((sum, area) => sum + (area.print_price || 0), 0);
-    const totalPrice = (specialPrice * quantity) + printPrice;
-    
-    // Construct structured data object
-    const structuredData = {
+
+    const quantity = 1; // Default to 1
+
+    // Construct structured data object for cart
+    const cartData = {
       product: {
         id: product._id || 'prod_unknown',
         slug: product.slug || slug || 'unknown-product',
         type: product.productType || 'tshirt',
         name: product.name || 'Unknown Product',
-        model_id: printConfig?.id || 'print_model_unknown'
+        model_id: printConfig?.id || 'print_model_unknown',
+        print_config_id: printConfig?._id || 'print_config_unknown'
+      },
+      variant: {
+        size: selectedSize,
+        color: selectedColor,
+        color_label: data[selectedColor]?.label || selectedColor
       },
       currency: product.pricing?.currency || 'INR',
-      size: selectedSize,
-      color: selectedColor,
       quantity: quantity,
-      base_price: basePrice,
-      special_price: specialPrice,
       print_areas: printAreas,
-      total_price: totalPrice,
+      cloudinary_urls: cloudinaryUrlsData, // All Cloudinary URLs
       metadata: {
         view_configuration: {
           show_center_chest: showCenterChest,
@@ -149,6 +223,15 @@ export default function TshirtColorPreview() {
       }
     };
     
+    return cartData;
+  };
+
+  // Function to log structured product data
+  const logStructuredProductData = (cloudinaryUrlsData) => {
+    const structuredData = getStructuredProductDataForCart(cloudinaryUrlsData);
+    
+    if (!structuredData) return null;
+    
     // Log to console with nice formatting
     console.log('%c📦 STRUCTURED PRODUCT DATA', 'color: #4CAF50; font-size: 16px; font-weight: bold;');
     console.log('%c════════════════════════════════════════════', 'color: #888');
@@ -156,12 +239,87 @@ export default function TshirtColorPreview() {
     console.log('%c════════════════════════════════════════════', 'color: #888');
     console.log('%c📊 Summary:', 'color: #2196F3; font-weight: bold;');
     console.log(`  • Product: ${structuredData.product.name}`);
-    console.log(`  • Size: ${structuredData.size}, Color: ${structuredData.color}`);
-    console.log(`  • Price: ${structuredData.currency} ${structuredData.total_price}`);
+    console.log(`  • Size: ${structuredData.variant.size}, Color: ${structuredData.variant.color_label}`);
     console.log(`  • Print Areas: ${Object.keys(structuredData.print_areas).length} area(s)`);
     console.log('%c════════════════════════════════════════════', 'color: #888');
     
     return structuredData;
+  };
+
+  // Function to add design to cart
+  const addDesignToCart = async (cloudinaryUrlsData) => {
+    if (!product || !cloudinaryUrlsData) {
+      alert("Product data not loaded. Please try again.");
+      return;
+    }
+
+    if (Object.keys(cloudinaryUrlsData).length === 0) {
+      alert("Please upload designs first.");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      
+      // Get structured data for cart
+      const cartData = getStructuredProductDataForCart(cloudinaryUrlsData);
+      
+      if (!cartData) {
+        throw new Error("Failed to generate cart data");
+      }
+      
+      // Create cart item
+      const cartItem = {
+        productId: cartData.product.id,
+        productSlug: cartData.product.slug,
+        productName: cartData.product.name,
+        quantity: cartData.quantity,
+        variant: cartData.variant,
+        designData: {
+          cloudinary_urls: cartData.cloudinary_urls,
+          print_areas: cartData.print_areas,
+            previewImage: previewImageUrl, 
+          positions: cartData.metadata.image_positions
+        },
+        metadata: cartData.metadata,
+        product: cartData.product
+      };
+      
+      console.log('🛒 Cart item:', cartItem);
+      
+      // Use cartManager to add item
+      const cartResult = await cartManager.addItem(cartItem);
+      
+      if (cartResult.success) {
+        console.log('✅ Added to cart:', cartResult);
+        
+        // Update saved designs count
+        const designs = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
+        setSavedDesignsCount(designs.length);
+        
+        // Update cart count in state
+        const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+        setCartItemCount(cartItems.reduce((total, item) => total + item.quantity, 0));
+        
+        // Show success message
+        alert(`Design added to cart successfully!\nCart now has ${cartResult.cartCount} item(s)`);
+        
+        // Close modal
+        setShowPreviewModal(false);
+        setShowCloudinaryUrls(false);
+        
+        return cartResult;
+      } else {
+        throw new Error(cartResult.error || "Failed to add to cart");
+      }
+      
+    } catch (error) {
+      console.error('❌ Error adding to cart:', error);
+      alert(`Failed to add to cart: ${error.message}`);
+      return null;
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   // Function to draw the t-shirt design on canvas
@@ -249,7 +407,7 @@ export default function TshirtColorPreview() {
     }
   };
 
-  // Function to generate preview (without downloading)
+  // Function to generate preview
   const generatePreviewImage = async () => {
     if (Object.keys(uploadedImages).length === 0) {
       throw new Error("Please add at least one design.");
@@ -303,10 +461,66 @@ export default function TshirtColorPreview() {
     }
   };
 
-  // Function to upload images to Cloudinary and show URLs
-  const handlePreviewImage = async () => {
+  // Function to upload images to Cloudinary
+  const uploadAllImagesToCloudinary = async () => {
+    const uploadedUrls = {};
+    
+    try {
+      // Check if there are any images to upload
+      const imageFiles = Object.values(uploadedImages);
+      
+      if (imageFiles.length === 0) {
+        console.log('No images to upload');
+        return uploadedUrls;
+      }
+
+      console.log('🔄 Starting Cloudinary upload...', {
+        fileCount: imageFiles.length
+      });
+
+      // Use your existing uploadImagesAPI function
+      const uploadResults = await uploadImagesAPI(imageFiles);
+      
+      console.log('📦 Upload API response:', uploadResults);
+      
+      if (!uploadResults || !Array.isArray(uploadResults)) {
+        console.error('❌ Invalid response from upload API:', uploadResults);
+        throw new Error('Invalid response from upload API');
+      }
+
+      // Map uploaded URLs back to area IDs
+      const areaIds = Object.keys(uploadedImages);
+      
+      uploadResults.forEach((imageData, index) => {
+        const areaId = areaIds[index];
+        if (areaId && imageData.url) {
+          uploadedUrls[areaId] = imageData.url;
+          console.log(`✅ Uploaded image for area ${areaId}:`, imageData.url);
+        }
+      });
+
+      console.log('🎉 Upload completed successfully:', uploadedUrls);
+      return uploadedUrls;
+      
+    } catch (error) {
+      console.error('❌ Cloudinary upload error:', error);
+      
+      // Show error to user
+      alert(`Upload failed: ${error.message}. Using local previews instead.`);
+      
+      // Fallback: Use local preview URLs if upload fails
+      Object.entries(imagePreviews).forEach(([areaId, previewUrl]) => {
+        uploadedUrls[areaId] = previewUrl;
+      });
+      
+      return uploadedUrls;
+    }
+  };
+
+  // Function to handle preview and cart
+  const handlePreviewAndAddToCart = async () => {
     if (Object.keys(uploadedImages).length === 0) {
-      alert("Please add at least one design to preview.");
+      alert("Please add at least one design.");
       return;
     }
 
@@ -314,8 +528,8 @@ export default function TshirtColorPreview() {
       setIsUploading(true);
       
       // Generate the preview image
-      const dataUrl = await generatePreviewImage();
-      setPreviewImageUrl(dataUrl);
+      const designPreviewUrl = await generatePreviewImage();
+      setPreviewImageUrl(designPreviewUrl);
       
       // Upload images to Cloudinary
       const uploadedUrls = await uploadAllImagesToCloudinary();
@@ -336,72 +550,6 @@ export default function TshirtColorPreview() {
     }
   };
 
-  // Function to upload all images to Cloudinary
-  const uploadAllImagesToCloudinary = async () => {
-    const uploadedUrls = {};
-    
-    try {
-      // Check if there are any images to upload
-      const imageFiles = Object.values(uploadedImages);
-      
-      if (imageFiles.length === 0) {
-        console.log('No images to upload');
-        return uploadedUrls;
-      }
-
-      console.log('🔄 Starting Cloudinary upload...', {
-        fileCount: imageFiles.length,
-        files: imageFiles.map(f => ({
-          name: f.name,
-          type: f.type,
-          size: f.size
-        }))
-      });
-
-      // Use your existing uploadImagesAPI function
-      const uploadResults = await uploadImagesAPI(imageFiles);
-      
-      console.log('📦 Upload API response:', uploadResults);
-      
-      if (!uploadResults || !Array.isArray(uploadResults)) {
-        console.error('❌ Invalid response from upload API:', uploadResults);
-        throw new Error('Invalid response from upload API');
-      }
-
-      // Map uploaded URLs back to area IDs
-      const areaIds = Object.keys(uploadedImages);
-      
-      console.log('🗺️ Mapping URLs to area IDs:', areaIds);
-      
-      uploadResults.forEach((imageData, index) => {
-        const areaId = areaIds[index];
-        if (areaId && imageData.url) {
-          uploadedUrls[areaId] = imageData.url;
-          console.log(`✅ Uploaded image for area ${areaId}:`, imageData.url);
-        } else {
-          console.warn(`⚠️ Could not map upload result ${index} to area ID`, imageData);
-        }
-      });
-
-      console.log('🎉 Upload completed successfully:', uploadedUrls);
-      return uploadedUrls;
-      
-    } catch (error) {
-      console.error('❌ Cloudinary upload error:', error);
-      
-      // Show error to user
-      alert(`Upload failed: ${error.message}. Using local previews instead.`);
-      
-      // Fallback: Use local preview URLs if upload fails
-      console.log('🔄 Using local preview URLs as fallback');
-      Object.entries(imagePreviews).forEach(([areaId, previewUrl]) => {
-        uploadedUrls[areaId] = previewUrl;
-      });
-      
-      return uploadedUrls;
-    }
-  };
-
   // Function to copy URL to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -411,10 +559,11 @@ export default function TshirtColorPreview() {
     });
   };
 
-  // Load saved designs count
-  const [savedDesignsCount, setSavedDesignsCount] = useState(0);
-  
+  // Load saved designs count and cart count
   useEffect(() => {
+    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCartItemCount(cartItems.reduce((total, item) => total + item.quantity, 0));
+    
     const designs = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]');
     setSavedDesignsCount(designs.length);
   }, [previewGenerated]);
@@ -855,12 +1004,14 @@ export default function TshirtColorPreview() {
 
   return (
     <div className="bg-white overflow-x-hidden lg:px-32">
-      {/* Preview Modal with Cloudinary URLs */}
+     
+
+      {/* Preview Modal */}
       {showPreviewModal && previewImageUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold">Image Preview & Cloudinary URLs</h2>
+              <h2 className="text-xl font-bold">Design Preview</h2>
               <button
                 onClick={() => {
                   setShowPreviewModal(false);
@@ -883,29 +1034,46 @@ export default function TshirtColorPreview() {
                       className="max-w-full max-h-[300px] object-contain rounded-lg shadow-lg"
                     />
                   </div>
-                  <p className="text-center text-gray-600 mb-2">
+                  <p className="text-center text-gray-600 mb-4">
                     Preview Image Generated Successfully
                   </p>
-                  <div className="text-center">
+                  <div className="text-center space-y-2">
                     <button
                       onClick={() => logStructuredProductData(cloudinaryUrls)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm w-full"
                     >
                       Log Product Data to Console
+                    </button>
+                    <button
+                      onClick={() => addDesignToCart(cloudinaryUrls)}
+                      disabled={isAddingToCart}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm w-full ${
+                        isAddingToCart
+                          ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                          : 'bg-black text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      {isAddingToCart ? 'Adding to Cart...' : '🛒 Add to Cart'}
                     </button>
                   </div>
                 </div>
                 
                 {/* Cloudinary URLs */}
                 <div className="lg:w-1/2">
-                  <h3 className="text-lg font-semibold mb-4">Cloudinary URLs</h3>
+                  <h3 className="text-lg font-semibold mb-4">Uploaded Images</h3>
                   <div className="space-y-3">
                     {Object.entries(cloudinaryUrls).map(([areaId, url]) => {
                       const areaName = currentViewAreas.find(a => a.id === areaId)?.name || areaId;
+                      const areaView = printConfig?.views?.front?.areas?.some(a => a.id === areaId) 
+                        ? 'front' 
+                        : 'back';
                       return (
                         <div key={areaId} className="border rounded-lg p-3">
                           <div className="flex justify-between items-start mb-2">
-                            <span className="font-medium text-sm">{areaName}</span>
+                            <div>
+                              <span className="font-medium text-sm">{areaName}</span>
+                              <span className="text-xs text-gray-500 ml-2">({areaView})</span>
+                            </div>
                             <button
                               onClick={() => copyToClipboard(url)}
                               className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded"
@@ -914,40 +1082,19 @@ export default function TshirtColorPreview() {
                             </button>
                           </div>
                           <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded break-all overflow-x-auto">
-                            {url}
+                            {url.substring(0, 80)}...
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                  
-                  {Object.keys(cloudinaryUrls).length === 0 && (
-                    <div className="text-center text-gray-500 py-4">
-                      No Cloudinary URLs available
-                    </div>
-                  )}
                 </div>
-              </div>
-              
-              <div className="mt-6 text-center">
-                <button
-                  onClick={() => {
-                    setShowPreviewModal(false);
-                    setShowCloudinaryUrls(false);
-                  }}
-                  className="px-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-900 transition-all"
-                >
-                  Close
-                </button>
               </div>
             </div>
             
             <div className="p-4 border-t bg-gray-50 text-center">
               <p className="text-sm text-gray-500">
-                Images have been uploaded to Cloudinary. URLs are displayed above.
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Check browser console for structured product data (JSON format)
+                Images have been uploaded to Cloudinary. Click "Add to Cart" to save your design.
               </p>
             </div>
           </div>
@@ -1135,24 +1282,7 @@ export default function TshirtColorPreview() {
         </main>
 
         <aside className="space-y-6 w-full">
-          {/* Saved Designs Banner */}
-          {savedDesignsCount > 0 && (
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold">📁 Saved Designs</h3>
-                  <p className="text-sm opacity-90">{savedDesignsCount} design{savedDesignsCount !== 1 ? 's' : ''} in local storage</p>
-                </div>
-                <Link
-                  href="/my-designs"
-                  className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-                >
-                  View All
-                </Link>
-              </div>
-            </div>
-          )}
-
+         
           <div className="bg-white rounded-2xl shadow-xl border p-6 space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Areas</h2>
@@ -1342,10 +1472,11 @@ export default function TshirtColorPreview() {
               </div>
             </div>
 
-            {/* ACTION BUTTON - Single Preview Image Button */}
+            {/* ACTION BUTTONS */}
             <div className="space-y-3">
+              {/* Preview Button */}
               <button
-                onClick={handlePreviewImage}
+                onClick={handlePreviewAndAddToCart}
                 disabled={isUploading || totalUploadedAreas === 0}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
                   isUploading || totalUploadedAreas === 0
@@ -1361,13 +1492,35 @@ export default function TshirtColorPreview() {
                 ) : totalUploadedAreas === 0 ? (
                   'Add a design to preview'
                 ) : (
-                  '📷 Preview Image & Show URLs'
+                  'Add to Cart'
                 )}
               </button>
               
+              {/* Direct Add to Cart Button (when preview already generated) */}
+              {showCloudinaryUrls && previewImageUrl && (
+                <button
+                  onClick={() => addDesignToCart(cloudinaryUrls)}
+                  disabled={isAddingToCart}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                    isAddingToCart
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-black text-white hover:bg-gray-800 active:scale-[0.98] shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  {isAddingToCart ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Adding to Cart...
+                    </div>
+                  ) : (
+                    '🛒 Add to Cart'
+                  )}
+                </button>
+              )}
+              
               {totalUploadedAreas > 0 && !showCloudinaryUrls && (
                 <p className="text-xs text-gray-500 text-center mt-2">
-                  Click to generate preview, upload images to Cloudinary, and log structured data to console
+                  Click to generate preview, upload images to Cloudinary, and add to cart
                 </p>
               )}
               
@@ -1384,13 +1537,13 @@ export default function TshirtColorPreview() {
                       onClick={() => setShowPreviewModal(true)}
                       className="flex-1 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm"
                     >
-                      View Cloudinary URLs
+                      View Preview
                     </button>
                     <button
                       onClick={() => logStructuredProductData(cloudinaryUrls)}
                       className="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                     >
-                      Log Data to Console
+                      Log Data
                     </button>
                   </div>
                 </div>
