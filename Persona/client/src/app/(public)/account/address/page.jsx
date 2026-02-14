@@ -25,14 +25,18 @@ export default function AddressPage() {
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
 
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    street: "",
-    city: "",
-    postcode: "",
-    phone: ""
-  })
+const [form, setForm] = useState({
+  fullName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  town: "",
+  county: "",
+  postcode: "",
+  country: "United Kingdom"
+})
+
 
   const [errors, setErrors] = useState({})
 
@@ -63,39 +67,56 @@ export default function AddressPage() {
 
 
   /* ---------------- VALIDATION ---------------- */
-  const validateForm = () => {
-    const e = {}
-    if (!form.fullName.trim()) e.fullName = "Full name required"
-    if (!form.street.trim()) e.street = "Street required"
-    if (!form.city.trim()) e.city = "City required"
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Valid email required"
-    return e
-  }
+const validateForm = () => {
+  const e = {}
 
-  const submit = async () => {
-    const v = validateForm()
-    if (Object.keys(v).length) {
-      setErrors(v)
-      return
-    }
+  if (!form.fullName.trim()) e.fullName = "Full name required"
+  if (!form.addressLine1.trim()) e.addressLine1 = "Address required"
+  if (!form.town.trim()) e.town = "Town required"
 
-    setSubmitting(true)
-    try {
-      const res = await addAddress(form)
-      setAddresses(res.addresses)
-      setShowForm(false)
-      setForm({
-        fullName: "",
-        email: "",
-        street: "",
-        city: "",
-        postcode: "",
-        phone: ""
-      })
-    } finally {
-      setSubmitting(false)
-    }
+  const ukPostcodeRegex =
+    /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i
+
+  if (!form.postcode.trim())
+    e.postcode = "Postcode required"
+  else if (!ukPostcodeRegex.test(form.postcode))
+    e.postcode = "Invalid UK postcode"
+
+  if (!/^\+?[0-9]{10,15}$/.test(form.phone))
+    e.phone = "Valid phone required"
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    e.email = "Valid email required"
+
+  return e
+}
+
+
+const submit = async () => {
+  setSubmitting(true)
+
+  try {
+    const res = await addAddress(form)
+    setAddresses(res.addresses)
+    setShowForm(false)
+
+    setForm({
+      fullName: "",
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      town: "",
+      county: "",
+      postcode: "",
+      country: "United Kingdom"
+    })
+  } catch (err) {
+    console.error("Failed to save address", err)
+  } finally {
+    setSubmitting(false)
   }
+}
 
   return (
     <div className="space-y-6">
@@ -118,43 +139,85 @@ export default function AddressPage() {
 
       {/* FORM */}
       {showForm && (
-        <div className="bg-white border rounded-xl p-6 space-y-4">
-          <input
-            placeholder="Full Name"
-            value={form.fullName}
-            onChange={e => setForm({ ...form, fullName: e.target.value })}
-            className="w-full border px-4 py-2 rounded"
-          />
+       <div className="bg-white border rounded-xl p-6 space-y-4">
 
-          <input
-            placeholder="Email"
-            value={form.email}
-            onChange={e => setForm({ ...form, email: e.target.value })}
-            className="w-full border px-4 py-2 rounded"
-          />
+  <input
+    placeholder="Full Name"
+    value={form.fullName}
+    onChange={e => setForm({ ...form, fullName: e.target.value })}
+    className="w-full border px-4 py-2 rounded"
+  />
 
-          <input
-            placeholder="Street"
-            value={form.street}
-            onChange={e => setForm({ ...form, street: e.target.value })}
-            className="w-full border px-4 py-2 rounded"
-          />
+  <input
+    placeholder="Email Address"
+    value={form.email}
+    onChange={e => setForm({ ...form, email: e.target.value })}
+    className="w-full border px-4 py-2 rounded"
+  />
 
-          <input
-            placeholder="City"
-            value={form.city}
-            onChange={e => setForm({ ...form, city: e.target.value })}
-            className="w-full border px-4 py-2 rounded"
-          />
+  <input
+    placeholder="Phone Number"
+    value={form.phone}
+    onChange={e => setForm({ ...form, phone: e.target.value })}
+    className="w-full border px-4 py-2 rounded"
+  />
 
-          <button
-            onClick={submit}
-            disabled={submitting}
-            className="bg-black text-white px-6 py-3 rounded"
-          >
-            {submitting ? "Saving..." : "Save"}
-          </button>
-        </div>
+  <input
+    placeholder="Address Line 1 (House number & Street)"
+    value={form.addressLine1}
+    onChange={e => setForm({ ...form, addressLine1: e.target.value })}
+    className="w-full border px-4 py-2 rounded"
+  />
+
+  <input
+    placeholder="Address Line 2 (Flat, Building - Optional)"
+    value={form.addressLine2}
+    onChange={e => setForm({ ...form, addressLine2: e.target.value })}
+    className="w-full border px-4 py-2 rounded"
+  />
+
+  <div className="grid sm:grid-cols-2 gap-4">
+    <input
+      placeholder="Town / City"
+      value={form.town}
+      onChange={e => setForm({ ...form, town: e.target.value })}
+      className="border px-4 py-2 rounded"
+    />
+
+    <input
+      placeholder="County (Optional)"
+      value={form.county}
+      onChange={e => setForm({ ...form, county: e.target.value })}
+      className="border px-4 py-2 rounded"
+    />
+  </div>
+
+  <div className="grid sm:grid-cols-2 gap-4">
+    <input
+      placeholder="Postcode"
+      value={form.postcode}
+      onChange={e =>
+        setForm({ ...form, postcode: e.target.value.toUpperCase() })
+      }
+      className="border px-4 py-2 rounded uppercase"
+    />
+
+    <input
+      value="United Kingdom"
+      disabled
+      className="border px-4 py-2 rounded bg-gray-100 text-gray-600"
+    />
+  </div>
+
+  <button
+    onClick={submit}
+    disabled={submitting}
+    className="bg-black text-white px-6 py-3 rounded"
+  >
+    {submitting ? "Saving..." : "Save Address"}
+  </button>
+</div>
+
       )}
 
       {/* ADDRESS LIST */}
@@ -172,8 +235,17 @@ export default function AddressPage() {
               >
                 <p className="font-semibold">{address.fullName}</p>
                 <p className="text-sm">{address.email}</p>
-                <p className="text-sm">{address.street}</p>
-                <p className="text-sm">{address.city} {address.postcode}</p>
+               <p className="text-sm">{address.addressLine1}</p>
+{address.addressLine2 && (
+  <p className="text-sm">{address.addressLine2}</p>
+)}
+<p className="text-sm">{address.town}</p>
+{address.county && (
+  <p className="text-sm">{address.county}</p>
+)}
+<p className="text-sm font-medium">{address.postcode}</p>
+<p className="text-sm">{address.phone}</p>
+
 
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition">
                   <button

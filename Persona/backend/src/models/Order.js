@@ -2,24 +2,32 @@ import mongoose from "mongoose"
 
 const addressSchema = new mongoose.Schema(
   {
-    fullName: String,
-    phone: String,
-    email: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: String
+    fullName: { type: String, required: true },
+    email: { type: String },
+    phone: { type: String, required: true },
+
+    addressLine1: { type: String, required: true },
+    addressLine2: { type: String },
+
+    town: { type: String, required: true },
+    county: { type: String },
+
+    postcode: { type: String, required: true },
+
+    countryCode: {
+      type: String,
+      default: "GB"
+    }
   },
   { _id: false }
 )
+
 
 const productSnapshotSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     slug: { type: String, required: true },
-    productType: { type: String, required: true, enum: ["tshirt", "mug", "hoodie", "other"] },
+    productType: { type: String, required: true, enum: ["tshirt", "mug", "hoodie", "other","normal"] },
     image: { type: String, required: true },
     finalPrice: { type: Number, required: true }
   },
@@ -87,7 +95,7 @@ const customizationDataSchema = new mongoose.Schema(
   {
     productType: { 
       type: String, 
-      enum: ["tshirt", "mug", "hoodie", "poster", "other"],
+      enum: ["tshirt", "mug", "hoodie", "poster", "other","normal"],
       required: true 
     },
     // T-shirt specific data
@@ -127,7 +135,7 @@ const orderItemSchema = new mongoose.Schema(
       enabled: { type: Boolean, default: false },
       type: { 
         type: String,
-        enum: ["tshirt", "mug", "hoodie", "none"],
+        enum: ["tshirt", "mug", "hoodie", "normal"],
         default: "none"
       },
       data: customizationDataSchema
@@ -176,19 +184,19 @@ const orderSchema = new mongoose.Schema(
 
     deliveryAddress: addressSchema,
 
-    orderStatus: {
-      type: String,
-      enum: [
-        "created",
-        "paid",
-        "processing",
-        "printing",
-        "shipped",
-        "delivered",
-        "cancelled"
-      ],
-      default: "created"
-    },
+   orderStatus: {
+  type: String,
+  enum: [
+    "created",
+    "paid",
+    "processing",
+    "printing",
+    "cancelled",
+    "out_for_delivery"
+  ],
+  default: "paid"
+},
+
 
     payment: {
       provider: String,

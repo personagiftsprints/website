@@ -5,6 +5,14 @@ import { authMiddleware, adminOnly } from "../middlewares/auth.middleware.js"
 
 const router = express.Router()
 
+
+const allowedTransitions = {
+  paid: ["processing"],
+  processing: ["printing", "cancelled"],
+  printing: ["out_for_delivery"],
+  cancelled: [],
+  out_for_delivery: []
+}
 /* =====================================================
    CREATE ORDER (already handled in payment flow)
 ===================================================== */
@@ -65,43 +73,49 @@ router.get("/session/:sessionId", async (req, res) => {
   })
 })
 
-/* =====================================================
-   UPDATE ORDER STATUS (ADMIN ONLY)
-===================================================== */
+
+
 router.patch(
   "/:orderId/status",
   authMiddleware,
   adminOnly,
   async (req, res) => {
-    const { orderId } = req.params
-    const { status } = req.body
+    try {
+      const { orderId } = req.params
+      const { status } = req.body
 
-    const allowed = [
-      "processing",
-      "printing",
-      "shipped",
-      "delivered",
-      "cancelled"
-    ]
+      const order = await Order.findById(orderId)
 
-    if (!allowed.includes(status)) {
-      return res.status(400).json({ message: "Invalid status" })
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found"
+        })
+      }
+
+      const currentStatus = order.orderStatus
+      const allowed = allowedTransitions[currentStatus] || []
+
+      if (!allowed.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid transition from ${currentStatus} to ${status}`
+        })
+      }
+
+      order.orderStatus = status
+      await order.save()
+
+      res.json({
+        success: true,
+        order
+      })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: err.message
+      })
     }
-
-    const order = await Order.findById(orderId)
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" })
-    }
-
-    order.orderStatus = status
-    await order.save()
-
-    res.json({
-      success: true,
-      orderNumber: order.orderNumber,
-      newStatus: status
-    })
   }
 )
 

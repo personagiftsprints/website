@@ -290,7 +290,7 @@ export const updateProduct = async (req, res) => {
 
 export const getLandingProducts = async (req, res) => {
   try {
-    const [trending, tshirts, mugs, hoodies,mobileCase] = await Promise.all([
+    const [trending, tshirts, mugs, hoodies,mobileCase,normal] = await Promise.all([
       Product.find({ isActive: true })
         .sort({ 'inventory.soldQuantity': -1 })
         .limit(10)
@@ -306,6 +306,10 @@ export const getLandingProducts = async (req, res) => {
         .limit(10)
         .select('name slug thumbnail pricing'),
      Product.find({ isActive: true, type: 'mobileCase' })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('name slug thumbnail pricing'),
+         Product.find({ isActive: true, type: 'normal' })
         .sort({ createdAt: -1 })
         .limit(10)
         .select('name slug thumbnail pricing'),
@@ -325,7 +329,7 @@ export const getLandingProducts = async (req, res) => {
         tshirts,
         mugs,
         mobileCase,
-        hoodies
+        hoodies,normal
         
       }
     })

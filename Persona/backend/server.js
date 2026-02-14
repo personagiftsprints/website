@@ -31,7 +31,7 @@ app.use(
       "https://persona-gift.vercel.app",
       "https://personagifts.co.uk"
     ],
-    methods: ["GET", "POST", "PUT", "PATH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATH", "DELETE", "OPTIONS","PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })

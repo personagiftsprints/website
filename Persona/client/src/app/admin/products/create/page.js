@@ -506,6 +506,7 @@ const findVariant = (variants, selected) =>
                           required
                         >
                           <option value="">Select product type</option>
+                          <option value="normal">Normal</option>
                           <option value="tshirt">T-Shirt</option>
                           <option value="mug">Mug</option>
                           <option value="mobileCase">Mobile Case</option>

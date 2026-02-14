@@ -238,7 +238,7 @@ router.patch(
         "processing",
         "printing",
         "shipped",
-        "delivered",
+        "out_for_delivery",
         "cancelled"
       ]
 

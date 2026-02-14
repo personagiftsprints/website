@@ -9,31 +9,45 @@ router.post("/address", authMiddleware, async (req, res) => {
 
   const {
     fullName,
-    street,
-    landmark,
-    city,
+    addressLine1,
+    addressLine2,
+    town,
     county,
     postcode,
-    country,
     phone,
     email
   } = req.body
 
+  const ukPostcodeRegex =
+    /^[A-Z]{1,2}[0-9][0-9A-Z]?\s?[0-9][A-Z]{2}$/i
+
+  // if (!ukPostcodeRegex.test(postcode)) {
+  //   return res.status(400).json({
+  //     status: "error",
+  //     message: "Invalid UK postcode"
+  //   })
+  // }
+
   user.addresses.push({
     fullName,
-    street,
-    landmark,
-    city,
+    addressLine1,
+    addressLine2,
+    town,
     county,
-    postcode,
-    country,
-    phone,email
+    postcode: postcode.toUpperCase(),
+    countryCode: "GB",
+    phone,
+    email
   })
 
   await user.save()
 
-  res.json({ status: "success", addresses: user.addresses })
+  res.json({
+    status: "success",
+    addresses: user.addresses
+  })
 })
+
 
 router.delete("/address/:addressId", authMiddleware, async (req, res) => {
   const { addressId } = req.params

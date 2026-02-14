@@ -83,6 +83,7 @@ const productSchema = new mongoose.Schema(
         'pillow',
         'sticker',
         'hat',
+        'normal',
         'other'
       ]
     },

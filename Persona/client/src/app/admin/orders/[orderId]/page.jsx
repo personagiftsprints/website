@@ -6,14 +6,14 @@ import { Download, Eye, FileText } from "lucide-react";
 
 import { getOrderAdminById, updateOrderStatus } from "@/services/admin.service";
 
-const STATUSES = [
-  "paid",
-  "processing",
-  "printing",
-  "shipped",
-  "delivered",
-  "cancelled",
-];
+const STATUS_FLOW = {
+  paid: ["processing"],
+  processing: ["printing", "cancelled"],
+  printing: ["out_for_delivery"],
+  cancelled: [],
+  out_for_delivery: [],
+};
+
 
 export default function AdminOrderDetailPage() {
   const { orderId } = useParams();
@@ -85,15 +85,25 @@ export default function AdminOrderDetailPage() {
     );
   };
 
-  const updateStatus = async () => {
+
+
+   const updateStatusHandler = async () => {
     try {
       const res = await updateOrderStatus(orderId, status);
       setOrder(res.order);
-      alert("Order status updated successfully");
+      alert("Order status updated");
     } catch (err) {
-      alert("Failed to update status: " + (err.message || "Unknown error"));
+      alert(err.message);
     }
   };
+
+  if (loading) return <div className="p-10">Loading...</div>;
+  if (!order) return <div className="p-10">Order not found</div>;
+
+  const allowedStatuses = [
+    order.orderStatus,
+    ...(STATUS_FLOW[order.orderStatus] || []),
+  ];
 
   if (loading)
     return <div className="p-10 text-center">Loading order details...</div>;
@@ -113,36 +123,32 @@ export default function AdminOrderDetailPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="border border-gray-300 rounded px-4 py-2 bg-white"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-4">
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="border px-4 py-2 rounded"
+        >
+          {allowedStatuses.map((s) => (
+            <option key={s} value={s}>
+              {s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+            </option>
+          ))}
+        </select>
 
-          {/* Invoice Button */}
-
-          <button
-            onClick={updateStatus}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
-          >
-            Update Status
-          </button>
-          <button
-            onClick={() => console.log("Generate invoice")}
-            className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg bg-white hover:bg-gray-50 transition"
-            title="Generate Invoice"
-          >
-            <FileText size={18} />
-            <span className="hidden md:inline">Invoice</span>
-          </button>
-        </div>
+        <button
+          onClick={updateStatusHandler}
+          disabled={status === order.orderStatus}
+          className="bg-indigo-600 text-white px-6 py-2 rounded disabled:opacity-50"
+        >
+          Update Status
+        </button>
+      </div>
+        <div>
+        <p className="text-sm text-gray-600">
+          Current Status: <strong>{order.orderStatus}</strong>
+        </p>
+      </div>
       </div>
 
       {/* Main Grid */}

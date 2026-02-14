@@ -22,34 +22,6 @@ const [productsData, setProductsData] = useState(null)
 const isLoading = !productsData
 
 
-  const trendingProducts = [
-    {
-      id: 1,
-      title: "Minimal Black T-Shirt",
-      price: 699,
-      image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab",
-    },
-    {
-      id: 2,
-      title: "Custom Photo Mug",
-      price: 399,
-      image: "https://images.unsplash.com/photo-1511920170033-f8396924c348",
-    },
-    {
-      id: 3,
-      title: "Matte Phone Case",
-      price: 499,
-      image: "https://images.unsplash.com/photo-1580910051074-7f4d1d3c6f7c",
-    },
-    {
-      id: 4,
-      title: "Gift Combo Box",
-      price: 999,
-      image: "https://images.unsplash.com/photo-1607082349566-1870e0f44c37",
-    },
-  ]
-
-
   useEffect(() => {
   TrendingProducts()
     .then(data => {
@@ -174,6 +146,13 @@ const isLoading = !productsData
 <CategorySection
   title="Hoodies"
   products={productsData?.hoodies || []}
+  loading={isLoading}
+  columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
+/>
+
+<CategorySection
+  title="Normal"
+  products={productsData?.normal || []}
   loading={isLoading}
   columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
 />

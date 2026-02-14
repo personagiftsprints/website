@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { montserratBold } from "@/lib/fonts"
-import { ShoppingCart, ChevronDown,ShieldCheck } from "lucide-react"
+import { ShoppingCart, ChevronDown,ShieldCheck, Mail } from "lucide-react"
 import { getBanner } from "@/services/home-content.service"
 import Logo from "@/assets/icons/logo.png"
 import { useAuth } from "@/context/AuthContext"
@@ -162,7 +162,16 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
-           <Link href="/about" className="lg:px-10 text-[14px]">Contact Us</Link>
+      <a
+  href="mailto:info@persona.co.uk?subject=Customer%20Enquiry"
+  className="hidden lg:flex items-center gap-1.5 text-[14px] text-gray-700 hover:text-black"
+>
+  <Mail size={16} />
+  Contact Us
+</a>
+
+
+
           <Link
             href="/cart"
             className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100"

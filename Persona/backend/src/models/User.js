@@ -3,15 +3,15 @@ import bcrypt from "bcryptjs"
 
 const addressSchema = new mongoose.Schema(
   {
-    fullName: String,
-    street: String,
-    landmark: String,
-    city: String,
+    fullName: { type: String, required: true },
+    addressLine1: { type: String, required: true },
+    addressLine2: String,
+    town: { type: String, required: true },
     county: String,
-    postcode: String,
-    country: { type: String, default: "UK" },
-    email:String,
-    phone: String,
+    postcode: { type: String, required: true },
+    countryCode: { type: String, default: "GB" },
+    email: String,
+    phone: { type: String, required: true }
   },
   { _id: true }
 )

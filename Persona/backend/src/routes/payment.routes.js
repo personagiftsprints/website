@@ -176,15 +176,21 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       deliveryCharge,
       totalAmount,
       deliveryAddress: {
-        fullName: address?.name || "",
-        phone: address?.phone || "",
-        email: email || address?.email || "",
-        addressLine1: address?.line1 || "",
-        city: address?.city || "",
-        state: address?.state || "",
-        postalCode: address?.postcode || "",
-        country: address?.country || "US",
-      },
+  fullName: address?.fullName || address?.name || "",
+  phone: address?.phone || "",
+  email: email || address?.email || "",
+
+  addressLine1: address?.addressLine1 || address?.line1 || "",
+  addressLine2: address?.addressLine2 || "",
+
+  town: address?.town || address?.city || "",
+  county: address?.county || address?.state || "",
+
+  postcode: address?.postcode || address?.postalCode || "",
+
+  countryCode: "GB",
+},
+
       payment: {
         provider: "stripe",
         status: "pending",
@@ -257,7 +263,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
         hasCustomItems: cart.some((item) => item.designData) ? "true" : "false",
       },
       shipping_address_collection: {
-        allowed_countries: ["US", "CA", "GB"],
+        allowed_countries: ["GB"],
       },
     });
 

@@ -100,15 +100,18 @@ export default function CheckoutClient() {
   const [productPrices, setProductPrices] = useState({}); // ✅ Add product prices state
   const [loadingPrices, setLoadingPrices] = useState(true); // ✅ Add loading state
   const [address, setAddress] = useState(null);
-  const [addressForm, setAddressForm] = useState({
-    name: "",
-    phone: "",
-    line1: "",
-    city: "",
-    state: "",
-    email: "",
-    postcode: ""
-  });
+const [addressForm, setAddressForm] = useState({
+  fullName: "",
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  town: "",
+  county: "",
+  postcode: "",
+  countryCode: "GB"
+});
+
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -385,9 +388,15 @@ export default function CheckoutClient() {
                         }`}
                       >
                         <p className="font-medium">{addr.fullName}</p>
-                        <p className="text-xs text-gray-600">
-                          {addr.street}, {addr.city}, {addr.postcode}
-                        </p>
+                       <p className="text-xs text-gray-600">
+  {addr.addressLine1}
+  {addr.addressLine2 && `, ${addr.addressLine2}`}
+</p>
+<p className="text-xs text-gray-600">
+  {addr.town}
+  {addr.county && `, ${addr.county}`} {addr.postcode}
+</p>
+
                         <p className="text-xs text-gray-600">{addr.phone}</p>
                       </button>
                     ))}
@@ -417,81 +426,100 @@ export default function CheckoutClient() {
           {!user && showAddressForm && (
             <div className="grid gap-3 border-t pt-4">
               <input
-                placeholder="Full Name"
-                value={addressForm.name}
-                onChange={e => setAddressForm({ ...addressForm, name: e.target.value })}
-                className="border rounded px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="Email Address"
-                type="email"
-                value={addressForm.email}
-                onChange={e =>
-                  setAddressForm({ ...addressForm, email: e.target.value })
-                }
-                className="border rounded px-3 py-2 text-sm"
-              />
+  placeholder="Full Name"
+  value={addressForm.fullName}
+  onChange={e =>
+    setAddressForm({ ...addressForm, fullName: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
 
-              <input
-                placeholder="Mobile Number"
-                value={addressForm.phone}
-                onChange={e =>
-                  setAddressForm({
-                    ...addressForm,
-                    phone: e.target.value.replace(/[^0-9+ ]/g, "")
-                  })
-                }
-                className="border rounded px-3 py-2 text-sm"
-                inputMode="tel"
-              />
+<input
+  placeholder="Email Address"
+  value={addressForm.email}
+  onChange={e =>
+    setAddressForm({ ...addressForm, email: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
 
-              <input
-                placeholder="House number & Street"
-                value={addressForm.line1}
-                onChange={e => setAddressForm({ ...addressForm, line1: e.target.value })}
-                className="border rounded px-3 py-2 text-sm"
-              />
+<input
+  placeholder="Mobile Number"
+  value={addressForm.phone}
+  onChange={e =>
+    setAddressForm({
+      ...addressForm,
+      phone: e.target.value.replace(/[^0-9+ ]/g, "")
+    })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
 
-              <input
-                placeholder="City / Town"
-                value={addressForm.city}
-                onChange={e => setAddressForm({ ...addressForm, city: e.target.value })}
-                className="border rounded px-3 py-2 text-sm"
-              />
+<input
+  placeholder="House number & Street"
+  value={addressForm.addressLine1}
+  onChange={e =>
+    setAddressForm({ ...addressForm, addressLine1: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
 
-              <input
-                placeholder="State / County"
-                value={addressForm.state}
-                onChange={e => setAddressForm({ ...addressForm, state: e.target.value })}
-                className="border rounded px-3 py-2 text-sm"
-              />
+<input
+  placeholder="Address Line 2 (Optional)"
+  value={addressForm.addressLine2}
+  onChange={e =>
+    setAddressForm({ ...addressForm, addressLine2: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
 
-              <input
-                placeholder="Postcode / ZIP"
-                value={addressForm.postcode}
-                onChange={e =>
-                  setAddressForm({
-                    ...addressForm,
-                    postcode: e.target.value.toUpperCase()
-                  })
-                }
-                className="border rounded px-3 py-2 text-sm uppercase"
-              />
+<input
+  placeholder="Town / City"
+  value={addressForm.town}
+  onChange={e =>
+    setAddressForm({ ...addressForm, town: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
+
+<input
+  placeholder="County (Optional)"
+  value={addressForm.county}
+  onChange={e =>
+    setAddressForm({ ...addressForm, county: e.target.value })
+  }
+  className="border rounded px-3 py-2 text-sm"
+/>
+
+<input
+  placeholder="Postcode"
+  value={addressForm.postcode}
+  onChange={e =>
+    setAddressForm({
+      ...addressForm,
+      postcode: e.target.value.toUpperCase()
+    })
+  }
+  className="border rounded px-3 py-2 text-sm uppercase"
+/>
+
 
               <button
                 disabled={
-                  !addressForm.name ||
-                  !addressForm.phone ||
-                  !addressForm.line1 ||
-                  !addressForm.city ||
-                  !addressForm.postcode ||
-                  !addressForm.email
-                }
+  !addressForm.fullName ||
+  !addressForm.phone ||
+  !addressForm.addressLine1 ||
+  !addressForm.town ||
+  !addressForm.postcode ||
+  !addressForm.email
+}
+
                 onClick={() => {
-                  const newAddress = {
-                    ...addressForm,
-                    country: "US"
-                  };
+                 const newAddress = {
+  ...addressForm,
+  countryCode: "GB"
+};
+
                   localStorage.setItem("delivery_address", JSON.stringify(newAddress));
                   setAddress(newAddress);
                   setShowAddressForm(false);
