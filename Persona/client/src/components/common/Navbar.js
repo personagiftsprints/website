@@ -162,6 +162,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+           <Link href="/about" className="lg:px-10 text-[14px]">Contact Us</Link>
           <Link
             href="/cart"
             className="relative flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100"

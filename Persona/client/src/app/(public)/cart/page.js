@@ -5,8 +5,29 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { getProductById } from "@/services/product.service"
 
-const getCartKey = item =>
-  `${item.productId}-${item.variant?.size || ""}-${item.variant?.color || ""}`
+const getCartKey = item => {
+  // If item has an ID, use it (most reliable)
+  if (item.id) {
+    return item.id
+  }
+  
+  // Otherwise, generate a key that includes design data
+  const baseKey = `${item.productId}-${item.variant?.size || ""}-${item.variant?.color || ""}`
+  
+  // Add design hash if exists to differentiate between different designs
+  if (item.designData?.cloudinary_urls) {
+    // Create a hash of the cloudinary URLs to identify unique designs
+    const urlsHash = Object.values(item.designData.cloudinary_urls).join('|')
+    return `${baseKey}-${urlsHash.substring(0, 20)}`
+  }
+  
+  // If no design data, use the item's index or timestamp if available
+  if (item.addedAt) {
+    return `${baseKey}-${item.addedAt}`
+  }
+  
+  return baseKey
+}
 
 export default function CartClient() {
   const router = useRouter()
@@ -106,38 +127,46 @@ export default function CartClient() {
     return placements
   }
 
-  const updateQty = (cartKey, qty) => {
-    const updated = items.map(i =>
-      getCartKey(i) === cartKey ? { ...i, quantity: qty } : i
-    )
-    setItems(updated)
-    localStorage.setItem("cart", JSON.stringify(updated))
-  }
+const updateQty = (cartKey, qty) => {
+  const updated = items.map(item => {
+    // Compare using the unique ID
+    if (item.id === cartKey || getCartKey(item) === cartKey) {
+      return { ...item, quantity: qty }
+    }
+    return item
+  })
+  setItems(updated)
+  localStorage.setItem("cart", JSON.stringify(updated))
+}
 
-  const removeItem = cartKey => {
-    const updated = items.filter(i => getCartKey(i) !== cartKey)
-    setItems(updated)
-    localStorage.setItem("cart", JSON.stringify(updated))
-    
-    const remainingProductIds = [...new Set(updated.map(i => i.productId))]
-    setProductPrices(prev => {
-      const newPrices = { ...prev }
-      Object.keys(newPrices).forEach(id => {
-        if (!remainingProductIds.includes(id)) {
-          delete newPrices[id]
-        }
-      })
-      return newPrices
+const removeItem = cartKey => {
+  const updated = items.filter(item => {
+    // Filter using the unique ID
+    return !(item.id === cartKey || getCartKey(item) === cartKey)
+  })
+  setItems(updated)
+  localStorage.setItem("cart", JSON.stringify(updated))
+  
+  const remainingProductIds = [...new Set(updated.map(i => i.productId))]
+  setProductPrices(prev => {
+    const newPrices = { ...prev }
+    Object.keys(newPrices).forEach(id => {
+      if (!remainingProductIds.includes(id)) {
+        delete newPrices[id]
+      }
     })
-  }
+    return newPrices
+  })
+}
 
-  const toggleDesignExpanded = (cartKey) => {
-    setExpandedDesigns(prev => ({
-      ...prev,
-      [cartKey]: !prev[cartKey]
-    }))
-  }
 
+
+const toggleDesignExpanded = (cartKey) => {
+  setExpandedDesigns(prev => ({
+    ...prev,
+    [cartKey]: !prev[cartKey]
+  }))
+}
   const subtotal = useMemo(
     () => items.reduce((s, i) => {
       const price = productPrices[i.productId]?.specialPrice || 
