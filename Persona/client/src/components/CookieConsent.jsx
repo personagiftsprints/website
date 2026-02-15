@@ -8,8 +8,12 @@ export default function CookieConsent() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const accepted = localStorage.getItem("cookie_consent")
-    if (!accepted) setVisible(true)
+    const timer = setTimeout(() => {
+      const accepted = localStorage.getItem("cookie_consent")
+      if (!accepted) setVisible(true)
+    }, 3000)
+
+    return () => clearTimeout(timer)
   }, [])
 
   const acceptAll = () => {
@@ -32,7 +36,6 @@ export default function CookieConsent() {
           alt="Personalised Gifts Shop"
           width={50}
           height={50}
-          priority
         />
 
         <h3>We value your privacy</h3>
@@ -43,7 +46,7 @@ export default function CookieConsent() {
           personalised gifts shop ads you see on other websites are relevant to
           you. You can customise them yourself below or clear them from your
           browser settings anytime. More information is in our{" "}
-          <a href="/cookie-policy">cookie policy</a>.
+          <a href="/privacy">cookie policy</a>.
         </p>
 
         <div className="cookie-actions">

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { User, MapPin, Home } from "lucide-react"
+import { User, MapPin, Home, ListOrdered } from "lucide-react"
 
 export default function AccountLayout({ children }) {
   const pathname = usePathname()
@@ -60,6 +60,18 @@ export default function AccountLayout({ children }) {
             >
               <MapPin size={18} />
               <span>Addresses</span>
+            </Link>
+
+              <Link
+              href="/account/order"
+              className={`flex items-center gap-3 text-center md:text-left px-4 py-3 rounded-lg text-sm md:text-base whitespace-nowrap transition-colors ${
+                pathname === "/account/address"
+                  ? "bg-black text-white"
+                  : "bg-gray-100 md:bg-transparent md:hover:bg-gray-100"
+              }`}
+            >
+              <ListOrdered size={18} />
+              <span>My orders</span>
             </Link>
           </nav>
         </div>

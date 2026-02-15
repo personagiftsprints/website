@@ -7,9 +7,14 @@ import tshirtData from "@/assets/print-models/tshirt.json"
 import { getProductBySlug, uploadImagesAPI } from "@/services/product.service"
 import { getPrintConfigBySlug } from "@/services/printArea.service"
 
+import { useRouter } from "next/navigation"
+
+
 export default function TshirtColorPreview() {
   const { slug } = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
+
   const [selectedArea, setSelectedArea] = useState(null)
   const [uploadedImages, setUploadedImages] = useState({})
   const [imagePreviews, setImagePreviews] = useState({})
@@ -1212,8 +1217,8 @@ const generateViewPreview = async (targetView) => {
                 }}
               />
             ) : (
-              <div className="h-96 flex items-center justify-center text-red-500 bg-gray-100">
-                Back preview upload failed
+              <div className="h-96 flex items-center justify-center text-gray-800 bg-gray-100">
+                No back preview
               </div>
             )}
           </div>
@@ -1227,15 +1232,16 @@ const generateViewPreview = async (targetView) => {
         >
           Close
         </button>
-        <button
-          onClick={() => {
-            setShowSuccessModal(false);
-            // router.push('/cart'); // optional
-          }}
-          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-        >
-          View Cart
-        </button>
+       <button
+  onClick={() => {
+    setShowSuccessModal(false)
+    router.push("/cart")
+  }}
+  className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+>
+  View Cart
+</button>
+
       </div>
     </div>
   </div>

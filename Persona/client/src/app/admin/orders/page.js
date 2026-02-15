@@ -2,60 +2,191 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import {
+  Search,
+  Filter,
+  Eye
+} from "lucide-react"
 import { getAllOrdersAdmin } from "@/services/admin.service"
+import GrayLogo from "@/assets/icons/gray.png"
+import Image from "next/image"
+const STATUS_STYLES = {
+  created: "bg-gray-100 text-gray-700",
+  paid: "bg-emerald-100 text-emerald-700",
+  processing: "bg-blue-100 text-blue-700",
+  printing: "bg-purple-100 text-purple-700",
+  out_for_delivery: "bg-indigo-100 text-indigo-700",
+  cancelled: "bg-red-100 text-red-700"
+}
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([])
+  const [filtered, setFiltered] = useState([])
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getAllOrdersAdmin().then(res => {
-      setOrders(res.orders)
-    })
+    const fetchOrders = async () => {
+      try {
+        const res = await getAllOrdersAdmin()
+        setOrders(res.orders || [])
+        setFiltered(res.orders || [])
+      } catch (err) {
+        console.error("Failed to load orders", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOrders()
   }, [])
 
+  useEffect(() => {
+    let data = [...orders]
+
+    if (statusFilter !== "all") {
+      data = data.filter(o => o.orderStatus === statusFilter)
+    }
+
+    if (search) {
+      data = data.filter(o =>
+        o.orderNumber.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+
+    setFiltered(data)
+  }, [search, statusFilter, orders])
+
   return (
-    <div className="max-w-7xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">All Orders</h1>
+    <div className="max-w-8xl mx-auto space-y-6">
 
-      <div className="border rounded">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3 text-left">Order</th>
-              <th>User</th>
-              <th>Status</th>
-              <th>Total</th>
-              <th>Date</th>
-              <th></th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {orders.map(o => (
-              <tr key={o._id} className="border-t">
-                <td className="p-3">{o.orderNumber}</td>
-                <td>{o.userType}</td>
-                <td className="capitalize">{o.orderStatus}</td>
-                <td>${o.totalAmount}</td>
-                <td>{new Date(o.createdAt).toLocaleDateString()}</td>
-                <td>
-                  <Link
-                    href={`/admin/orders/${o._id}`}
-                    className="text-blue-600"
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {!orders.length && (
-          <p className="p-6 text-center text-gray-500">
-            No orders found
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Orders</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage and track all customer orders
           </p>
-        )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+
+        {/* Search */}
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by order number..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-500" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border rounded-lg text-sm bg-white"
+          >
+            <option value="all">All Status</option>
+            <option value="created">Created</option>
+            <option value="paid">Paid</option>
+            <option value="processing">Processing</option>
+            <option value="printing">Printing</option>
+            <option value="out_for_delivery">Out for Delivery</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-gray-200 overflow-hidden">
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+
+            <thead className="bg-gray-50 sticky top-0">
+              <tr className="text-left text-gray-600">
+                <th className="p-4 font-medium">Order</th>
+                <th className="p-4 font-medium">Customer</th>
+                <th className="p-4 font-medium">Status</th>
+                <th className="p-4 font-medium">Total</th>
+                <th className="p-4 font-medium">Date</th>
+                <th className="p-4 font-medium text-right">Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {loading && (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-gray-500 justify-center items-center flex flex-col">
+                    <Image src={GrayLogo} alt="logo"  className="w-32 animate-pulse"/>
+                    <p>Loading orders...</p>
+                  </td>
+                </tr>
+              )}
+
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-gray-500">
+                    No orders found
+                  </td>
+                </tr>
+              )}
+
+              {!loading && filtered.map(order => (
+                <tr
+                  key={order._id}
+                  className="border-t hover:bg-gray-50 transition"
+                >
+                  <td className="p-4 font-medium text-gray-900">
+                    #{order.orderNumber}
+                  </td>
+
+                  <td className="p-4 text-gray-600 capitalize">
+                    {order.userType}
+                  </td>
+
+                  <td className="p-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                        STATUS_STYLES[order.orderStatus]
+                      }`}
+                    >
+                      {order.orderStatus.replace(/_/g, " ")}
+                    </span>
+                  </td>
+
+                  <td className="p-4 font-semibold">
+                    £{order.totalAmount.toFixed(2)}
+                  </td>
+
+                  <td className="p-4 text-gray-500">
+                    {new Date(order.createdAt).toLocaleDateString("en-GB")}
+                  </td>
+
+                  <td className="p-4 text-right">
+                    <Link
+                      href={`/admin/orders/${order._id}`}
+                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

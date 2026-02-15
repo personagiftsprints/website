@@ -5,6 +5,8 @@ import { useEffect, useState, useCallback } from "react"
 import { Settings, AlertCircle, Shirt, Coffee, Box } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import GrayLogo from "@/assets/icons/gray.png"
+import Image from "next/image"
 
 function Card({ className = "", children }) {
   return <div className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`}>{children}</div>
@@ -86,21 +88,10 @@ export default function PrintConfigListPage() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Print Configurations</h1>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-4 w-32 mt-2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-20 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="p-6 max-w-6xl mx-auto justify-center items-center flex flex-col h-screen">
+        
+       <Image src={GrayLogo} alt="logo" className="w-32 animate-pulse"/>
+       <p className="text-1xl mb-8">Loading print configuration</p>
       </div>
     )
   }

@@ -4,6 +4,7 @@ import {
   emailAuth,
   getMe,
   resetPassword,
+  googleAuth,
 } from "../controllers/auth.controller.js"
 import { authMiddleware } from "../middlewares/auth.middleware.js"
 
@@ -13,5 +14,6 @@ router.post("/email/check", emailCheck)
 router.post("/email/auth", emailAuth)
 router.get("/me", authMiddleware, getMe)
 router.post("/password/reset", resetPassword)
+router.post("/google", googleAuth)
 
 export default router

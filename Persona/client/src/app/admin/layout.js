@@ -20,6 +20,7 @@ import {
   X,
   Printer,
 } from "lucide-react"
+import Logo from "@/assets/icons/logo.png"
 
 function NavItem({ href, icon: Icon, label, onClick }) {
   return (
@@ -37,7 +38,7 @@ function NavItem({ href, icon: Icon, label, onClick }) {
 function SidebarContent({ onItemClick }) {
   return (
     <>
-      <div className="p-6 text-xl font-bold">Persona Admin</div>
+      <div className="p-6 text-xl font-bold flex text-gray-600  items-center"><Image src={Logo} alt="logo" className="w-10"/> Persona Admin</div>
 
       <nav className="px-4 text-sm flex-1 space-y-6 overflow-y-auto">
         <div>
@@ -45,7 +46,7 @@ function SidebarContent({ onItemClick }) {
             Overview
           </p>
           <NavItem href="/admin" icon={LayoutDashboard} label="Dashboard" onClick={onItemClick} />
-          <NavItem href="/admin/reports" icon={BarChart3} label="Analytics & Reports" onClick={onItemClick} />
+         
         </div>
 
         <div>
@@ -76,7 +77,7 @@ function SidebarContent({ onItemClick }) {
         </div>
       </nav>
 
-      <div className="border-t p-4">
+      <div className="border-t border-gray-400 p-4">
         <button className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">
           <LogOut size={18} />
           Logout
@@ -167,7 +168,7 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex h-[calc(100vh-3.5rem)] lg:h-screen">
-            <aside className="hidden lg:flex w-64 border-r flex-col">
+            <aside className="hidden lg:flex w-64 border-r border-gray-400 flex-col">
               <SidebarContent />
             </aside>
 

@@ -511,8 +511,9 @@ const findVariant = (variants, selected) =>
                           <option value="mug">Mug</option>
                           <option value="mobileCase">Mobile Case</option>
                           <option value="hoodie">Hoodie</option>
+                          <option value="frame">Framed photo</option>
                           <option value="poster">Poster</option>
-                          <option value="pillow">Pillow</option>
+                           <option value="3Dcrystal">3D Crystal photo cube</option>
                         </select>
                       </div>
 

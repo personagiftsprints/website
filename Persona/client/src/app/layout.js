@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Script from "next/script"
 import { AuthProvider } from "@/context/AuthContext"
 import AuthDrawer from "@/components/AuthDrawer"
 import "./globals.css"
 import CookieConsent from "@/components/CookieConsent"
-
 
 export default function RootLayout({ children }) {
   const [authOpen, setAuthOpen] = useState(false)
@@ -23,9 +23,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+        />
+
         <AuthProvider>
           {children}
-           <CookieConsent />
+          <CookieConsent />
           <AuthDrawer
             open={authOpen}
             onClose={() => setAuthOpen(false)}

@@ -67,101 +67,109 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     const totalAmount = discountedSubtotal + deliveryCharge;
 
     // Inside router.post("/create-checkout-session")
-    const itemsPayload = cart.map((item) => {
-      const productType = item.productSnapshot?.type || item.type || "other";
+// Inside router.post("/create-checkout-session")
+const itemsPayload = cart.map((item) => {
+  const productType = item.productSnapshot?.type || item.type || "other";
 
-      const baseItem = {
-        productId: item.productId
-          ? new mongoose.Types.ObjectId(item.productId)
-          : null,
+  // Determine if this is a customizable product
+  const isCustomizable = ["tshirt", "mug", "hoodie"].includes(productType);
+  const hasCustomization = !!(item.designData && isCustomizable);
 
-        productSnapshot: {
-          name: item.name || item.productSnapshot?.name || "Custom Product",
-          slug: item.productSlug || item.productSnapshot?.slug || null,
-          productType: productType,
-          image: item.image || item.productSnapshot?.image || null,
-          finalPrice: Number(
-            item.price || item.productSnapshot?.specialPrice || 0,
-          ),
-        },
+  const baseItem = {
+    productId: item.productId
+      ? new mongoose.Types.ObjectId(item.productId)
+      : null,
 
-        variant: item.variant || {},
+    productSnapshot: {
+      name: item.name || item.productSnapshot?.name || "Custom Product",
+      slug: item.productSlug || item.productSnapshot?.slug || null,
+      productType: productType,
+      image: item.image || item.productSnapshot?.image || null,
+      finalPrice: Number(
+        item.price || item.productSnapshot?.specialPrice || 0,
+      ),
+    },
 
-        quantity: Number(item.quantity) || 1,
+    variant: item.variant || {},
 
-        // === ENHANCED & CLEAN CUSTOMIZATION ===
-        customization: {
-          enabled: productType === "tshirt" && !!item.designData,
-          type: productType === "tshirt" ? "tshirt" : "none",
-          data:
-            productType === "tshirt" && item.designData
-              ? {
-                  productType: "tshirt",
-                  tshirt: {
-                    // Basic info
-                    color: item.variant?.color,
-                    size: item.variant?.size,
+    quantity: Number(item.quantity) || 1,
 
-                    // View settings
-                    view_configuration:
-                      item.designData.metadata?.view_configuration || {},
+    // === FIXED: Use valid enum values ===
+    customization: {
+      enabled: hasCustomization,
+      // Use "normal" for non-customized items, not "none"
+      type: hasCustomization ? productType : "normal",
+      data: hasCustomization
+        ? {
+            productType: productType,
+            // Handle different product types
+            ...(productType === "tshirt" && {
+              tshirt: {
+                color: item.variant?.color,
+                size: item.variant?.size,
+                view_configuration:
+                  item.designData.metadata?.view_configuration || {},
+                print_areas: item.designData.print_areas || {},
+                cloudinary_urls: item.designData.cloudinary_urls || {},
+                preview_image_url:
+                  item.designData.preview_url ||
+                  item.designData.previewImage ||
+                  null,
+                preview_urls: item.designData?.preview_urls || {
+                  front: item.designData?.preview_url || null,
+                  back: null,
+                },
+                uploaded_images: Object.entries(
+                  item.designData.cloudinary_urls || {},
+                ).map(([areaId, url]) => ({
+                  area_id: areaId,
+                  area_name:
+                    item.designData.print_areas?.front?.area === areaId
+                      ? "Center Chest"
+                      : item.designData.print_areas?.back?.area === areaId
+                        ? "Full Back"
+                        : areaId,
+                  view:
+                    item.designData.print_areas?.front?.area === areaId
+                      ? "front"
+                      : "back",
+                  cloudinary_url: url,
+                  position: item.designData.positions?.[areaId] || {},
+                })),
+                metadata: {
+                  design_timestamp:
+                    item.designData.metadata?.design_timestamp ||
+                    new Date(),
+                  image_positions:
+                    item.designData.metadata?.image_positions || {},
+                },
+              },
+            }),
+            // Add mug handling here if needed
+            ...(productType === "mug" && {
+              mug: {
+                // Mug specific data structure
+                print_areas: item.designData.print_areas || {},
+                cloudinary_urls: item.designData.cloudinary_urls || {},
+                preview_urls: item.designData.preview_urls || {},
+                preview_image_url:
+                  item.designData.preview_url ||
+                  item.designData.preview_urls?.front ||
+                  null,
+                positions: item.designData.positions || {},
+              },
+            }),
+          }
+        : null, // null for non-customized items
+    },
 
-                    // Where designs are placed
-                    print_areas: item.designData.print_areas || {},
+    // Keep for backward compatibility (safe)
+    designData: item.designData || null,
+  };
 
-                    // All original uploaded images (very important)
-                    cloudinary_urls: item.designData.cloudinary_urls || {},
+  return baseItem;
+});
 
-                    // The final full mockup preview (most important for customer)
-                    preview_image_url:
-                      item.designData.preview_url ||
-                      item.designData.previewImage ||
-                      null,
-
-                    // Per-view previews (future-proof)
-                    // In itemsPayload → tshirt object
-                    preview_urls: item.designData?.preview_urls || {
-                      front: item.designData?.preview_url || null,
-                      back: null,
-                    },
-                    // Detailed list of what user uploaded
-                    uploaded_images: Object.entries(
-                      item.designData.cloudinary_urls || {},
-                    ).map(([areaId, url]) => ({
-                      area_id: areaId,
-                      area_name:
-                        item.designData.print_areas?.front?.area === areaId
-                          ? "Center Chest"
-                          : item.designData.print_areas?.back?.area === areaId
-                            ? "Full Back"
-                            : areaId,
-                      view:
-                        item.designData.print_areas?.front?.area === areaId
-                          ? "front"
-                          : "back",
-                      cloudinary_url: url,
-                      position: item.designData.positions?.[areaId] || {},
-                    })),
-
-                    // Extra metadata
-                    metadata: {
-                      design_timestamp:
-                        item.designData.metadata?.design_timestamp ||
-                        new Date(),
-                      image_positions:
-                        item.designData.metadata?.image_positions || {},
-                    },
-                  },
-                }
-              : null,
-        },
-
-        // Keep for backward compatibility (safe)
-        designData: item.designData || null,
-      };
-
-      return baseItem;
-    });
     // Create order
     const order = await Order.create({
       user: req.user ? req.user._id : null,
@@ -266,6 +274,10 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
         allowed_countries: ["GB"],
       },
     });
+
+    order.checkoutSessionId = session.id
+await order.save()
+
 
     res.json({
       success: true,

@@ -42,7 +42,7 @@ export default function ProductCard({
           setHovered(false)
           setActiveIndex(0)
         }}
-        className="group bg-white border  overflow-hidden transition cursor-pointer"
+        className="group bg-white border border-gray-200  overflow-hidden transition cursor-pointer"
       >
         {/* IMAGE */}
         <div className="relative aspect-square bg-gray-100">

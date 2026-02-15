@@ -19,10 +19,12 @@ export default function MugDesigner() {
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewImageUrl, setPreviewImageUrl] = useState(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successPreviews, setSuccessPreviews] = useState({ front: null, back: null })
+  
+  const [successPreviews, setSuccessPreviews] = useState({ front: null, back: null, full_wrap: null })
   const [confirmedPreviewUrls, setConfirmedPreviewUrls] = useState({
     front: null,
-    back: null
+    back: null,
+    full_wrap: null
   })
   const [isConfirming, setIsConfirming] = useState(false)
 
@@ -52,6 +54,9 @@ export default function MugDesigner() {
   // View state
   const [view, setView] = useState("front")
   const [isLoading, setIsLoading] = useState(true)
+
+  // For full_wrap view - track which slot is being uploaded to
+  const [selectedSlot, setSelectedSlot] = useState(null)
 
   // Cart manager
   const cartManager = {
@@ -104,68 +109,107 @@ export default function MugDesigner() {
     }
   }
 
-  // Structured product data for cart
-  const getStructuredProductDataForCart = (cloudinaryUrlsData) => {
-    if (!product) return null
+// In MugDesigner component - update the getStructuredProductDataForCart function
+const getStructuredProductDataForCart = (cloudinaryUrlsData) => {
+  if (!product) return null;
 
-    const printAreas = {}
-    
-    Object.keys(printConfig?.views || {}).forEach(viewKey => {
-      const areas = printConfig?.views?.[viewKey]?.areas || []
-      areas.forEach(area => {
-        if (uploadedImages[area.id] && cloudinaryUrlsData[area.id]) {
-          printAreas[viewKey] = {
-            enabled: true,
-            area: area.name.toLowerCase().replace(/\s+/g, '_'),
-            orientation_id: `ori_${area.name.toLowerCase().replace(/\s+/g, '_')}`,
-            image: {
-              url: cloudinaryUrlsData[area.id],
-              width: 800,
-              height: 800,
-              source: 'cloudinary',
-              position: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
-            },
-            view: viewKey
+  const printAreas = {};
+
+  Object.keys(printConfig?.views || {}).forEach(viewKey => {
+    const areas = printConfig?.views?.[viewKey]?.areas || [];
+    areas.forEach(area => {
+      // For full_wrap view with multi type
+      if (viewKey === "full_wrap" && area.type === "multi") {
+        const wrapImages = {};
+        const slotOrder = ["front", "center", "back"];
+        
+        slotOrder.forEach((slot, index) => {
+          const slotId = `${area.id}_${slot}`;
+          if (uploadedImages[slotId] && cloudinaryUrlsData[slotId]) {
+            wrapImages[slot] = {
+              url: cloudinaryUrlsData[slotId],
+              position: imagePositions[slotId] || { x: 0, y: 0, scale: 0.5, rotate: 0 },
+              slot_order: index // Add order for left-to-right rendering
+            };
           }
+        });
+        
+        if (Object.keys(wrapImages).length > 0) {
+          printAreas.full_wrap = {
+            enabled: true,
+            area: "full_wrap",
+            type: "multi",
+            images: wrapImages,
+            view: "full_wrap",
+            // Add metadata about the wrap design
+            metadata: {
+              slot_count: Object.keys(wrapImages).length,
+              slots_ordered: slotOrder.filter(slot => wrapImages[slot]),
+              design_type: "full_wrap"
+            }
+          };
         }
-      })
-    })
+      } 
+      // For single areas (front/back)
+      else if (uploadedImages[area.id] && cloudinaryUrlsData[area.id]) {
+        printAreas[viewKey] = {
+          enabled: true,
+          area: area.name.toLowerCase().replace(/\s+/g, '_'),
+          orientation_id: `ori_${area.name.toLowerCase().replace(/\s+/g, '_')}`,
+          image: {
+            url: cloudinaryUrlsData[area.id],
+            width: 800,
+            height: 800,
+            source: 'cloudinary',
+            position: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
+          },
+          view: viewKey,
+          metadata: {
+            design_type: "single",
+            placement: area.name
+          }
+        };
+      }
+    });
+  });
 
-    return {
-      productSnapshot: {
-        id: product._id,
-        slug: product.slug || slug,
-        name: product.name || "Custom Mug",
-        type: product.productType || "mug",
-        description: product.description || "",
-        basePrice: product.pricing?.price || 0,
-        specialPrice: product.pricing?.specialPrice || 0,
-        currency: product.pricing?.currency || "INR",
-        image: product.images?.[0]?.url || product.image || null,
-        material: product.material || "Ceramic"
+  return {
+    productSnapshot: {
+      id: product._id,
+      slug: product.slug || slug,
+      name: product.name || "Custom Mug",
+      type: "mug", // Important: Set type to "mug"
+      description: product.description || "",
+      basePrice: product.pricing?.price || 0,
+      specialPrice: product.pricing?.specialPrice || 0,
+      currency: product.pricing?.currency || "INR",
+      image: product.images?.[0]?.url || product.image || null,
+      material: product.material || "Ceramic"
+    },
+    variant: {
+      color: 'white',
+      color_label: 'White'
+    },
+    quantity: 1,
+    print_areas: printAreas,
+    cloudinary_urls: cloudinaryUrlsData,
+    metadata: {
+      product_type: "mug", // Add product type to metadata
+      view_configuration: { 
+        current_view: view,
+        available_views: Object.keys(printConfig?.views || {})
       },
-      variant: {
-        color: 'white',
-        color_label: 'White'
-      },
-      quantity: 1,
-      print_areas: printAreas,
-      cloudinary_urls: cloudinaryUrlsData,
-      metadata: {
-        view_configuration: { current_view: view },
-        image_positions: imagePositions,
-        uploaded_areas: Object.keys(uploadedImages).map(areaId => ({
-          id: areaId,
-          view: Object.keys(printConfig?.views || {}).find(v => 
-            printConfig?.views[v]?.areas.some(a => a.id === areaId)
-          ),
-          position: imagePositions[areaId] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
-        })),
-        design_timestamp: new Date().toISOString()
-      },
-      currency: product.pricing?.currency || 'INR'
-    }
-  }
+      image_positions: imagePositions,
+      uploaded_areas: Object.keys(uploadedImages).map(key => ({
+        id: key,
+        slot: key.includes('_') ? key.split('_').pop() : null,
+        position: imagePositions[key] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
+      })),
+      design_timestamp: new Date().toISOString()
+    },
+    currency: product.pricing?.currency || 'INR'
+  };
+};
 
   // Add to cart function
   const addDesignToCart = async (cloudinaryUrlsData) => {
@@ -179,8 +223,8 @@ export default function MugDesigner() {
       return
     }
 
-    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back) {
-      alert("Please confirm at least one side's design first.")
+    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back && !confirmedPreviewUrls.full_wrap) {
+      alert("Please confirm at least one view's design first.")
       return
     }
 
@@ -189,10 +233,11 @@ export default function MugDesigner() {
 
       const previewUrls = {
         front: confirmedPreviewUrls.front,
-        back: confirmedPreviewUrls.back
+        back: confirmedPreviewUrls.back,
+        full_wrap: confirmedPreviewUrls.full_wrap
       }
 
-      const mainPreviewUrl = previewUrls.front || previewUrls.back || null
+      const mainPreviewUrl = previewUrls.front || previewUrls.back || previewUrls.full_wrap || null
       if (mainPreviewUrl) setPreviewImageUrl(mainPreviewUrl)
 
       const cartData = getStructuredProductDataForCart(cloudinaryUrlsData)
@@ -202,6 +247,7 @@ export default function MugDesigner() {
         productId: cartData.productSnapshot.id,
         productSlug: cartData.productSnapshot.slug,
         name: cartData.productSnapshot.name,
+         productType: "mug",  
         image: cartData.productSnapshot.image,
         price: cartData.productSnapshot.specialPrice || cartData.productSnapshot.basePrice,
         currency: cartData.currency,
@@ -209,6 +255,7 @@ export default function MugDesigner() {
         quantity: cartData.quantity,
         designData: {
           cloudinary_urls: cartData.cloudinary_urls,
+           type: "mug",
           preview_url: mainPreviewUrl,
           preview_urls: previewUrls,
           print_areas: cartData.print_areas,
@@ -221,7 +268,11 @@ export default function MugDesigner() {
       const result = await cartManager.addItem(cartItem)
       
       if (result.success) {
-        setSuccessPreviews({ front: previewUrls.front, back: previewUrls.back })
+        setSuccessPreviews({ 
+          front: previewUrls.front, 
+          back: previewUrls.back,
+          full_wrap: previewUrls.full_wrap 
+        })
         setShowSuccessModal(true)
         
         const designs = JSON.parse(localStorage.getItem('mugDesigns') || '[]')
@@ -237,6 +288,12 @@ export default function MugDesigner() {
       setIsAddingToCart(false)
     }
   }
+
+  const full_wrapSlots = useMemo(() => {
+    if (view !== "full_wrap") return []
+    const full_wrapArea = printConfig?.views?.full_wrap?.areas?.[0]
+    return full_wrapArea?.slots || []
+  }, [view, printConfig])
 
   // Draw design on canvas
   const drawDesignOnCanvas = async () => {
@@ -270,40 +327,94 @@ export default function MugDesigner() {
 
       const areas = printConfig?.views?.[view]?.areas || []
       
-      for (const area of areas) {
-        const previewUrl = imagePreviews[area.id]
-        if (!previewUrl) continue
+      // Sort areas by position.x to ensure left-to-right rendering
+      const sortedAreas = [...areas].sort((a, b) => (a.position?.x || 0) - (b.position?.x || 0))
+      
+      for (const area of sortedAreas) {
+        // For full_wrap view with multi type, we need to handle each slot separately
+        if (view === "full_wrap" && area.type === "multi") {
+          // Sort slots in the order they should appear (front, center, back)
+          const slotOrder = ["front", "center", "back"]
+          
+          for (let i = 0; i < slotOrder.length; i++) {
+            const slot = slotOrder[i]
+            const slotId = `${area.id}_${slot}`
+            const previewUrl = imagePreviews[slotId]
+            
+            if (!previewUrl) continue
 
-        const position = imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
-        
-        const areaX = (area.position?.x || 0) / 100 * canvas.width
-        const areaY = (area.position?.y || 0) / 100 * canvas.height
-        const areaWidth = (area.width || 100) / 100 * canvas.width
-        const areaHeight = (area.height || 100) / 100 * canvas.height
+            const position = imagePositions[slotId] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
+            
+            // Calculate position based on slot index - distribute evenly across the mug
+            const slotWidth = 100 / 3 // Divide into thirds
+            const areaX = (slotWidth * i) // Position each slot in its third
+            const areaY = 20 // Center vertically
+            const areaWidth = slotWidth * 0.8 // Leave some margin
+            const areaHeight = 60 // Height of the full_wrap area
 
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        
-        await new Promise((resolve, reject) => {
-          img.onload = resolve
-          img.onerror = reject
-          img.src = previewUrl
-        })
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            
+            await new Promise((resolve, reject) => {
+              img.onload = resolve
+              img.onerror = reject
+              img.src = previewUrl
+            })
 
-        ctx.save()
-        ctx.translate(areaX + areaWidth / 2, areaY + areaHeight / 2)
-        ctx.rotate((position.rotate * Math.PI) / 180)
-        
-        const scale = position.scale || 0.5
-        ctx.drawImage(
-          img,
-          position.x - (areaWidth * scale) / 2,
-          position.y - (areaHeight * scale) / 2,
-          areaWidth * scale,
-          areaHeight * scale
-        )
-        
-        ctx.restore()
+            ctx.save()
+            ctx.translate(
+              (areaX + areaWidth / 2) / 100 * canvas.width, 
+              (areaY + areaHeight / 2) / 100 * canvas.height
+            )
+            ctx.rotate((position.rotate * Math.PI) / 180)
+            
+            const scale = position.scale || 0.5
+            ctx.drawImage(
+              img,
+              position.x - (areaWidth * scale) / 2 * canvas.width / 100,
+              position.y - (areaHeight * scale) / 2 * canvas.height / 100,
+              (areaWidth * scale) / 100 * canvas.width,
+              (areaHeight * scale) / 100 * canvas.height
+            )
+            
+            ctx.restore()
+          }
+        } else {
+          // Regular single area (front/back)
+          const previewUrl = imagePreviews[area.id]
+          if (!previewUrl) continue
+
+          const position = imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
+          
+          const areaX = (area.position?.x || 0) / 100 * canvas.width
+          const areaY = (area.position?.y || 0) / 100 * canvas.height
+          const areaWidth = (area.width || 100) / 100 * canvas.width
+          const areaHeight = (area.height || 100) / 100 * canvas.height
+
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve
+            img.onerror = reject
+            img.src = previewUrl
+          })
+
+          ctx.save()
+          ctx.translate(areaX + areaWidth / 2, areaY + areaHeight / 2)
+          ctx.rotate((position.rotate * Math.PI) / 180)
+          
+          const scale = position.scale || 0.5
+          ctx.drawImage(
+            img,
+            position.x - (areaWidth * scale) / 2,
+            position.y - (areaHeight * scale) / 2,
+            areaWidth * scale,
+            areaHeight * scale
+          )
+          
+          ctx.restore()
+        }
       }
       
       return canvas.toDataURL('image/png')
@@ -348,7 +459,23 @@ export default function MugDesigner() {
 
   // Confirm design
   const handleConfirmDesign = async () => {
-    if (!mugContainerRef.current || !selectedArea) return
+    if (!mugContainerRef.current) return
+    
+    // For full_wrap view, check if at least one image is uploaded
+    if (view === "full_wrap") {
+      const hasAnyImage = full_wrapSlots.some(slot => {
+        const slotId = `full_wrap_3panel_${slot}`
+        return uploadedImages[slotId]
+      })
+      
+      if (!hasAnyImage) {
+        alert("Please upload at least one image for the wrap design.")
+        return
+      }
+    } else if (!selectedArea || !uploadedImages[selectedArea.id]) {
+      alert("Please select an area with an uploaded image.")
+      return
+    }
 
     setIsConfirming(true)
     try {
@@ -441,18 +568,26 @@ export default function MugDesigner() {
       return
     }
 
+    // Check if any view is confirmed
+    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back && !confirmedPreviewUrls.full_wrap) {
+      alert("Please confirm your design first by clicking 'Confirm Design' on the selected area.")
+      return
+    }
+
     try {
       setIsUploading(true)
       
       const userDesignUrls = await uploadAllImagesToCloudinary()
       setCloudinaryUrls(userDesignUrls)
       
-      const localPreviewDataUrl = await generatePreviewImage()
-      const previewCloudinaryUrl = await uploadPreviewImageToCloudinary(localPreviewDataUrl)
-      const finalPreviewUrl = previewCloudinaryUrl || localPreviewDataUrl
-      
-      setPreviewImageUrl(finalPreviewUrl)
-      setShowPreviewModal(true)
+      // Only generate preview for front/back views
+      if (view !== "full_wrap") {
+        const localPreviewDataUrl = await generatePreviewImage()
+        const previewCloudinaryUrl = await uploadPreviewImageToCloudinary(localPreviewDataUrl)
+        const finalPreviewUrl = previewCloudinaryUrl || localPreviewDataUrl
+        setPreviewImageUrl(finalPreviewUrl)
+        setShowPreviewModal(true)
+      }
       
       await addDesignToCart(userDesignUrls)
     } catch (err) {
@@ -499,12 +634,97 @@ export default function MugDesigner() {
 
   useEffect(() => {
     setSelectedArea(null)
+    setSelectedSlot(null)
   }, [view])
+
+  // Check if current view can be changed
+  const canSwitchView = useCallback((targetView) => {
+    // If trying to switch away from full_wrap and full_wrap has images
+    if (view === "full_wrap" && targetView !== "full_wrap") {
+      const hasFullWrapImages = full_wrapSlots.some(slot => {
+        const slotId = `full_wrap_3panel_${slot}`
+        return uploadedImages[slotId]
+      })
+      
+      if (hasFullWrapImages) {
+        return {
+          allowed: false,
+          message: "Please clear all wrap designs before switching to front/back views, or confirm the wrap design first."
+        }
+      }
+    }
+    
+    // If trying to switch to full_wrap and front/back have images
+    if (targetView === "full_wrap" && view !== "full_wrap") {
+      const hasFrontOrBackImages = Object.keys(uploadedImages).some(key => 
+        !key.includes('full_wrap') && uploadedImages[key]
+      )
+      
+      if (hasFrontOrBackImages) {
+        return {
+          allowed: false,
+          message: "Please clear front/back designs before switching to wrap view."
+        }
+      }
+    }
+    
+    return { allowed: true }
+  }, [view, uploadedImages, full_wrapSlots])
+
+  // Handle view change with validation
+  const handleViewChange = (newView) => {
+    const check = canSwitchView(newView)
+    if (!check.allowed) {
+      alert(check.message)
+      return
+    }
+    setView(newView)
+  }
 
   // Filter current view areas
   const currentViewAreas = useMemo(() => {
     return printConfig?.views?.[view]?.areas || []
   }, [printConfig, view])
+
+  // Check if user can upload more images (max 3 for full_wrap view)
+  const canUploadMore = useCallback(() => {
+    if (view !== "full_wrap") return true
+    
+    const uploadedfull_wrapImages = full_wrapSlots.filter(slot => {
+      const slotId = `full_wrap_3panel_${slot}`
+      return uploadedImages[slotId]
+    })
+    
+    return uploadedfull_wrapImages.length < 3
+  }, [view, full_wrapSlots, uploadedImages])
+
+  // Get upload count message
+  const getUploadStatus = useCallback(() => {
+    if (view !== "full_wrap") return null
+    
+    const uploadedfull_wrapImages = full_wrapSlots.filter(slot => {
+      const slotId = `full_wrap_3panel_${slot}`
+      return uploadedImages[slotId]
+    })
+    
+    const slotOrder = ["front", "center", "back"]
+    const orderedUploads = slotOrder.filter(slot => {
+      const slotId = `full_wrap_3panel_${slot}`
+      return uploadedImages[slotId]
+    })
+    
+    return {
+      count: uploadedfull_wrapImages.length,
+      max: 3,
+      message: `${uploadedfull_wrapImages.length} of 3 images uploaded - will appear left to right (front, center, back)`,
+      slots: orderedUploads
+    }
+  }, [view, full_wrapSlots, uploadedImages])
+
+  // Check if current view is confirmed
+  const isCurrentViewConfirmed = useCallback(() => {
+    return confirmedPreviewUrls[view]
+  }, [confirmedPreviewUrls, view])
 
   // Drag handlers
   const handleDragStart = useCallback((e, areaId) => {
@@ -518,8 +738,13 @@ export default function MugDesigner() {
     }
     
     e.preventDefault()
-    setSelectedArea(currentViewAreas.find(a => a.id === areaId) || null)
-  }, [uploadedImages, imagePositions, currentViewAreas])
+    
+    // For full_wrap view, find which slot this is
+    if (view === "full_wrap") {
+      const slot = areaId.split('_').pop()
+      setSelectedSlot(slot)
+    }
+  }, [uploadedImages, imagePositions, view])
 
   const handleDrag = useCallback((e) => {
     if (!isDraggingRef.current || !currentAreaRef.current) return
@@ -542,6 +767,7 @@ export default function MugDesigner() {
   const handleDragEnd = useCallback(() => {
     isDraggingRef.current = false
     currentAreaRef.current = null
+    setSelectedSlot(null)
   }, [])
 
   // Wheel for zoom
@@ -611,9 +837,25 @@ export default function MugDesigner() {
   }, [handleDrag, handleDragEnd])
 
   // Handle image upload
-  const handleImageUpload = (e, areaId) => {
+  const handleImageUpload = (e, areaId, slot = null) => {
     const file = e.target.files[0]
     if (!file) return
+
+    // For full_wrap view, we use slot-based IDs
+    const uploadId = slot ? `${areaId}_${slot}` : areaId
+
+    // Check if trying to upload more than 3 images in full_wrap view
+    if (view === "full_wrap") {
+      const uploadedfull_wrapImages = full_wrapSlots.filter(s => {
+        const slotId = `full_wrap_3panel_${s}`
+        return uploadedImages[slotId]
+      })
+      
+      if (uploadedfull_wrapImages.length >= 3 && !uploadedImages[uploadId]) {
+        alert("Maximum 3 images allowed for full wrap design. Please remove an existing image first.")
+        return
+      }
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB")
@@ -625,47 +867,67 @@ export default function MugDesigner() {
       return
     }
 
-    if (imagePreviews[areaId]) {
-      URL.revokeObjectURL(imagePreviews[areaId])
+    if (imagePreviews[uploadId]) {
+      URL.revokeObjectURL(imagePreviews[uploadId])
     }
 
     const previewUrl = URL.createObjectURL(file)
     
-    setImagePreviews(prev => ({ ...prev, [areaId]: previewUrl }))
-    setUploadedImages(prev => ({ ...prev, [areaId]: file }))
+    setImagePreviews(prev => ({ ...prev, [uploadId]: previewUrl }))
+    setUploadedImages(prev => ({ ...prev, [uploadId]: file }))
     setImagePositions(prev => ({
       ...prev,
-      [areaId]: { x: 0, y: 0, scale: 0.5, rotate: 0 }
+      [uploadId]: { x: 0, y: 0, scale: 0.5, rotate: 0 }
     }))
 
-    const area = currentViewAreas.find(a => a.id === areaId)
-    setSelectedArea(area || null)
+    if (slot) {
+      setSelectedSlot(slot)
+    } else {
+      const area = currentViewAreas.find(a => a.id === areaId)
+      setSelectedArea(area || null)
+    }
   }
 
   // Remove image
-  const removeImage = (areaId) => {
-    const previewUrl = imagePreviews[areaId]
+  const removeImage = (uploadId) => {
+    const previewUrl = imagePreviews[uploadId]
     if (previewUrl) URL.revokeObjectURL(previewUrl)
 
     setUploadedImages(prev => {
       const newState = { ...prev }
-      delete newState[areaId]
+      delete newState[uploadId]
       return newState
     })
     
     setImagePreviews(prev => {
       const newState = { ...prev }
-      delete newState[areaId]
+      delete newState[uploadId]
       return newState
     })
     
     setImagePositions(prev => {
       const newState = { ...prev }
-      delete newState[areaId]
+      delete newState[uploadId]
       return newState
     })
     
-    if (selectedArea?.id === areaId) setSelectedArea(null)
+    if (view === "full_wrap") {
+      setSelectedSlot(null)
+    } else if (selectedArea?.id === uploadId) {
+      setSelectedArea(null)
+    }
+  }
+
+  // Clear all wrap images
+  const clearWrapImages = () => {
+    if (view === "full_wrap") {
+      full_wrapSlots.forEach(slot => {
+        const slotId = `full_wrap_3panel_${slot}`
+        if (uploadedImages[slotId]) {
+          removeImage(slotId)
+        }
+      })
+    }
   }
 
   // Render mug with overlay
@@ -708,7 +970,8 @@ export default function MugDesigner() {
             />
           )}
 
-          {currentViewAreas.map(area => {
+          {/* For full_wrap view, we don't show overlays - just the base image */}
+          {view !== "full_wrap" && currentViewAreas.map(area => {
             const previewUrl = imagePreviews[area.id]
             if (!previewUrl) return null
 
@@ -763,6 +1026,15 @@ export default function MugDesigner() {
   }
 
   const totalUploadedAreas = Object.keys(uploadedImages).length
+  const uploadStatus = getUploadStatus()
+
+  // Check if Add to Cart should be enabled
+  const isAddToCartEnabled = useMemo(() => {
+    return (
+      totalUploadedAreas > 0 && 
+      (confirmedPreviewUrls.front || confirmedPreviewUrls.back || confirmedPreviewUrls.full_wrap)
+    )
+  }, [totalUploadedAreas, confirmedPreviewUrls])
 
   if (isStudioLoading) {
     return (
@@ -798,40 +1070,57 @@ export default function MugDesigner() {
             <div className="p-6 overflow-auto max-h-[70vh]">
               <p className="text-center text-gray-700 mb-6">
                 Your custom mug design has been added to cart.<br/>
-                Here are the previews of both sides:
+                Here are the previews:
               </p>
-              <div className="grid md:grid-cols-2 gap-8">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="border rounded-xl overflow-hidden shadow-md">
                   <div className="bg-indigo-600 text-white px-5 py-3 font-medium text-center">
-                    Front View Preview
+                    Front View
                   </div>
                   {successPreviews.front ? (
                     <img
                       src={successPreviews.front}
                       alt="Front preview"
-                      className="w-full h-96 object-contain p-4 bg-gray-50"
+                      className="w-full h-64 object-contain p-4 bg-gray-50"
                       onError={(e) => e.target.src = "/placeholder-mug.png"}
                     />
                   ) : (
-                    <div className="h-96 flex items-center justify-center text-red-500 bg-gray-100">
-                      Front preview upload failed
+                    <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-100">
+                      No front design
                     </div>
                   )}
                 </div>
                 <div className="border rounded-xl overflow-hidden shadow-md">
                   <div className="bg-indigo-600 text-white px-5 py-3 font-medium text-center">
-                    Back View Preview
+                    Back View
                   </div>
                   {successPreviews.back ? (
                     <img
                       src={successPreviews.back}
                       alt="Back preview"
-                      className="w-full h-96 object-contain p-4 bg-gray-50"
+                      className="w-full h-64 object-contain p-4 bg-gray-50"
                       onError={(e) => e.target.src = "/placeholder-mug.png"}
                     />
                   ) : (
-                    <div className="h-96 flex items-center justify-center text-red-500 bg-gray-100">
-                      Back preview upload failed
+                    <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-100">
+                      No back design
+                    </div>
+                  )}
+                </div>
+                <div className="border rounded-xl overflow-hidden shadow-md">
+                  <div className="bg-indigo-600 text-white px-5 py-3 font-medium text-center">
+                    Full Wrap
+                  </div>
+                  {successPreviews.full_wrap ? (
+                    <img
+                      src={successPreviews.full_wrap}
+                      alt="full_wrap preview"
+                      className="w-full h-64 object-contain p-4 bg-gray-50"
+                      onError={(e) => e.target.src = "/placeholder-mug.png"}
+                    />
+                  ) : (
+                    <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-100">
+                      No wrap design
                     </div>
                   )}
                 </div>
@@ -858,8 +1147,8 @@ export default function MugDesigner() {
         </div>
       )}
 
-      {/* Preview Modal */}
-      {showPreviewModal && previewImageUrl && (
+      {/* Preview Modal - Only shown for non-wrap views */}
+      {showPreviewModal && previewImageUrl && view !== "full_wrap" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] overflow-hidden">
             <div className="p-3 border-b flex justify-between items-center">
@@ -890,23 +1179,29 @@ export default function MugDesigner() {
                 <div className="md:w-1/2">
                   <h3 className="text-xs font-medium text-gray-700 mb-2">Uploaded Images</h3>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                    {Object.entries(cloudinaryUrls).map(([areaId, url]) => {
-                      const area = currentViewAreas.find(a => a.id === areaId)
-                      const areaName = area?.name || areaId
+                    {Object.entries(cloudinaryUrls).map(([uploadId, url]) => {
+                      let displayName = uploadId
+                      if (uploadId.includes('_')) {
+                        const slot = uploadId.split('_').pop()
+                        displayName = `Wrap - ${slot.charAt(0).toUpperCase() + slot.slice(1)}`
+                      } else {
+                        const area = currentViewAreas.find(a => a.id === uploadId)
+                        displayName = area?.name || uploadId
+                      }
                       
                       return (
-                        <div key={areaId} className="flex gap-2 border rounded-lg p-1.5 bg-gray-50">
+                        <div key={uploadId} className="flex gap-2 border rounded-lg p-1.5 bg-gray-50">
                           <div className="w-12 h-12 bg-white rounded border flex-shrink-0 overflow-hidden">
                             <img 
                               src={url} 
-                              alt={areaName}
+                              alt={displayName}
                               className="w-full h-full object-cover"
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{areaName}</p>
+                            <p className="text-xs font-medium truncate">{displayName}</p>
                             <p className="text-[10px] text-gray-500">
-                              {imagePositions[areaId] ? `${Math.round(imagePositions[areaId].scale * 100)}%` : ''}
+                              {imagePositions[uploadId] ? `${Math.round(imagePositions[uploadId].scale * 100)}%` : ''}
                             </p>
                           </div>
                         </div>
@@ -920,9 +1215,9 @@ export default function MugDesigner() {
             <div className="p-3 border-t bg-gray-50 flex gap-2">
               <button
                 onClick={() => addDesignToCart(cloudinaryUrls)}
-                disabled={isUploading || totalUploadedAreas === 0 || (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back)}
+                disabled={!isAddToCartEnabled || isUploading}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                  isUploading || totalUploadedAreas === 0 || (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back)
+                  !isAddToCartEnabled || isUploading
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg hover:shadow-xl'
                 }`}
@@ -932,7 +1227,7 @@ export default function MugDesigner() {
                     <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Processing...
                   </div>
-                ) : !confirmedPreviewUrls.front && !confirmedPreviewUrls.back ? (
+                ) : !isAddToCartEnabled ? (
                   'Confirm designs first'
                 ) : (
                   'Add to Cart'
@@ -976,22 +1271,22 @@ export default function MugDesigner() {
           {/* Controls Panel */}
           <div className="mt-4 p-4 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200">
             <div className="flex flex-wrap gap-2 justify-center mb-3">
-              {["front", "back"].map(v => (
+              {["front", "back", "full_wrap"].map(v => (
                 <button
                   key={v}
-                  onClick={() => setView(v)}
+                  onClick={() => handleViewChange(v)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
                     view === v 
                       ? "bg-black text-white" 
                       : "border hover:bg-gray-50"
                   }`}
                 >
-                  {v.charAt(0).toUpperCase() + v.slice(1)} View
+                  {v === "full_wrap" ? "Full Wrap" : v.charAt(0).toUpperCase() + v.slice(1)} View
                 </button>
               ))}
             </div>
             
-            {selectedArea && uploadedImages[selectedArea.id] && (
+            {view !== "full_wrap" && selectedArea && uploadedImages[selectedArea.id] && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <button 
@@ -1052,19 +1347,31 @@ export default function MugDesigner() {
             )}
             
             <p className="text-xs text-gray-500 text-center mt-2">
-              {selectedArea && uploadedImages[selectedArea.id] 
+              {view !== "full_wrap" && selectedArea && uploadedImages[selectedArea.id] 
                 ? "Drag to move • Scroll or use slider to zoom"
-                : "Click on an area with design to adjust size and position"}
+                : view === "full_wrap" 
+                  ? "Upload up to 3 images for full wrap (appear left to right)"
+                  : "Click on an area with design to adjust size and position"}
             </p>
+
+            {/* Clear wrap button if needed */}
+            {view === "full_wrap" && (
+              <button
+                onClick={clearWrapImages}
+                className="mt-3 w-full py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                Clear All Wrap Images
+              </button>
+            )}
           </div>
 
           {/* Action Buttons */}
           <div className="space-y-3">
             <button
               onClick={handlePreviewAndAddToCart}
-              disabled={isUploading || totalUploadedAreas === 0}
+              disabled={!isAddToCartEnabled || isUploading}
               className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                isUploading || totalUploadedAreas === 0
+                !isAddToCartEnabled || isUploading
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg hover:shadow-xl'
               }`}
@@ -1074,14 +1381,14 @@ export default function MugDesigner() {
                   <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Uploading Images...
                 </div>
-              ) : totalUploadedAreas === 0 ? (
-                'Add a design to preview'
+              ) : !isAddToCartEnabled ? (
+                'Confirm designs first'
               ) : (
                 'Add to Cart'
               )}
             </button>
             
-            {showCloudinaryUrls && previewImageUrl && (
+            {showCloudinaryUrls && previewImageUrl && view !== "full_wrap" && (
               <button
                 onClick={() => addDesignToCart(cloudinaryUrls)}
                 disabled={isAddingToCart}
@@ -1123,22 +1430,22 @@ export default function MugDesigner() {
             {/* Mobile Controls */}
             <div className="mt-4 p-4 lg:hidden bg-white/90 backdrop-blur-sm rounded-xl border shadow-sm">
               <div className="flex flex-wrap gap-2 justify-center mb-3">
-                {["front", "back"].map(v => (
+                {["front", "back", "full_wrap"].map(v => (
                   <button
                     key={v}
-                    onClick={() => setView(v)}
+                    onClick={() => handleViewChange(v)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium ${
                       view === v 
                         ? "bg-black text-white" 
                         : "border hover:bg-gray-50"
                     }`}
                   >
-                    {v.charAt(0).toUpperCase() + v.slice(1)} View
+                    {v === "full_wrap" ? "Full Wrap" : v.charAt(0).toUpperCase() + v.slice(1)} View
                   </button>
                 ))}
               </div>
               
-              {selectedArea && uploadedImages[selectedArea.id] && (
+              {view !== "full_wrap" && selectedArea && uploadedImages[selectedArea.id] && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <button 
@@ -1199,11 +1506,107 @@ export default function MugDesigner() {
               )}
               
               <p className="text-xs text-gray-500 text-center mt-2">
-                {selectedArea && uploadedImages[selectedArea.id] 
+                {view !== "full_wrap" && selectedArea && uploadedImages[selectedArea.id] 
                   ? "Drag to move • Scroll or use slider to zoom"
-                  : "Click on an area with design to adjust size and position"}
+                  : view === "full_wrap"
+                    ? "Upload up to 3 images for full wrap"
+                    : "Click on an area with design to adjust size and position"}
               </p>
+
+              {/* Clear wrap button for mobile */}
+              {view === "full_wrap" && (
+                <button
+                  onClick={clearWrapImages}
+                  className="mt-3 w-full py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  Clear All Wrap Images
+                </button>
+              )}
             </div>
+
+            {/* full_wrap Preview Section - Shows below the mug */}
+            {view === "full_wrap" && (
+              <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                <h3 className="text-lg font-semibold mb-4">Full Wrap Preview (Left to Right)</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {full_wrapSlots.map((slot, index) => {
+                    const slotId = `full_wrap_3panel_${slot}`
+                    const previewUrl = imagePreviews[slotId]
+                    const isSelected = selectedSlot === slot
+                    
+                    let slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1)
+                    if (slot === "front") slotLabel = "Front (Left)"
+                    else if (slot === "center") slotLabel = "Center"
+                    else if (slot === "back") slotLabel = "Back (Right)"
+                    
+                    return (
+                      <div 
+                        key={slot}
+                        className={`border rounded-lg p-3 transition-all ${
+                          isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300'
+                        } ${previewUrl ? 'bg-white' : 'bg-gray-100'}`}
+                      >
+                        <div className="text-xs font-medium text-gray-500 mb-2">{slotLabel}</div>
+                        {previewUrl ? (
+                          <div className="relative">
+                            <img 
+                              src={previewUrl} 
+                              alt={`${slot} design`}
+                              className="w-full h-32 object-contain rounded border border-gray-200"
+                            />
+                            <button
+                              onClick={() => removeImage(slotId)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                            <div className="mt-2 text-xs text-gray-600">
+                              Size: {Math.round((imagePositions[slotId]?.scale || 0.5) * 100)}%
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block cursor-pointer">
+                            <div className="h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-blue-400 transition-colors">
+                              <span className="text-2xl text-gray-400">+</span>
+                              <span className="text-xs text-gray-500 mt-1">Upload</span>
+                            </div>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={(e) => handleImageUpload(e, "full_wrap_3panel", slot)}
+                              disabled={!canUploadMore() && !previewUrl}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {uploadStatus && (
+                  <div className="mt-4 text-sm text-gray-600 flex items-center gap-2">
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map((num) => (
+                        <div 
+                          key={num}
+                          className={`w-8 h-1.5 rounded-full ${
+                            num <= uploadStatus.count ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span>{uploadStatus.message}</span>
+                  </div>
+                )}
+                
+                {/* Show confirmation status for wrap */}
+                {confirmedPreviewUrls.full_wrap && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm text-center">
+                    ✓ Wrap design confirmed
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </main>
 
@@ -1221,58 +1624,139 @@ export default function MugDesigner() {
 
             {/* View toggle */}
             <div className="flex gap-2">
-              {["front", "back"].map(v => (
+              {["front", "back", "full_wrap"].map(v => (
                 <button
                   key={v}
-                  onClick={() => setView(v)}
+                  onClick={() => handleViewChange(v)}
                   className={`flex-1 py-2 rounded-lg font-semibold ${
                     view === v ? "bg-black text-white" : "border"
                   }`}
                 >
-                  {v}
+                  {v === "full_wrap" ? "Full Wrap" : v.charAt(0).toUpperCase() + v.slice(1)}
                 </button>
               ))}
             </div>
 
-            {/* Area Selector */}
-            <div className="grid grid-cols-2 gap-3">
-              {currentViewAreas.map(area => {
-                const active = selectedArea?.id === area.id
-                const hasImage = !!uploadedImages[area.id]
-                
-                return (
-                  <button
-                    key={area.id}
-                    onClick={() => setSelectedArea(area)}
-                    className={`p-4 rounded-xl border-2 text-left transition ${
-                      active 
-                        ? "border-black bg-gray-100" 
-                        : hasImage
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold">{area.name}</p>
-                    <p className="text-xs text-gray-500">{area.max}</p>
-                    {hasImage && (
-                      <div className="mt-1">
-                        <span className="text-xs text-green-600 font-medium inline-block">
-                          ✓ Design added
-                        </span>
-                        {imagePositions[area.id]?.scale && (
-                          <span className="text-xs text-gray-500 block">
-                            Size: {(imagePositions[area.id].scale * 100).toFixed(0)}%
+            {/* Upload status for full_wrap view */}
+            {view === "full_wrap" && uploadStatus && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <p className="text-sm font-medium text-blue-800">
+                    Full Wrap Design
+                  </p>
+                </div>
+                <p className="text-xs text-blue-700">
+                  {uploadStatus.message}
+                </p>
+                <div className="flex gap-1 mt-2">
+                  {[1, 2, 3].map((num) => (
+                    <div 
+                      key={num}
+                      className={`flex-1 h-1.5 rounded-full ${
+                        num <= uploadStatus.count ? 'bg-blue-500' : 'bg-blue-200'
+                      }`}
+                    />
+                  ))}
+                </div>
+                {uploadStatus.slots && (
+                  <div className="mt-3 flex gap-2 text-xs">
+                    {uploadStatus.slots.map((slot, i) => (
+                      <span key={slot} className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {i+1}. {slot}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Area Selector - For front/back views only */}
+            {view !== "full_wrap" && (
+              <div className="grid grid-cols-2 gap-3">
+                {currentViewAreas.map(area => {
+                  const active = selectedArea?.id === area.id
+                  const hasImage = !!uploadedImages[area.id]
+                  
+                  return (
+                    <button
+                      key={area.id}
+                      onClick={() => setSelectedArea(area)}
+                      className={`p-4 rounded-xl border-2 text-left transition ${
+                        active 
+                          ? "border-black bg-gray-100" 
+                          : hasImage
+                            ? "border-green-500 bg-green-50"
+                            : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <p className="font-semibold">{area.name}</p>
+                      <p className="text-xs text-gray-500">{area.max}</p>
+                      {hasImage && (
+                        <div className="mt-1">
+                          <span className="text-xs text-green-600 font-medium inline-block">
+                            ✓ Design added
+                          </span>
+                          {imagePositions[area.id]?.scale && (
+                            <span className="text-xs text-gray-500 block">
+                              Size: {(imagePositions[area.id].scale * 100).toFixed(0)}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* For full_wrap view, show slot selector */}
+            {view === "full_wrap" && (
+              <div className="space-y-3">
+                <h3 className="font-medium text-gray-700">Upload to slots:</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {full_wrapSlots.map((slot) => {
+                    const slotId = `full_wrap_3panel_${slot}`
+                    const hasImage = !!uploadedImages[slotId]
+                    let slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1)
+                    if (slot === "front") slotLabel = "Front (Left)"
+                    else if (slot === "back") slotLabel = "Back (Right)"
+                    
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => {
+                          setSelectedSlot(slot)
+                          // Create a mock area for consistency
+                          setSelectedArea({
+                            id: slotId,
+                            name: `Wrap - ${slotLabel}`,
+                            max: "8 × 8 cm"
+                          })
+                        }}
+                        className={`p-3 rounded-xl border-2 text-center transition ${
+                          selectedSlot === slot
+                            ? "border-black bg-gray-100" 
+                            : hasImage
+                              ? "border-green-500 bg-green-50"
+                              : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <p className="font-semibold text-sm">{slotLabel}</p>
+                        {hasImage && (
+                          <span className="text-xs text-green-600 font-medium mt-1 block">
+                            ✓ Added
                           </span>
                         )}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Upload Area */}
-            {selectedArea && (
+            {view !== "full_wrap" && selectedArea && (
               <div className="border rounded-2xl border-gray-200 p-4 space-y-6 bg-gray-50">
                 <div className="flex justify-between items-center">
                   <div>
@@ -1333,13 +1817,83 @@ export default function MugDesigner() {
               </div>
             )}
 
+            {/* For full_wrap view, show slot upload area */}
+            {view === "full_wrap" && selectedSlot && (
+              <div className="border rounded-2xl border-gray-200 p-4 space-y-6 bg-gray-50">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold text-lg">
+                      {selectedSlot === "front" ? "Front (Left)" : 
+                       selectedSlot === "center" ? "Center" : "Back (Right)"}
+                    </h3>
+                    <p className="text-sm text-gray-600">8 × 8 cm</p>
+                  </div>
+                  {uploadedImages[`full_wrap_3panel_${selectedSlot}`] && (
+                    <button
+                      onClick={() => removeImage(`full_wrap_3panel_${selectedSlot}`)}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <label className="h-40 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:border-indigo-400 transition-colors relative overflow-hidden bg-white">
+                  {uploadedImages[`full_wrap_3panel_${selectedSlot}`] ? (
+                    <img
+                      src={imagePreviews[`full_wrap_3panel_${selectedSlot}`]}
+                      alt="Design preview"
+                      className="object-contain p-4 max-h-full"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <span className="text-gray-500 block mb-2">
+                        {!canUploadMore() && !uploadedImages[`full_wrap_3panel_${selectedSlot}`]
+                          ? "Maximum 3 images reached" 
+                          : "Click to upload design"}
+                      </span>
+                      <span className="text-xs text-gray-400">PNG, JPG, WebP • Max 5MB</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, "full_wrap_3panel", selectedSlot)}
+                    disabled={!canUploadMore() && !uploadedImages[`full_wrap_3panel_${selectedSlot}`]}
+                  />
+                </label>
+
+                {/* Confirm button for full_wrap view */}
+                {uploadedImages[`full_wrap_3panel_${selectedSlot}`] && (
+                  <button
+                    onClick={handleConfirmDesign}
+                    disabled={isConfirming || confirmedPreviewUrls.full_wrap}
+                    className={`w-full py-3.5 px-6 rounded-xl font-bold text-white transition-all shadow-md ${
+                      confirmedPreviewUrls.full_wrap
+                        ? 'bg-green-600 cursor-not-allowed ring-2 ring-green-300'
+                        : isConfirming
+                          ? 'bg-gray-400 cursor-wait'
+                          : 'bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]'
+                    }`}
+                  >
+                    {confirmedPreviewUrls.full_wrap
+                      ? '✓ Wrap Design Confirmed'
+                      : isConfirming
+                        ? 'Confirming...'
+                        : 'Confirm Wrap Design'}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Mobile action buttons */}
             <div className="space-y-3 lg:hidden">
               <button
                 onClick={handlePreviewAndAddToCart}
-                disabled={isUploading || totalUploadedAreas === 0}
+                disabled={!isAddToCartEnabled || isUploading}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                  isUploading || totalUploadedAreas === 0
+                  !isAddToCartEnabled || isUploading
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg hover:shadow-xl'
                 }`}
@@ -1349,14 +1903,14 @@ export default function MugDesigner() {
                     <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Uploading...
                   </div>
-                ) : totalUploadedAreas === 0 ? (
-                  'Add a design'
+                ) : !isAddToCartEnabled ? (
+                  'Confirm designs first'
                 ) : (
                   'Add to Cart'
                 )}
               </button>
               
-              {showCloudinaryUrls && previewImageUrl && (
+              {showCloudinaryUrls && previewImageUrl && view !== "full_wrap" && (
                 <button
                   onClick={() => addDesignToCart(cloudinaryUrls)}
                   disabled={isAddingToCart}

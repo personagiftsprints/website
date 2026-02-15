@@ -100,7 +100,10 @@ export default function MyAccountPage() {
             <Edit2 size={16} />
             Edit Name
           </button>
+          
         )}
+
+        
       </div>
 
       {!editing ? (
@@ -127,57 +130,30 @@ export default function MyAccountPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                First Name
-              </label>
-              <input
-                className={`w-full border rounded-lg px-4 py-3 text-sm transition-colors ${
-                  errors.firstName 
-                    ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                    : "border-gray-300 focus:border-black focus:ring-black"
-                }`}
-                value={form.firstName}
-                onChange={e => {
-                  setForm({ ...form, firstName: e.target.value })
-                  if (errors.firstName) setErrors({ ...errors, firstName: "" })
-                }}
-                placeholder="Enter your first name"
-              />
-              {errors.firstName && (
-                <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <X size={14} />
-                  {errors.firstName}
-                </p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Last Name
-              </label>
-              <input
-                className={`w-full border rounded-lg px-4 py-3 text-sm transition-colors ${
-                  errors.lastName 
-                    ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-                    : "border-gray-300 focus:border-black focus:ring-black"
-                }`}
-                value={form.lastName}
-                onChange={e => {
-                  setForm({ ...form, lastName: e.target.value })
-                  if (errors.lastName) setErrors({ ...errors, lastName: "" })
-                }}
-                placeholder="Enter your last name"
-              />
-              {errors.lastName && (
-                <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <X size={14} />
-                  {errors.lastName}
-                </p>
-              )}
-            </div>
-          </div>
+        <div className="space-y-4">
+  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+    <User className="h-5 w-5 text-gray-500 mt-0.5" />
+    <div>
+      <p className="text-sm text-gray-600">Full Name</p>
+      <p className="font-medium">
+        {user.firstName} {user.lastName}
+      </p>
+    </div>
+  </div>
+
+  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+    <Mail className="h-5 w-5 text-gray-500 mt-0.5" />
+    <div>
+      <p className="text-sm text-gray-600">Email Address</p>
+      <p className="font-medium break-all">{user.email}</p>
+    </div>
+  </div>
+
+
+</div>
+
+
+
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
@@ -206,8 +182,24 @@ export default function MyAccountPage() {
               Cancel
             </button>
           </div>
+
+          
         </div>
+        
       )}
+        <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+    <User className="h-5 w-5 text-gray-500 mt-0.5" />
+    <div>
+      <p className="text-sm text-gray-600">Sign-in Method</p>
+      <p className="font-medium capitalize">
+        {user.provider === "google"
+          ? "Google"
+          : user.provider === "email"
+          ? "Email & Password"
+          : "Unknown"}
+      </p>
+    </div>
+  </div>
     </div>
   )
 }

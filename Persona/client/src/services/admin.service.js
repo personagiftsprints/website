@@ -57,3 +57,11 @@ export const updateOrderStatus = async (orderId, status) => {
   )
   return data
 }
+
+
+export const getDashboardSummary = async () => {
+  const { data } = await api.get(
+    `/admin/dashboard/summary`
+  )
+  return data
+}

@@ -2,6 +2,57 @@ import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
 import User from "../models/User.js"
 
+
+import { OAuth2Client } from "google-auth-library"
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+export const googleAuth = async (req, res) => {
+  const { token } = req.body
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+
+    const payload = ticket.getPayload()
+
+    const { sub, email, given_name, family_name } = payload
+
+    let user = await User.findOne({ email })
+
+    if (!user) {
+      user = await User.create({
+        email,
+        firstName: given_name,
+        lastName: family_name,
+        provider: "google",
+        googleId: sub,
+        role: "customer",
+      })
+    }
+
+    const jwtToken = signToken(user)
+
+    res.json({
+      status: "success",
+      token: jwtToken,
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        provider: user.provider,
+      },
+    })
+  } catch (err) {
+    res.status(401).json({ status: "invalid_google_token" })
+  }
+}
+
+
 const signToken = user =>
   jwt.sign(
     { _id: user._id, role: user.role },

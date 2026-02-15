@@ -58,10 +58,10 @@ const isLoading = !productsData
   }, [controls])
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-gray-50">
+    <div className="w-full min-h-screen flex flex-col bg-white">
       <Navbar />
 
-      <main className="w-full relative h-[20vh] lg:h-[50vh] lg:px-6 px-[2px] pt-6">
+      <main className="w-full relative h-[20vh] lg:h-[60vh] lg:px-6 px-[2px] pt-6">
         {bannerUrl ? (
           <div className="relative w-full h-full overflow-hidden lg:rounded-3xl ">
             <Image
@@ -109,7 +109,7 @@ const isLoading = !productsData
             title: "Gifts",
             image:
               "https://images.pexels.com/photos/264787/pexels-photo-264787.jpeg",
-            type: "gift",
+            type: "normal",
           },
         ]}
       />
@@ -136,6 +136,9 @@ const isLoading = !productsData
   columns="grid-cols-2 sm:grid-cols-4 lg:grid-cols-4"
 />
 
+
+
+
 <CategorySection
   title="Mobile cover"
   products={productsData?.mobileCase || []}
@@ -143,12 +146,6 @@ const isLoading = !productsData
   columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
 />
 
-<CategorySection
-  title="Hoodies"
-  products={productsData?.hoodies || []}
-  loading={isLoading}
-  columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-/>
 
 <CategorySection
   title="Normal"
@@ -156,6 +153,7 @@ const isLoading = !productsData
   loading={isLoading}
   columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
 />
+
 
 
 

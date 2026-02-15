@@ -79,14 +79,14 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-300">
           <div className="flex items-center gap-4">
             <Link
-              href="https://www.instagram.com"
+              href="https://www.instagram.com/persona_gifts_prints  "
               target="_blank"
               className="hover:text-white transition"
             >
               Instagram
             </Link>
             <Link
-              href="https://www.facebook.com"
+              href="https://www.facebook.com/people/Persona-Gifts-Prints/61585190722463"
               target="_blank"
               className="hover:text-white transition"
             >

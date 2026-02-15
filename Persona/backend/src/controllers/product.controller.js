@@ -20,6 +20,43 @@ export const getProductAttributesByType = (req, res) => {
   })
 }
 
+
+export const getSimilarProducts = async (req, res) => {
+
+  try {
+    const product = await Product.findOne({
+      type: req.params.type,
+      isActive: true
+    })
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      })
+    }
+
+    const similar = await Product.find({
+      type: product.type,
+      _id: { $ne: product._id },
+      isActive: true
+    })
+      .limit(8)
+      .sort({ createdAt: -1 })
+
+    res.json({
+      success: true,
+      data: similar
+    })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    })
+  }
+}
+
+
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -290,7 +327,7 @@ export const updateProduct = async (req, res) => {
 
 export const getLandingProducts = async (req, res) => {
   try {
-    const [trending, tshirts, mugs, hoodies,mobileCase,normal] = await Promise.all([
+    const [trending, tshirts, mugs,mobileCase,normal] = await Promise.all([
       Product.find({ isActive: true })
         .sort({ 'inventory.soldQuantity': -1 })
         .limit(10)
@@ -309,12 +346,21 @@ export const getLandingProducts = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(10)
         .select('name slug thumbnail pricing'),
-         Product.find({ isActive: true, type: 'normal' })
+    Product.find({ isActive: true, type: 'normal' })
         .sort({ createdAt: -1 })
         .limit(10)
         .select('name slug thumbnail pricing'),
 
       Product.find({ isActive: true, type: 'hoodie' })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('name slug thumbnail pricing'),
+
+      Product.find({ isActive: true, type: '3Dcrystal' })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('name slug thumbnail pricing'),
+        Product.find({ isActive: true, type: 'frame' })
         .sort({ createdAt: -1 })
         .limit(10)
         .select('name slug thumbnail pricing')
@@ -328,8 +374,7 @@ export const getLandingProducts = async (req, res) => {
         trending,
         tshirts,
         mugs,
-        mobileCase,
-        hoodies,normal
+        normal,mobileCase
         
       }
     })

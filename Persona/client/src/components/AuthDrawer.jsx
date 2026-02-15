@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Mail, Lock, User } from "lucide-react"
-import { checkEmail, emailAuth, resetPassword } from "@/services/auth.service"
+import { checkEmail, emailAuth, resetPassword ,googleAuth } from "@/services/auth.service"
 import { saveSession } from "@/lib/auth-storage"
 import { useAuth } from "@/context/AuthContext"
 
@@ -16,6 +16,24 @@ export default function AuthDrawer({ open, onClose }) {
   const [loading, setLoading] = useState(false)
   const [isExistingUser, setIsExistingUser] = useState(false)
   const { setUser } = useAuth()
+
+
+  const handleGoogleLogin = () => {
+  window.google.accounts.id.initialize({
+    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    callback: async (response) => {
+      const res = await googleAuth(response.credential)
+
+      if (res.token) {
+        saveSession({ token: res.token, user: res.user })
+        setUser(res.user)
+        onClose()
+      }
+    },
+  })
+
+  window.google.accounts.id.prompt()
+}
 
   const handleEmailSubmit = async () => {
     if (!email) return
@@ -215,19 +233,16 @@ export default function AuthDrawer({ open, onClose }) {
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          <div className="w-full justify-center items-center flex   ">
-              <button
-            className=" py-3 border border-gray-200 p-2 rounded-full font-medium flex items-center justify-center gap-2 hover:bg-gray-50"
-            onClick={() => console.log("Google login")}
-          >
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              className="w-5 h-5"
-            />
-           
-          </button>
+        <button
+  onClick={handleGoogleLogin}
+  className="py-3 border border-gray-200 p-2 rounded-full"
+>
+  <img
+    src="https://www.svgrepo.com/show/475656/google-color.svg"
+    className="w-5 h-5"
+  />
+</button>
 
-          </div>
         
         </div>
       </div>

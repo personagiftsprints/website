@@ -1,123 +1,240 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { getProductBySlug } from "@/services/product.service"
-
-import cartManager from "@/lib/cart"
-
-import sizeChart from "@/assets/images/sizeChart.jpg"
-import Image from "next/image"
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { getProductBySlug } from "@/services/product.service";
+import { getSimilarProducts } from "@/services/product.service"
+import sizeChart from "@/assets/images/sizeChart.jpg";
+import Image from "next/image";
 
 export default function ProductDetailPage() {
-  const { slug } = useParams()
-  const router = useRouter()
+  const { slug } = useParams();
+  const router = useRouter();
 
-  const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [activeImage, setActiveImage] = useState(null)
-  const [selectedAttributes, setSelectedAttributes] = useState({})
-  const [selectedVariant, setSelectedVariant] = useState(null)
-  const [quantity, setQuantity] = useState(1)
-  const [added, setAdded] = useState(false)
-  const [showSizeChart, setShowSizeChart] = useState(false)
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(null);
+  const [selectedAttributes, setSelectedAttributes] = useState({});
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
+  const [showSizeChart, setShowSizeChart] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState([])
+  const [similarLoading, setSimilarLoading] = useState(false);
 
-  useEffect(() => {
-    if (!slug) return
 
-    const fetchProduct = async () => {
-      try {
-        const res = await getProductBySlug(slug)
-        if (!res?.success) return router.push("/404")
 
-        setProduct(res.data)
+useEffect(() => {
+  if (!slug) return;
 
-        const main =
-          res.data.images?.find(i => i.isMain)?.url ||
-          res.data.thumbnail
+  const fetchProduct = async () => {
+    try {
+      const res = await getProductBySlug(slug);
 
-        setActiveImage(main)
-      } catch {
-        router.push("/404")
-      } finally {
-        setLoading(false)
-      }
+     
+
+      const productData = res.data;
+      setProduct(productData);
+
+      const main =
+        productData.images?.find((i) => i.isMain)?.url ||
+        productData.thumbnail;
+
+      setActiveImage(main);
+
+    } catch (err) {
+      console.error("Error loading product", err);
+     
+    } finally {
+      setLoading(false);
     }
+  };
 
-    fetchProduct()
-  }, [slug, router])
+  fetchProduct();
+}, [slug]);
+
+
+useEffect(() => {
+  if (!product?.type) return;
+
+  const fetchSimilar = async () => {
+    try {
+      setSimilarLoading(true);
+      const res = await getSimilarProducts(product.type);
+
+      if (res?.success) {
+        setSimilarProducts(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch similar products", err);
+    } finally {
+      setSimilarLoading(false);
+    }
+  };
+
+  fetchSimilar();
+}, [product]);
+
+
 
   useEffect(() => {
-    if (!product?.productConfig?.variants) return
+    if (!product?.productConfig?.variants) return;
 
-    const match = product.productConfig.variants.find(v =>
+    const match = product.productConfig.variants.find((v) =>
       Object.entries(selectedAttributes).every(
         ([k, val]) => v.attributes[k] === val
       )
-    )
+    );
 
-    setSelectedVariant(match || null)
-  }, [selectedAttributes, product])
+    setSelectedVariant(match || null);
+  }, [selectedAttributes, product]);
 
-  if (loading) return <div className="p-10 text-center">Loading…</div>
-  if (!product) return <div className="p-10 text-center">Not found</div>
 
-  const { pricing, customization, inventory, productConfig } = product
-  const price = pricing.specialPrice ?? pricing.basePrice
 
-  const isVariantProduct = productConfig?.attributes?.length > 0
-  const isCustom = customization?.enabled
+
+  if (loading) return <div className="p-10 text-center">Loading…</div>;
+  if (!product) return <div className="p-10 text-center">Not found</div>;
+
+  const { pricing, customization, inventory, productConfig } = product;
+  const price = pricing.specialPrice ?? pricing.basePrice;
+
+  const isVariantProduct = productConfig?.attributes?.length > 0;
+  const isCustom = customization?.enabled;
 
   const isConfigSelected =
     !isVariantProduct ||
-    (selectedVariant && selectedVariant.stockQuantity > 0)
+    (selectedVariant && selectedVariant.stockQuantity > 0);
 
   const formattedPrice = new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: pricing.currency || "USD"
-  }).format(price)
+    currency: pricing.currency || "USD",
+  }).format(price);
 
   const formattedBasePrice = pricing.basePrice
     ? new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: pricing.currency || "USD"
+        currency: pricing.currency || "USD",
       }).format(pricing.basePrice)
-    : null
+    : null;
 
-const handleAddToCart = () => {
-  cartManager.addToCart({
-    productId: product._id,
-    productSlug: product.slug,
-    productName: product.name,
-    productType: product.type,
-    price:
-      product.pricing.specialPrice ??
-      product.pricing.basePrice,
-    currency: product.pricing.currency,
-    quantity: 1,
-    variant: {
-      size: selectedSize,
-      color: selectedColor,
-      view: "front"
+  // Direct localStorage implementation
+  const handleAddToCart = () => {
+    // For products with variants (like t-shirts with size/color)
+    if (isVariantProduct) {
+      if (!selectedVariant) {
+        alert("Please select all options");
+        return;
+      }
+
+      // Get existing cart from localStorage
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+      // Create cart item with all fields
+      const cartItem = {
+        productId: product._id,
+        productSlug: product.slug,
+        productName: product.name,
+        productType: product.type,
+        name: product.name,
+        image: product.images?.[0]?.url || product.thumbnail,
+        price: price,
+        currency: pricing.currency || "GBP",
+        quantity: quantity,
+        variant: {
+          size: selectedAttributes.size,
+          color: selectedAttributes.color?.toLowerCase(),
+          color_label: selectedAttributes.color,
+        },
+        addedAt: new Date().toISOString()
+      };
+
+      // Generate unique ID
+      const uniqueId = `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${product._id}_${selectedAttributes.size}_${selectedAttributes.color?.toLowerCase()}`;
+      cartItem.id = uniqueId;
+
+      // Check if item already exists (same product and variant)
+      const existingIndex = existingCart.findIndex(item => 
+        item.productId === cartItem.productId &&
+        item.variant?.size === cartItem.variant.size &&
+        item.variant?.color === cartItem.variant.color
+      );
+
+      if (existingIndex > -1) {
+        // Update quantity if exists
+        existingCart[existingIndex].quantity += quantity;
+      } else {
+        // Add new item
+        existingCart.push(cartItem);
+      }
+
+      // Save back to localStorage
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+
+      console.log('✅ Added to cart:', cartItem);
+      console.log('📦 Cart now has', existingCart.length, 'items');
+    } 
+    // For simple products (no variants)
+    else {
+      // Get existing cart from localStorage
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+      const cartItem = {
+        productId: product._id,
+        productSlug: product.slug,
+        productName: product.name,
+        productType: product.type,
+        name: product.name,
+        image: product.images?.[0]?.url || product.thumbnail,
+        price: price,
+        currency: pricing.currency || "GBP",
+        quantity: quantity,
+        variant: {},
+        addedAt: new Date().toISOString()
+      };
+
+      const uniqueId = `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${product._id}`;
+      cartItem.id = uniqueId;
+
+      // Check if item already exists
+      const existingIndex = existingCart.findIndex(item => 
+        item.productId === cartItem.productId
+      );
+
+      if (existingIndex > -1) {
+        // Update quantity if exists
+        existingCart[existingIndex].quantity += quantity;
+      } else {
+        // Add new item
+        existingCart.push(cartItem);
+      }
+
+      // Save back to localStorage
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+
+      console.log('✅ Added to cart:', cartItem);
+      console.log('📦 Cart now has', existingCart.length, 'items');
     }
-  })
 
-  router.push("/cart")
-}
-
+    setAdded(true);
+    
+    // Show success message and redirect after delay
+    setTimeout(() => {
+      router.push("/cart");
+    }, 1000);
+  };
 
   const isValueAvailable = (attrCode, value) => {
-    if (!productConfig?.variants) return true
+    if (!productConfig?.variants) return true;
 
-    return productConfig.variants.some(v =>
-      v.attributes[attrCode] === value &&
-      Object.entries(selectedAttributes).every(
-        ([k, val]) =>
-          k === attrCode || v.attributes[k] === val
-      ) &&
-      v.stockQuantity > 0
-    )
-  }
+    return productConfig.variants.some(
+      (v) =>
+        v.attributes[attrCode] === value &&
+        Object.entries(selectedAttributes).every(
+          ([k, val]) => k === attrCode || v.attributes[k] === val
+        ) &&
+        v.stockQuantity > 0
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -129,15 +246,13 @@ const handleAddToCart = () => {
         />
 
         <div className="flex gap-3 mt-4">
-          {product.images?.map(img => (
+          {product.images?.map((img) => (
             <img
               key={img.publicId}
               src={img.url}
               onClick={() => setActiveImage(img.url)}
               className={`w-20 h-20 rounded-lg object-contain bg-gray-50 cursor-pointer border ${
-                activeImage === img.url
-                  ? "border-black"
-                  : "border-transparent"
+                activeImage === img.url ? "border-black" : "border-transparent"
               }`}
             />
           ))}
@@ -152,9 +267,7 @@ const handleAddToCart = () => {
         </div>
 
         <div className="flex items-end gap-4">
-          <span className="text-4xl font-bold">
-            {formattedPrice}
-          </span>
+          <span className="text-4xl font-bold">{formattedPrice}</span>
 
           {pricing.specialPrice && (
             <span className="line-through text-gray-400">
@@ -163,10 +276,10 @@ const handleAddToCart = () => {
           )}
         </div>
 
-        {/* VARIANTS */}
+        {/* VARIANTS - Only show for products with variants */}
         {productConfig?.attributes?.length > 0 && (
           <div className="space-y-6">
-            {productConfig.attributes.map(attr => (
+            {productConfig.attributes.map((attr) => (
               <div key={attr.code}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-medium">{attr.name}</p>
@@ -183,20 +296,18 @@ const handleAddToCart = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {attr.values.map(value => {
-                    const active =
-                      selectedAttributes[attr.code] === value
-                    const available =
-                      isValueAvailable(attr.code, value)
+                  {attr.values.map((value) => {
+                    const active = selectedAttributes[attr.code] === value;
+                    const available = isValueAvailable(attr.code, value);
 
                     return (
                       <button
                         key={value}
                         disabled={!available}
                         onClick={() =>
-                          setSelectedAttributes(p => ({
+                          setSelectedAttributes((p) => ({
                             ...p,
-                            [attr.code]: value
+                            [attr.code]: value,
                           }))
                         }
                         className={`px-4 py-2 rounded-full border text-sm ${
@@ -209,7 +320,7 @@ const handleAddToCart = () => {
                       >
                         {value}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -217,6 +328,7 @@ const handleAddToCart = () => {
           </div>
         )}
 
+        {/* Stock info for variant products */}
         {selectedVariant && (
           <p
             className={`text-sm ${
@@ -231,6 +343,7 @@ const handleAddToCart = () => {
           </p>
         )}
 
+        {/* Stock info for simple products */}
         {!isCustom && !isVariantProduct && inventory.manageStock && (
           <p className="text-sm text-gray-600">
             {inventory.stockQuantity > 0
@@ -239,6 +352,7 @@ const handleAddToCart = () => {
           </p>
         )}
 
+        {/* Quantity selector for non-custom products */}
         {!isCustom && (
           <div className="flex items-center gap-4">
             <span className="font-medium text-sm">Quantity</span>
@@ -246,9 +360,7 @@ const handleAddToCart = () => {
               type="number"
               min="1"
               value={quantity}
-              onChange={e =>
-                setQuantity(Math.max(1, Number(e.target.value)))
-              }
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
               className="w-24 border rounded-lg px-3 py-2"
             />
           </div>
@@ -256,12 +368,13 @@ const handleAddToCart = () => {
 
         <div className="space-y-3">
           {isCustom ? (
+            // CUSTOMIZABLE PRODUCT - Go to designer
             <button
               disabled={!isConfigSelected}
               onClick={() =>
                 router.push(
                   `/products/customize/${product.slug}?variant=${encodeURIComponent(
-                    JSON.stringify(selectedVariant?.attributes)
+                    JSON.stringify(selectedVariant?.attributes || {})
                   )}&type=${product.type}`
                 )
               }
@@ -274,10 +387,15 @@ const handleAddToCart = () => {
               Customize Now
             </button>
           ) : !added ? (
+            // NORMAL PRODUCT - Add to cart directly
             <button
               disabled={isVariantProduct && !isConfigSelected}
               onClick={handleAddToCart}
-              className="w-full py-4 rounded-xl border border-black text-lg"
+              className={`w-full py-4 rounded-xl text-lg ${
+                isVariantProduct && !isConfigSelected
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-black text-white hover:bg-gray-800"
+              }`}
             >
               Add to Cart
             </button>
@@ -291,12 +409,58 @@ const handleAddToCart = () => {
           )}
 
           {added && (
-            <p className="text-green-600 text-sm">
-              ✓ Added to cart
+            <p className="text-green-600 text-sm text-center">
+              ✓ Added to cart! Redirecting...
             </p>
           )}
         </div>
       </div>
+
+      {/* SIMILAR PRODUCTS */}
+{similarProducts.length > 0 && (
+  <div className="col-span-1 lg:col-span-2 mt-16">
+    <h2 className="text-2xl font-semibold mb-6">
+      You May Also Like
+    </h2>
+
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {similarProducts.map((item) => {
+        const itemPrice =
+          item.pricing?.specialPrice ?? item.pricing?.basePrice
+
+        return (
+          <div
+            key={item._id}
+            onClick={() => router.push(`/products/${item.slug}`)}
+            className="cursor-pointer p-4  transition"
+          >
+            <img
+              src={item.thumbnail}
+              className=" h-32  mb-4"
+            />
+
+            <h3 className="text-xs font-medium line-clamp-2">
+              {item.name}
+            </h3>
+
+            <p className="mt-2 font-semibold">
+              {new Intl.NumberFormat("en-GB", {
+                style: "currency",
+                currency: item.pricing?.currency || "GBP",
+              }).format(itemPrice)}
+            </p>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+)}
+
+{similarLoading && (
+  <p className="text-center mt-10">Loading similar products...</p>
+)}
+
+
 
       {/* SIZE CHART MODAL */}
       {showSizeChart && (
@@ -306,7 +470,7 @@ const handleAddToCart = () => {
         >
           <div
             className="bg-white rounded-xl max-w-3xl w-full p-4 relative"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowSizeChart(false)}
@@ -315,9 +479,7 @@ const handleAddToCart = () => {
               ✕
             </button>
 
-            <h2 className="text-lg font-semibold mb-4">
-              Size Chart
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Size Chart</h2>
 
             <Image
               src={sizeChart}
@@ -328,5 +490,5 @@ const handleAddToCart = () => {
         </div>
       )}
     </div>
-  )
+  );
 }

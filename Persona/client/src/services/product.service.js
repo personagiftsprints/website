@@ -82,6 +82,12 @@ export const updateProductAPI = async (id, updates) => {
 }
 
 
+export const getSimilarProducts = async (slug) => {
+  const res = await api.get(`/products/similar/${slug}`)
+  return res.data
+}
+
+
 export const uploadImagesAPI = async files => {
   const fd = new FormData()
   files.forEach(file => fd.append('images', file))

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import api from "@/services/axios"
+import { useRouter } from "next/navigation"
+
 
 
 
@@ -12,6 +14,8 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState("")
+  const router = useRouter()
+
 
   const fetchTransactions = async (isInitial = false) => {
     if (loading || (!isInitial && !hasMore)) return
@@ -56,7 +60,7 @@ export default function TransactionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Header + Stats */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
@@ -71,11 +75,11 @@ export default function TransactionsPage() {
 
           {/* Quick stats – replace with real aggregates if you have them */}
           <div className="flex flex-wrap gap-3">
-            <div className="bg-white shadow-sm rounded-lg px-4 py-3 border border-gray-200 min-w-[140px]">
+            <div className="bg-white px-4 py-3 border border-gray-200 min-w-[140px]">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Total</p>
               <p className="text-xl font-semibold text-gray-900 mt-0.5">184</p>
             </div>
-            <div className="bg-white shadow-sm rounded-lg px-4 py-3 border border-gray-200 min-w-[140px]">
+            <div className="bg-white  px-4 py-3 border border-gray-200 min-w-[140px]">
               <p className="text-xs text-gray-500 uppercase tracking-wide">This Month</p>
               <p className="text-xl font-semibold text-emerald-600 mt-0.5">+47</p>
             </div>
@@ -90,7 +94,7 @@ export default function TransactionsPage() {
         )}
 
         {/* Table Card */}
-        <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white  border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -107,9 +111,7 @@ export default function TransactionsPage() {
                   <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Coupon
-                  </th>
+               
                   <th scope="col" className="px-5 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Date
                   </th>
@@ -125,7 +127,7 @@ export default function TransactionsPage() {
                       <td className="px-5 py-5"><div className="h-4 bg-gray-200 rounded w-40"></div></td>
                       <td className="px-5 py-5"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
                       <td className="px-5 py-5"><div className="h-5 bg-gray-200 rounded w-16"></div></td>
-                      <td className="px-5 py-5"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                
                       <td className="px-5 py-5"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
                     </tr>
                   ))
@@ -138,46 +140,43 @@ export default function TransactionsPage() {
                   </tr>
                 ) : (
                   transactions.map((tx) => (
-                  <tr
+                 <tr
   key={tx.checkoutSessionId}
   onClick={() =>
-    window.open(
-      `/admin/transactions/${tx.checkoutSessionId}`,
-      "_blank"
-    )
+    router.push(`/admin/transactions/${tx.checkoutSessionId}`)
   }
   className="cursor-pointer hover:bg-indigo-50 transition-colors duration-150"
 >
+  <td className="px-5 py-4 font-mono text-xs text-gray-600">
+    {tx.checkoutSessionId.slice(0, 18)}…
+  </td>
+  <td className="px-5 py-4 font-mono text-xs text-gray-600">
+    {tx.paymentIntentId
+      ? tx.paymentIntentId.slice(0, 18) + "…"
+      : "—"}
+  </td>
+  <td className="px-5 py-4 whitespace-nowrap font-medium text-gray-900">
+    ${tx.amount}
+  </td>
+  <td className="px-5 py-4 whitespace-nowrap">
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusStyle(tx.status)}`}
+    >
+      {tx.status.charAt(0).toUpperCase() +
+        tx.status.slice(1)}
+    </span>
+  </td>
+  <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">
+    {new Date(tx.createdAt).toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })}
+  </td>
+</tr>
 
-                      <td className="px-5 py-4 font-mono text-xs text-gray-600">
-                        {tx.checkoutSessionId.slice(0, 18)}…
-                      </td>
-                      <td className="px-5 py-4 font-mono text-xs text-gray-600">
-                        {tx.paymentIntentId ? tx.paymentIntentId.slice(0, 18) + "…" : "—"}
-                      </td>
-                      <td className="px-5 py-4 whitespace-nowrap font-medium text-gray-900">
-                        { "$"} {tx.amount }
-                      </td>
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusStyle(tx.status)}`}
-                        >
-                          {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-600">
-                        {tx.coupon !== "NONE" ? tx.coupon : "—"}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">
-                        {new Date(tx.createdAt).toLocaleString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                    </tr>
                   ))
                 )}
               </tbody>

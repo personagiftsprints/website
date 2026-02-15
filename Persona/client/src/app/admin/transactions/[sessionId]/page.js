@@ -353,23 +353,17 @@ export default function TransactionDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {getStatusBadge(order.paymentStatus)}
+           {getStatusBadge(order.payment?.status)}
             <button
-              onClick={handleDownloadPdf}
-              disabled={isGeneratingPdf}
+              
+              disabled="True"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGeneratingPdf ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
+             
                   <Download className="w-4 h-4" />
                   Download Invoice
-                </>
-              )}
+               
+            
             </button>
           </div>
         </div>
@@ -392,18 +386,19 @@ export default function TransactionDetailPage() {
                 <FileText className="w-4 h-4" /> Payment Intent
               </dt>
               <dd className="font-mono text-xs">
-                {order.paymentIntentId || "—"}
+                {order.payment?.paymentId || "—"}
+
               </dd>
 
               <dt className="text-gray-500 flex items-center gap-1.5">
                 <Tag className="w-4 h-4" /> Total
               </dt>
-              <dd className="font-semibold">${order.total?.toFixed(2) || "0.00"}</dd>
+              <dd className="font-semibold">£{order.totalAmount?.toFixed(2) || "0.00"}</dd>
 
               <dt className="text-gray-500 flex items-center gap-1.5">
                 <Tag className="w-4 h-4" /> Coupon
               </dt>
-              <dd>{order.coupon || "—"}</dd>
+              <dd>{order.discount?.code || "—"}</dd>
 
               <dt className="text-gray-500 flex items-center gap-1.5">
                 <Clock className="w-4 h-4" /> Created
@@ -421,21 +416,18 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* Address */}
-          {order.address ? (
+          {order.deliveryAddress ? (
             <div className="bg-white border rounded-xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Truck className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-semibold">Shipping Address</h2>
-              </div>
-              <p className="font-medium">{order.address.name || "—"}</p>
-              <p className="text-gray-600">{order.address.phone || "—"}</p>
-              <p className="text-gray-600 whitespace-pre-line">
-                {order.address.line1 || "—"}
-                <br />
-                {order.address.city || "—"}, {order.address.state || "—"} {order.address.postcode || "—"}
-                <br />
-                {order.address.country || "—"}
-              </p>
+             <p className="font-medium">{order.deliveryAddress.fullName}</p>
+<p className="text-gray-600">{order.deliveryAddress.phone}</p>
+<p className="text-gray-600 whitespace-pre-line">
+  {order.deliveryAddress.addressLine1}
+  <br />
+  {order.deliveryAddress.town}, {order.deliveryAddress.county} {order.deliveryAddress.postcode}
+  <br />
+  {order.deliveryAddress.countryCode}
+</p>
+
             </div>
           ) : (
             <div className="bg-white border rounded-xl p-6 flex items-center justify-center text-gray-500">
@@ -462,89 +454,72 @@ export default function TransactionDetailPage() {
             </p>
           ) : (
             <div className="space-y-5 divide-y">
-              {order.items.map((item, index) => {
-                const unitPrice = getProductPrice(item.product)
-                const itemTotal = calculateItemTotal(item)
-                
-                return (
-                  <div key={index} className="pt-4 first:pt-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        {item.product?.slug ? (
-                          <Link
-                            href={`/products/${item.product.slug}`}
-                            className="font-medium text-blue-600 hover:underline"
-                          >
-                            {item.product.name}
-                          </Link>
-                        ) : (
-                          <p className="font-medium text-gray-500">
-                            {item.product?.name || "Product (deleted)"}
-                          </p>
-                        )}
-                        <p className="text-sm text-gray-600 mt-1">
-                          Quantity: {item.quantity}
-                        </p>
-                        <div className="mt-2 text-sm">
-                          <span className="text-gray-500">Unit Price: </span>
-                          <span className="font-medium">
-                            ${unitPrice.toFixed(2)}
-                          </span>
-                          {item.product?.pricing?.specialPrice && (
-                            <span className="ml-2 text-xs text-gray-400 line-through">
-                              ${item.product.pricing.basePrice.toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 text-sm">
-                          <span className="text-gray-500">Item Total: </span>
-                          <span className="font-semibold">
-                            ${itemTotal.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {item.product?.thumbnail && (
-                        <img
-                          src={item.product.thumbnail}
-                          alt={item.product.name}
-                          className="w-20 h-20 object-cover rounded-lg border"
-                        />
-                      )}
-                    </div>
+            {order.items.map((item, index) => {
+  const unitPrice = item.productSnapshot?.finalPrice || 0
+  const itemTotal = unitPrice * item.quantity
 
-                    {item.configuration &&
-                      Object.keys(item.configuration).length > 0 && (
-                        <pre className="mt-3 text-xs bg-gray-50 p-3 rounded border">
-                          {JSON.stringify(item.configuration, null, 2)}
-                        </pre>
-                      )}
-                  </div>
-                )
-              })}
+  return (
+    <div key={index} className="pt-4 first:pt-0">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="font-medium">
+            {item.productSnapshot?.name}
+          </p>
+
+          <p className="text-sm text-gray-600 mt-1">
+            Quantity: {item.quantity}
+          </p>
+
+          <div className="mt-2 text-sm">
+            <span className="text-gray-500">Unit Price: </span>
+            <span className="font-medium">
+              £{unitPrice.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="mt-1 text-sm">
+            <span className="text-gray-500">Item Total: </span>
+            <span className="font-semibold">
+              £{itemTotal.toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        {item.productSnapshot?.image && (
+          <img
+            src={item.productSnapshot.image}
+            alt={item.productSnapshot.name}
+            className="w-20 h-20 object-cover rounded-lg border"
+          />
+        )}
+      </div>
+    </div>
+  )
+})}
+
               
               {/* Order Summary */}
-              <div className="pt-6 border-t-2">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-gray-600">Subtotal</p>
-                    {order.coupon && (
-                      <p className="text-sm text-gray-600">Coupon: <span className="font-medium">{order.coupon}</span></p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600 line-through">
-                      ${order.items.reduce((sum, item) => {
-                        const basePrice = item.product?.pricing?.basePrice || 0
-                        return sum + (basePrice * item.quantity)
-                      }, 0).toFixed(2)}
-                    </p>
-                    <p className="text-lg font-bold">
-                      Total: ${order.total?.toFixed(2) || "0.00"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="pt-6 border-t-2">
+  <div className="flex justify-between items-center">
+    <div>
+      <p className="text-sm text-gray-600">Subtotal</p>
+      {order.discount?.code && (
+        <p className="text-sm text-gray-600">
+          Coupon: <span className="font-medium">
+            {order.discount.code}
+          </span>
+        </p>
+      )}
+    </div>
+
+    <div className="text-right">
+      <p className="text-lg font-bold">
+        £{order.totalAmount?.toFixed(2)}
+      </p>
+    </div>
+  </div>
+</div>
+
             </div>
           )}
         </div>

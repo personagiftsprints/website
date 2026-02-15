@@ -27,7 +27,7 @@ const productSnapshotSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     slug: { type: String, required: true },
-    productType: { type: String, required: true, enum: ["tshirt", "mug", "hoodie", "other","normal"] },
+    productType: { type: String, required: true, enum: ["tshirt", "mug", "hoodie", "other","normal","mobileCase","frame","3Dcrystal"] },
     image: { type: String, required: true },
     finalPrice: { type: Number, required: true }
   },
@@ -95,7 +95,7 @@ const customizationDataSchema = new mongoose.Schema(
   {
     productType: { 
       type: String, 
-      enum: ["tshirt", "mug", "hoodie", "poster", "other","normal"],
+      enum: ["tshirt", "mug", "hoodie", "poster", "other","normal","mobileCase","frame","3Dcrystal"],
       required: true 
     },
     // T-shirt specific data
@@ -135,7 +135,7 @@ const orderItemSchema = new mongoose.Schema(
       enabled: { type: Boolean, default: false },
       type: { 
         type: String,
-        enum: ["tshirt", "mug", "hoodie", "normal"],
+        enum: ["tshirt", "mug", "hoodie", "normal","mobileCase","frame","3Dcrystal"],
         default: "none"
       },
       data: customizationDataSchema
@@ -183,6 +183,11 @@ const orderSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
 
     deliveryAddress: addressSchema,
+    checkoutSessionId: {
+  type: String,
+  index: true
+},
+
 
    orderStatus: {
   type: String,

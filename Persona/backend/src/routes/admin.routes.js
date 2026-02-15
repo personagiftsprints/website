@@ -3,6 +3,7 @@ import { authMiddleware, adminOnly } from "../middlewares/auth.middleware.js"
 import User from "../models/User.js"
 import Stripe from "stripe"
 import Order from "../models/Order.js"
+import { getDashboardSummary } from "../controllers/admin.controller.js"
 
 // ✅ MUST use Stripe Secret Key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -109,7 +110,7 @@ router.get("/transactions", async (req, res) => {
       limit,
       starting_after: starting_after || undefined
     })
-
+   
     const formatted = sessions.data.map(s => ({
       checkoutSessionId: s.id,
       paymentIntentId: s.payment_intent,
@@ -138,10 +139,11 @@ router.get("/transactions", async (req, res) => {
 router.get("/transactions/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params
+ 
 
     const order = await Order.findOne({
       checkoutSessionId: sessionId
-    }).populate("items.product")
+    }).populate("items.productId")
 
     if (!order) {
       return res.status(404).json({ message: "Transaction not found" })
@@ -153,6 +155,7 @@ router.get("/transactions/:sessionId", async (req, res) => {
     res.status(500).json({ message: "Failed to load transaction" })
   }
 })
+
 
 /* =====================================================
    ADMIN – GET ALL ORDERS
@@ -265,6 +268,9 @@ router.patch(
     }
   }
 )
+
+
+router.get("/dashboard/summary", authMiddleware, adminOnly,getDashboardSummary);
 
 
 export default router
