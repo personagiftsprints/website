@@ -7,6 +7,7 @@ import AuthDrawer from "@/components/AuthDrawer"
 import "./globals.css"
 import CookieConsent from "@/components/CookieConsent"
 import { usePathname } from "next/navigation"
+import CelebrationOverlay from "@/components/CelebrationOverlay"
 
 
 export default function RootLayout({ children }) {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
         />
 
         <AuthProvider>
+            <CelebrationOverlay />
           {children}
           <CookieConsent />
           <AuthDrawer

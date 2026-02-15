@@ -20,7 +20,7 @@ const Page = () => {
   }, [])
 
   return (
-    <div className="lg:px-32 px-6 py-20 space-y-24">
+    <div className="lg:px-32 px-5 py-8 space-y-24">
 
       {/* 🔥 Trending Hero Section */}
       <div className="text-center space-y-5">

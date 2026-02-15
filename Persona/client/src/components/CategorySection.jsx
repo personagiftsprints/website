@@ -16,7 +16,7 @@ export default function CategorySection({
   const roundedClass = rounded ? "rounded-lg" : "rounded-none"
 
   return (
-    <section className="px-6 mt-12">
+    <section className="lg:px-6 mt-12">
       {title && (
         <h2 className="text-2xl font-semibold mb-6">
           {title}

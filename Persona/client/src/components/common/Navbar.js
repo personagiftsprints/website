@@ -246,6 +246,13 @@ export default function Navbar() {
     >
       Collections
     </Link>
+    <Link
+      href="/trending"
+      onClick={() => setOpen(false)}
+      className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition"
+    >
+      Trending
+    </Link>
 
     <Link
       href="/order"
