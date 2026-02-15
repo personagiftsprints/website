@@ -257,7 +257,7 @@ const [addressForm, setAddressForm] = useState({
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
   const DELIVERY_THRESHOLD = 100;
-  const DELIVERY_CHARGE = 20;
+  const DELIVERY_CHARGE = 5;
 
   /* ---------------- LOAD DATA ---------------- */
 

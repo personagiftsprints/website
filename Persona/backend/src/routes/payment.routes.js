@@ -11,7 +11,7 @@ const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const DELIVERY_THRESHOLD = 100;
-const DELIVERY_CHARGE = 20;
+const DELIVERY_CHARGE = 5;
 
 router.post("/create-checkout-session", optionalAuth, async (req, res) => {
   try {
