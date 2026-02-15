@@ -203,80 +203,91 @@ export default function Navbar() {
           />
 
        <aside className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl">
-  <div className="h-full flex flex-col">
+<div className="h-full flex flex-col bg-white">
 
-    <div className="px-6 py-5 border-b">
-      <p className="text-xs text-gray-500">
-        {user ? "Welcome back" : "Welcome"}
-      </p>
+  {/* Profile Header */}
+  <div className="px-6 py-6 border-b bg-gradient-to-r from-gray-50 to-white">
+    <p className="text-xs uppercase tracking-wide text-gray-400">
+      {user ? "Welcome back" : "Welcome"}
+    </p>
 
-      <p className="text-lg font-semibold text-gray-900 mt-1">
-        {user ? user.firstName : "Guest"}
-      </p>
+    <p className="text-xl font-semibold text-gray-900 mt-1">
+      {user ? user.firstName : "Guest"}
+    </p>
 
-      {!user && (
-        <button
-          onClick={() => {
-            setOpen(false)
-            window.dispatchEvent(new Event("open-auth"))
-          }}
-          className="mt-4 w-full py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium"
-        >
-          Login
-        </button>
-      )}
-
-      
-    </div>
-
-    <nav className="flex-1 px-4 py-4 space-y-1">
-      <Link
-        href="/"
-        onClick={() => setOpen(false)}
-        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
+    {!user && (
+      <button
+        onClick={() => {
+          setOpen(false)
+          window.dispatchEvent(new Event("open-auth"))
+        }}
+        className="mt-5 w-full py-3 rounded-xl bg-black text-white text-sm font-medium hover:opacity-90 transition"
       >
-        Home
-      </Link>
-
-      <Link
-        href="/collections"
-        onClick={() => setOpen(false)}
-        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
-      >
-        Collections
-      </Link>
-
-      <Link
-        href="/order"
-        onClick={() => setOpen(false)}
-        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
-      >
-        Orders
-      </Link>
-
-      <Link
-        href="/cart"
-        onClick={() => setOpen(false)}
-        className="block px-4 py-3 rounded-lg text-gray-800 hover:bg-gray-100"
-      >
-        Cart
-      </Link>
-    </nav>
-
-    <div className="px-6 py-4 border-t text-xs text-gray-400">
-     {user && (
-        <button
-          onClick={() => {
-            logout()
-            setOpen(false)
-          }}
-          className="mt-4 w-full py-2.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium"
-        >
-          Logout
-        </button>
-      )}
-    </div>
+        Sign In / Create Account
+      </button>
+    )}
   </div>
+
+  {/* Navigation */}
+  <nav className="flex-1 px-4 py-6 space-y-2">
+
+    <Link
+      href="/"
+      onClick={() => setOpen(false)}
+      className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition"
+    >
+      Home
+    </Link>
+
+    <Link
+      href="/collections"
+      onClick={() => setOpen(false)}
+      className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition"
+    >
+      Collections
+    </Link>
+
+    <Link
+      href="/order"
+      onClick={() => setOpen(false)}
+      className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition"
+    >
+      Orders
+    </Link>
+
+    <Link
+      href="/cart"
+      onClick={() => setOpen(false)}
+      className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition"
+    >
+      Cart
+    </Link>
+
+  </nav>
+
+  {/* Footer Area */}
+  <div className="px-6 py-5 border-t bg-gray-50 space-y-4">
+
+    {user && (
+      <button
+        onClick={() => {
+          logout()
+          setOpen(false)
+        }}
+        className="w-full py-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"
+      >
+        Logout
+      </button>
+    )}
+
+    <p className="text-xs text-gray-400 text-center leading-relaxed">
+      Persona Gifts & Prints<br />
+      Secure shopping experience
+    </p>
+
+  </div>
+</div>
+
 </aside>
 
         </>

@@ -58,15 +58,15 @@ export default function CategorySection({
         <div className="mt-1 flex items-center gap-2">
           {hasDiscount ? (
             <>
-              <span className="font-semibold text-gray-600">
+              <span className="font-semibold text-gray-600 text-xs lg:text-lg">
                 £{specialPrice}
               </span>
-              <span className="text-sm text-gray-400 line-through">
+              <span className=" text-gray-400 line-through text-xs lg:text-lg">
                 £{basePrice}
               </span>
             </>
           ) : (
-            <span className="font-semibold">
+            <span className="font-semibold text-xs lg:text-xl">
               £{basePrice}
             </span>
           )}

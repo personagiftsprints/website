@@ -2,6 +2,12 @@ import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs"
 import User from "../models/User.js"
 
+import crypto from "crypto"
+
+
+import { passwordResetTemplate } from "../utils/emailTemplates.js"
+import { sendMail } from "../utils/mailer.js"
+
 
 import { OAuth2Client } from "google-auth-library"
 
@@ -111,21 +117,89 @@ export const getMe = async (req, res) => {
   res.json({ status: "success", user })
 }
 
-export const resetPassword = async (req, res) => {
-  const { email, newPassword } =res.body
 
-  if (!email || !newPassword) {
-    return res.status(400).json({ status: "invalid_payload" })
+export const resetPasswordWithToken = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Invalid payload" })
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex")
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token"
+      })
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10)
+    user.resetPasswordToken = undefined
+    user.resetPasswordExpires = undefined
+
+    await user.save()
+
+    res.json({ status: "success" })
+
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Server error" })
   }
+}
 
-  const user = await User.findOne({ email })
 
-  if (!user || user.provider !== "email") {
-    return res.status(404).json({ status: "user_not_found" })
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body
+
+    const user = await User.findOne({ email })
+
+    if (!user || user.provider !== "email") {
+      return res.status(200).json({
+        status: "success",
+        message: "If that email exists, a reset link has been sent."
+      })
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex")
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex")
+
+    user.resetPasswordToken = hashedToken
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000
+
+    await user.save()
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`
+
+    const emailTemplate = passwordResetTemplate({
+      name: user.firstName || "Customer",
+      resetLink
+    })
+
+    await sendMail({
+      to: user.email,
+      subject: emailTemplate.subject,
+      text: emailTemplate.text,
+      html: emailTemplate.html
+    })
+
+    res.json({ status: "success" })
+
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: "Server error" })
   }
-
-  user.password = await bcrypt.hash(newPassword, 10)
-  await user.save()
-
-  res.json({ status: "success" })
 }

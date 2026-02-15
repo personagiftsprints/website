@@ -6,6 +6,8 @@ import { AuthProvider } from "@/context/AuthContext"
 import AuthDrawer from "@/components/AuthDrawer"
 import "./globals.css"
 import CookieConsent from "@/components/CookieConsent"
+import { usePathname } from "next/navigation"
+
 
 export default function RootLayout({ children }) {
   const [authOpen, setAuthOpen] = useState(false)

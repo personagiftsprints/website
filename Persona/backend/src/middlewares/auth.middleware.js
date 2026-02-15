@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken"
 import User from "../models/User.js"
 
+
 export const authMiddleware = async (req, res, next) => {
   const auth = req.headers.authorization
   if (!auth || !auth.startsWith("Bearer ")) {
@@ -36,3 +37,4 @@ export const customerOnly = (req, res, next) => {
   }
   next()
 }
+

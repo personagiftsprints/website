@@ -25,3 +25,9 @@ export const googleAuth = async (token) => {
   const res = await axios.post(`${API}/auth/google`, { token })
   return res.data
 }
+
+
+export const sendResetLink = async (email) => {
+  const res = await axios.post(`${API}/auth/password/request-reset`, { email })
+  return res.data
+}
