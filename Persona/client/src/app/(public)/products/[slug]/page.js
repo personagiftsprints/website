@@ -101,9 +101,17 @@ useEffect(() => {
   const isVariantProduct = productConfig?.attributes?.length > 0;
   const isCustom = customization?.enabled;
 
-  const isConfigSelected =
-    !isVariantProduct ||
-    (selectedVariant && selectedVariant.stockQuantity > 0);
+const allAttributesSelected =
+  productConfig?.attributes?.every(
+    (attr) => selectedAttributes[attr.code]
+  ) ?? false;
+
+const isConfigSelected =
+  !isVariantProduct ||
+  (allAttributesSelected &&
+    selectedVariant &&
+    selectedVariant.stockQuantity > 0);
+
 
   const formattedPrice = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -121,10 +129,16 @@ useEffect(() => {
   const handleAddToCart = () => {
     // For products with variants (like t-shirts with size/color)
     if (isVariantProduct) {
-      if (!selectedVariant) {
-        alert("Please select all options");
-        return;
-      }
+   if (!allAttributesSelected || !selectedVariant) {
+  alert("Please select all required options");
+  return;
+}
+
+if (selectedVariant.stockQuantity <= 0) {
+  alert("Selected variant is out of stock");
+  return;
+}
+
 
       // Get existing cart from localStorage
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -353,18 +367,44 @@ useEffect(() => {
         )}
 
         {/* Quantity selector for non-custom products */}
-        {!isCustom && (
-          <div className="flex items-center gap-4">
-            <span className="font-medium text-sm">Quantity</span>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-              className="w-24 border rounded-lg px-3 py-2"
-            />
-          </div>
-        )}
+      {!isCustom && (
+  <div className="space-y-2">
+    <span className="font-medium text-sm">Quantity</span>
+
+    <div className="flex items-center w-fit border border-gray-300 rounded-xl overflow-hidden">
+      
+      {/* Minus */}
+      <button
+        type="button"
+        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+        disabled={quantity <= 1}
+        className={`px-4 py-3 text-lg transition ${
+          quantity <= 1
+            ? "text-gray-300 cursor-not-allowed"
+            : "hover:bg-gray-100"
+        }`}
+      >
+        −
+      </button>
+
+      {/* Value */}
+      <div className="px-6 py-3 min-w-[50px] text-center font-semibold">
+        {quantity}
+      </div>
+
+      {/* Plus */}
+      <button
+        type="button"
+        onClick={() => setQuantity((q) => q + 1)}
+        className="px-4 py-3 text-lg hover:bg-gray-100 transition"
+      >
+        +
+      </button>
+
+    </div>
+  </div>
+)}
+
 
         <div className="space-y-3">
           {isCustom ? (

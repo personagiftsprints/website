@@ -5,12 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { applyCoupon } from "@/services/checkout.service";
 import { createCheckoutSession } from "@/services/payment.service";
-import { getProductById } from "@/services/product.service"; // ✅ Import price fetching service
+import { getProductById } from "@/services/product.service";
 import LottieAnimation from "@/components/ui/LottieAnimation";
 import appliedAnimation from "@/assets/applied.json";
 import { useAuth } from "@/context/AuthContext";
 import { getMyAccount } from "@/services/account.service";
-
 
 function MugDesignPreview({ designData }) {
   const [expanded, setExpanded] = useState(false);
@@ -20,7 +19,6 @@ function MugDesignPreview({ designData }) {
   const printAreas = designData.print_areas || {};
   const hasDesigns = Object.keys(printAreas).length > 0;
   
-  // Check if it's a wrap design (multi-slot)
   const isWrapDesign = printAreas.full_wrap?.type === "multi";
   const wrapImages = isWrapDesign ? printAreas.full_wrap?.images : null;
   
@@ -40,11 +38,9 @@ function MugDesignPreview({ designData }) {
         </button>
       </div>
       
-      {/* Expanded Details */}
       {expanded && (
         <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
           {isWrapDesign ? (
-            // Wrap Design Display (3 slots)
             <div>
               <p className="text-xs font-medium text-gray-700 mb-2">Full Wrap Design (Left to Right):</p>
               <div className="grid grid-cols-3 gap-2">
@@ -79,7 +75,6 @@ function MugDesignPreview({ designData }) {
               </div>
             </div>
           ) : (
-            // Single View Design (front/back) - This matches your cart data
             <div>
               <p className="text-xs font-medium text-gray-700 mb-2">Print Areas:</p>
               <div className="grid grid-cols-2 gap-2">
@@ -117,7 +112,6 @@ function MugDesignPreview({ designData }) {
             </div>
           )}
           
-          {/* Show preview URLs if available */}
           {designData.preview_urls && (
             <div className="text-xs text-gray-600 mt-2 pt-2 border-t">
               <p className="font-medium mb-1">Previews:</p>
@@ -145,14 +139,13 @@ function MugDesignPreview({ designData }) {
     </div>
   );
 }
-// 🎯 T-shirt design preview component
+
 function TshirtDesignPreview({ designData }) {
   const [expanded, setExpanded] = useState(false);
   
   if (!designData) return null;
   
   const printAreas = designData.print_areas || {};
-  const previewImage = designData.previewImage;
   const hasDesigns = Object.keys(printAreas).length > 0;
   
   return (
@@ -169,7 +162,6 @@ function TshirtDesignPreview({ designData }) {
         </button>
       </div>
       
-      {/* Expanded Details */}
       {expanded && hasDesigns && (
         <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
           <p className="text-xs font-medium text-gray-700">Print Areas:</p>
@@ -206,7 +198,6 @@ function TshirtDesignPreview({ designData }) {
             ))}
           </div>
           
-          {/* Variant Info */}
           {designData.metadata?.view_configuration && (
             <div className="text-xs text-gray-600 mt-2 pt-2 border-t">
               {designData.metadata.view_configuration.show_center_chest && (
@@ -231,20 +222,20 @@ export default function CheckoutClient() {
   const { user } = useAuth();
 
   const [items, setItems] = useState([]);
-  const [productPrices, setProductPrices] = useState({}); // ✅ Add product prices state
-  const [loadingPrices, setLoadingPrices] = useState(true); // ✅ Add loading state
+  const [productPrices, setProductPrices] = useState({});
+  const [loadingPrices, setLoadingPrices] = useState(true);
   const [address, setAddress] = useState(null);
-const [addressForm, setAddressForm] = useState({
-  fullName: "",
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  town: "",
-  county: "",
-  postcode: "",
-  countryCode: "GB"
-});
+  const [addressForm, setAddressForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    town: "",
+    county: "",
+    postcode: "",
+    countryCode: "GB"
+  });
 
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [coupon, setCoupon] = useState("");
@@ -261,7 +252,6 @@ const [addressForm, setAddressForm] = useState({
 
   /* ---------------- LOAD DATA ---------------- */
 
-  // ✅ Load cart and fetch product prices
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
     setItems(cart);
@@ -273,16 +263,13 @@ const [addressForm, setAddressForm] = useState({
     }
   }, []);
 
-  // ✅ Function to fetch product prices (same as CartClient)
   const fetchProductPrices = async (cartItems) => {
     try {
       setLoadingPrices(true);
       const priceMap = {};
       
-      // Get unique product IDs
       const productIds = [...new Set(cartItems.map(item => item.productId))];
       
-      // Fetch prices for each product
       await Promise.all(productIds.map(async (id) => {
         try {
           const response = await getProductById(id);
@@ -306,7 +293,6 @@ const [addressForm, setAddressForm] = useState({
     }
   };
 
-  // ✅ Function to get the current price for an item (same as CartClient)
   const getItemPrice = (item) => {
     const productPrice = productPrices[item.productId];
     const price = productPrice?.specialPrice || productPrice?.price || item.unitPrice || item.price || 0;
@@ -335,9 +321,12 @@ const [addressForm, setAddressForm] = useState({
           setLoadingAddresses(false);
         }
       } else {
-        setAddress(
-          JSON.parse(localStorage.getItem("delivery_address") || "null")
-        );
+        const savedAddress = JSON.parse(localStorage.getItem("delivery_address") || "null");
+        setAddress(savedAddress);
+        // If there's a saved address, don't show the form
+        if (savedAddress) {
+          setShowAddressForm(false);
+        }
       }
     };
 
@@ -346,7 +335,6 @@ const [addressForm, setAddressForm] = useState({
 
   /* ---------------- PRICE CALC ---------------- */
 
-  // ✅ Calculate subtotal using fetched prices
   const subtotal = useMemo(
     () => items.reduce((sum, i) => {
       const price = productPrices[i.productId]?.specialPrice || 
@@ -405,7 +393,6 @@ const [addressForm, setAddressForm] = useState({
     setItems(updated);
     localStorage.setItem("cart", JSON.stringify(updated));
     
-    // ✅ Update product prices after removal
     const remainingProductIds = [...new Set(updated.map(i => i.productId))];
     setProductPrices(prev => {
       const newPrices = { ...prev };
@@ -422,17 +409,18 @@ const [addressForm, setAddressForm] = useState({
 
   const handlePlaceOrder = async () => {
     try {
+      if(!address){
+        alert("Please add delivery address")
+      }
       setLoadingPayment(true);
       
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
-      // ✅ Prepare cart items with latest prices
       const cartWithPrices = cart.map(item => ({
         ...item,
-        price: getItemPrice(item).amount // Use the fetched price
+        price: getItemPrice(item).amount
       }));
 
-      // Validate address
       if (!address) {
         alert("Please add a delivery address");
         return;
@@ -440,7 +428,7 @@ const [addressForm, setAddressForm] = useState({
 
       const data = await createCheckoutSession({
         mode: "cart",
-        cart: cartWithPrices, // ✅ Send cart with updated prices
+        cart: cartWithPrices,
         couponCode: coupon || null,
         address,
         email: address?.email || user?.email || null
@@ -464,38 +452,42 @@ const [addressForm, setAddressForm] = useState({
     }
   };
 
-  // Get product type for an item
-// Get product type for an item
-const getProductType = (item) => {
-  return item.productSnapshot?.type || item.type || "other";
-};
+  const getProductType = (item) => {
+    return item.productSnapshot?.type || item.type || "other";
+  };
 
+  const getItemImage = (item) => {
+    const productType = item.productSnapshot?.type || item.type || "other";
+    
+    if (productType === "tshirt" && item.designData?.previewImage) {
+      return item.designData.previewImage;
+    }
+    
+    if (productType === "mug" && item.designData?.preview_urls) {
+      return item.designData.preview_urls.front || 
+             item.designData.preview_urls.back || 
+             item.designData.preview_urls.full_wrap ||
+             item.image ||
+             item.productSnapshot?.image;
+    }
+    
+    return item.image || item.productSnapshot?.image;
+  };
 
+  // Format address for display
+  const formatAddress = (addr) => {
+    if (!addr) return "";
+    const parts = [
+      addr.fullName,
+      addr.addressLine1,
+      addr.addressLine2,
+      addr.town,
+      addr.county,
+      addr.postcode
+    ].filter(Boolean);
+    return parts.join(", ");
+  };
 
-  // Function to get display image for cart item
-const getItemImage = (item) => {
-  const productType = item.productSnapshot?.type || item.type || "other";
-  
-  // For t-shirts with custom designs
-  if (productType === "tshirt" && item.designData?.previewImage) {
-    return item.designData.previewImage;
-  }
-  
-  // For mugs with custom designs - use the confirmed preview URL
-  if (productType === "mug" && item.designData?.preview_urls) {
-    // Prefer front preview, then back, then wrap
-    return item.designData.preview_urls.front || 
-           item.designData.preview_urls.back || 
-           item.designData.preview_urls.full_wrap ||
-           item.image ||
-           item.productSnapshot?.image;
-  }
-  
-  // Fallback to product image
-  return item.image || item.productSnapshot?.image;
-};
-
-  // ✅ Show loading state while fetching prices
   if (loadingPrices) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-6 text-center">
@@ -514,164 +506,171 @@ const getItemImage = (item) => {
         {/* DELIVERY ADDRESS */}
         <div className="bg-white border border-gray-100 p-4 space-y-4">
           <div className="flex justify-between items-start">
-            {user && (
-              <div className="space-y-3 w-full">
-                <p className="text-sm font-medium">Select Delivery Address</p>
+            <div className="space-y-3 w-full">
+              <p className="text-sm font-medium">Delivery Address</p>
 
-                {loadingAddresses ? (
-                  <p className="text-sm text-gray-500">Loading addresses…</p>
-                ) : userAddresses.length === 0 ? (
+              {loadingAddresses ? (
+                <p className="text-sm text-gray-500">Loading addresses…</p>
+              ) : address ? (
+                /* ✅ SHOW ADDRESS DETAILS IN SMALL LETTER FORMAT */
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <p className="text-sm font-medium">{address.fullName}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {address.addressLine1}
+                    {address.addressLine2 && `, ${address.addressLine2}`}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    {address.town}
+                    {address.county && `, ${address.county}`} {address.postcode}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">{address.phone}</p>
+                  {address.email && (
+                    <p className="text-xs text-gray-600">{address.email}</p>
+                  )}
+                </div>
+              ) : user ? (
+                /* NO ADDRESS FOR LOGGED IN USER */
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">No address saved yet</p>
                   <Link
                     href="/account/address"
-                    className="text-sm text-orange-600 underline"
+                    className="text-sm text-orange-600 underline inline-block"
                   >
                     Add an address
                   </Link>
-                ) : (
-                  <div className="space-y-2">
-                    {userAddresses.map(addr => (
-                      <button
-                        key={addr._id}
-                        onClick={() => setAddress(addr)}
-                        className={`w-full text-left p-3 rounded border ${
-                          address?._id === addr._id
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <p className="font-medium">{addr.fullName}</p>
-                       <p className="text-xs text-gray-600">
-  {addr.addressLine1}
-  {addr.addressLine2 && `, ${addr.addressLine2}`}
-</p>
-<p className="text-xs text-gray-600">
-  {addr.town}
-  {addr.county && `, ${addr.county}`} {addr.postcode}
-</p>
+                </div>
+              ) : (
+                /* NO ADDRESS FOR GUEST */
+                <button
+                  onClick={() => setShowAddressForm(true)}
+                  className="text-sm text-orange-600 underline"
+                >
+                  Add delivery address
+                </button>
+              )}
+            </div>
 
-                        <p className="text-xs text-gray-600">{addr.phone}</p>
-                      </button>
-                    ))}
-                  </div>
+            {/* CHANGE ADDRESS LINK - Only show if address exists */}
+            {address && (
+              <div className="ml-4">
+                {user ? (
+                  <Link
+                    href="/account/address"
+                    className="text-sm font-medium text-orange-600 hover:underline whitespace-nowrap"
+                  >
+                    Change
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowAddressForm(true);
+                      setAddress(null);
+                      localStorage.removeItem("delivery_address");
+                    }}
+                    className="text-sm font-medium text-orange-600 hover:underline whitespace-nowrap"
+                  >
+                    Change
+                  </button>
                 )}
               </div>
             )}
-
-            {user ? (
-              <Link
-                href="/account/address"
-                className="text-sm font-medium text-orange-600 hover:underline whitespace-nowrap ml-4"
-              >
-                {address ? "Change" : "Add Address"}
-              </Link>
-            ) : (
-              <button
-                onClick={() => setShowAddressForm(v => !v)}
-                className="text-sm font-medium text-orange-600 hover:underline whitespace-nowrap"
-              >
-                {showAddressForm ? "Cancel" : "Add Address"}
-              </button>
-            )}
           </div>
 
-          {/* INLINE ADDRESS FORM (GUEST) */}
-          {!user && showAddressForm && (
+          {/* ADDRESS FORM - Only show when no address and form is toggled */}
+          {!user && !address && showAddressForm && (
             <div className="grid gap-3 border-t pt-4">
               <input
-  placeholder="Full Name"
-  value={addressForm.fullName}
-  onChange={e =>
-    setAddressForm({ ...addressForm, fullName: e.target.value })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+                placeholder="Full Name"
+                value={addressForm.fullName}
+                onChange={e =>
+                  setAddressForm({ ...addressForm, fullName: e.target.value })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="Email Address"
-  value={addressForm.email}
-  onChange={e =>
-    setAddressForm({ ...addressForm, email: e.target.value })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+              <input
+                placeholder="Email Address"
+                value={addressForm.email}
+                onChange={e =>
+                  setAddressForm({ ...addressForm, email: e.target.value })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="Mobile Number"
-  value={addressForm.phone}
-  onChange={e =>
-    setAddressForm({
-      ...addressForm,
-      phone: e.target.value.replace(/[^0-9+ ]/g, "")
-    })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+              <input
+                placeholder="Mobile Number"
+                value={addressForm.phone}
+                onChange={e =>
+                  setAddressForm({
+                    ...addressForm,
+                    phone: e.target.value.replace(/[^0-9+ ]/g, "")
+                  })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="House number & Street"
-  value={addressForm.addressLine1}
-  onChange={e =>
-    setAddressForm({ ...addressForm, addressLine1: e.target.value })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+              <input
+                placeholder="House number & Street"
+                value={addressForm.addressLine1}
+                onChange={e =>
+                  setAddressForm({ ...addressForm, addressLine1: e.target.value })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="Address Line 2 (Optional)"
-  value={addressForm.addressLine2}
-  onChange={e =>
-    setAddressForm({ ...addressForm, addressLine2: e.target.value })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+              <input
+                placeholder="Address Line 2 (Optional)"
+                value={addressForm.addressLine2}
+                onChange={e =>
+                  setAddressForm({ ...addressForm, addressLine2: e.target.value })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="Town / City"
-  value={addressForm.town}
-  onChange={e =>
-    setAddressForm({ ...addressForm, town: e.target.value })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+              <input
+                placeholder="Town / City"
+                value={addressForm.town}
+                onChange={e =>
+                  setAddressForm({ ...addressForm, town: e.target.value })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="County (Optional)"
-  value={addressForm.county}
-  onChange={e =>
-    setAddressForm({ ...addressForm, county: e.target.value })
-  }
-  className="border rounded px-3 py-2 text-sm"
-/>
+              <input
+                placeholder="County (Optional)"
+                value={addressForm.county}
+                onChange={e =>
+                  setAddressForm({ ...addressForm, county: e.target.value })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
 
-<input
-  placeholder="Postcode"
-  value={addressForm.postcode}
-  onChange={e =>
-    setAddressForm({
-      ...addressForm,
-      postcode: e.target.value.toUpperCase()
-    })
-  }
-  className="border rounded px-3 py-2 text-sm uppercase"
-/>
-
+              <input
+                placeholder="Postcode"
+                value={addressForm.postcode}
+                onChange={e =>
+                  setAddressForm({
+                    ...addressForm,
+                    postcode: e.target.value.toUpperCase()
+                  })
+                }
+                className="border rounded px-3 py-2 text-sm uppercase"
+              />
 
               <button
                 disabled={
-  !addressForm.fullName ||
-  !addressForm.phone ||
-  !addressForm.addressLine1 ||
-  !addressForm.town ||
-  !addressForm.postcode ||
-  !addressForm.email
-}
-
+                  !addressForm.fullName ||
+                  !addressForm.phone ||
+                  !addressForm.addressLine1 ||
+                  !addressForm.town ||
+                  !addressForm.postcode ||
+                  !addressForm.email
+                }
                 onClick={() => {
-                 const newAddress = {
-  ...addressForm,
-  countryCode: "GB"
-};
-
+                  const newAddress = {
+                    ...addressForm,
+                    countryCode: "GB"
+                  };
                   localStorage.setItem("delivery_address", JSON.stringify(newAddress));
                   setAddress(newAddress);
                   setShowAddressForm(false);
@@ -680,130 +679,131 @@ const getItemImage = (item) => {
               >
                 Save Address
               </button>
+              
+              <button
+                onClick={() => setShowAddressForm(false)}
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
             </div>
           )}
         </div>
 
-       
-{items.map((item) => {
-  const productType = item.productSnapshot?.type || item.type || "other";
-  const itemImage = getItemImage(item);
-  const priceInfo = getItemPrice(item);
-  const itemTotal = priceInfo.amount * (item.quantity || 1);
-  
-  return (
-    <div key={item.id} className="bg-white p-4 flex gap-4 border rounded-lg hover:shadow-md transition">
-      {/* Product Image */}
-      <Link href={`/products/${item.productSlug || item.slug}`} className="w-28 h-28 relative flex-shrink-0">
-        <Image 
-          src={itemImage} 
-          alt="product image" 
-          fill 
-          className="object-cover rounded"
-          unoptimized={itemImage?.startsWith('data:') || itemImage?.includes('cloudinary')}
-        />
-        
-        {/* Custom Product Badge */}
-        {productType === "tshirt" && item.designData && (
-          <span className="absolute top-1 right-1 bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full">
-            👕
-          </span>
-        )}
-        {productType === "mug" && item.designData && (
-          <span className="absolute top-1 right-1 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
-            ☕
-          </span>
-        )}
-      </Link>
+        {/* CART ITEMS */}
+        {items.map((item) => {
+          const productType = item.productSnapshot?.type || item.type || "other";
+          const itemImage = getItemImage(item);
+          const priceInfo = getItemPrice(item);
+          const itemTotal = priceInfo.amount * (item.quantity || 1);
+          
+          return (
+            <div key={item.id} className="bg-white p-4 flex gap-4 border rounded-lg hover:shadow-md transition">
+              {/* Product Image */}
+              <Link href={`/products/${item.productSlug || item.slug}`} className="w-28 h-28 relative flex-shrink-0">
+                <Image 
+                  src={itemImage} 
+                  alt="product image" 
+                  fill 
+                  className="object-cover rounded"
+                  unoptimized={itemImage?.startsWith('data:') || itemImage?.includes('cloudinary')}
+                />
+                
+                {productType === "tshirt" && item.designData && (
+                  <span className="absolute top-1 right-1 bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                    👕
+                  </span>
+                )}
+                {productType === "mug" && item.designData && (
+                  <span className="absolute top-1 right-1 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                    ☕
+                  </span>
+                )}
+              </Link>
 
-      <div className="flex-1 min-w-0 space-y-2">
-        <div className="flex justify-between">
-          <Link href={`/products/${item.productSlug || item.slug}`} className="font-medium hover:underline truncate">
-            {item.name}
-          </Link>
-          <p className="font-semibold text-lg ml-4">
-            £{itemTotal.toFixed(2)}
-          </p>
-        </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex justify-between">
+                  <Link href={`/products/${item.productSlug || item.slug}`} className="font-medium hover:underline truncate">
+                    {item.name}
+                  </Link>
+                  <p className="font-semibold text-lg ml-4">
+                    £{itemTotal.toFixed(2)}
+                  </p>
+                </div>
 
-        {/* Variant Display */}
-        {item.variant && (
-          <div className="flex gap-2 text-sm text-gray-600">
-            {item.variant.size && (
-              <span className="bg-gray-100 px-2 py-0.5 rounded">
-                Size: {item.variant.size}
-              </span>
-            )}
-            {item.variant.color_label && (
-              <span className="bg-gray-100 px-2 py-0.5 rounded">
-                Color: {item.variant.color_label}
-              </span>
-            )}
-          </div>
-        )}
+                {item.variant && (
+                  <div className="flex gap-2 text-sm text-gray-600">
+                    {item.variant.size && (
+                      <span className="bg-gray-100 px-2 py-0.5 rounded">
+                        Size: {item.variant.size}
+                      </span>
+                    )}
+                    {item.variant.color_label && (
+                      <span className="bg-gray-100 px-2 py-0.5 rounded">
+                        Color: {item.variant.color_label}
+                      </span>
+                    )}
+                  </div>
+                )}
 
-        {/* Price Display */}
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-black">
-            £{priceInfo.amount.toFixed(2)} each
-          </p>
-          {productPrices[item.productId]?.specialPrice && (
-            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
-              Special price
-            </span>
-          )}
-        </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-black">
+                    £{priceInfo.amount.toFixed(2)} each
+                  </p>
+                  {productPrices[item.productId]?.specialPrice && (
+                    <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                      Special price
+                    </span>
+                  )}
+                </div>
 
-        {/* 🎯 T-SHIRT DESIGN PREVIEW */}
-        {productType === "tshirt" && item.designData && (
-          <TshirtDesignPreview designData={item.designData} />
-        )}
+                {productType === "tshirt" && item.designData && (
+                  <TshirtDesignPreview designData={item.designData} />
+                )}
 
-        {/* ☕ MUG DESIGN PREVIEW */}
-        {productType === "mug" && item.designData && (
-          <MugDesignPreview designData={item.designData} />
-        )}
+                {productType === "mug" && item.designData && (
+                  <MugDesignPreview designData={item.designData} />
+                )}
 
-        {/* Quantity Controls */}
-        <div className="flex items-center gap-3 mt-2">
-          <div className="flex items-center border rounded-lg">
-            <button
-              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-              className="px-2 py-1 hover:bg-gray-100 text-gray-600"
-              disabled={item.quantity <= 1}
-            >
-              −
-            </button>
-            <input
-              type="number"
-              min="1"
-              value={item.quantity}
-              onChange={e => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val) && val > 0) {
-                  updateQuantity(item.id, val);
-                }
-              }}
-              className="w-12 text-center border-x px-1 py-1 focus:outline-none"
-            />
-            <button
-              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-              className="px-2 py-1 hover:bg-gray-100 text-gray-600"
-            >
-              +
-            </button>
-          </div>
-          <button
-            onClick={() => removeItem(item.id)}
-            className="text-sm text-red-600 hover:text-red-800"
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-})}
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center border rounded-lg">
+                    <button
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      className="px-2 py-1 hover:bg-gray-100 text-gray-600"
+                      disabled={item.quantity <= 1}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={e => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val > 0) {
+                          updateQuantity(item.id, val);
+                        }
+                      }}
+                      className="w-12 text-center border-x px-1 py-1 focus:outline-none"
+                    />
+                    <button
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      className="px-2 py-1 hover:bg-gray-100 text-gray-600"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-sm text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {deliveryCharge > 0 && (
           <p className="text-xs text-gray-500">
@@ -877,7 +877,7 @@ const getItemImage = (item) => {
 
         <button
           onClick={handlePlaceOrder}
-          disabled={loadingPayment || !address || items.length === 0}
+          disabled={loadingPayment || items.length === 0}
           className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded font-semibold disabled:opacity-60 transition active:scale-[0.98]"
         >
           {loadingPayment ? (
