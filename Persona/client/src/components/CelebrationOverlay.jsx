@@ -76,10 +76,8 @@ const THEMES = {
 
 const CELEBRATION_DATES = {
   newyear: { month: 1, day: 1 },
-  valentine: { month: 2, day: 15 },
-  womensday: { month: 3, day: 8 },
+  valentine: { month: 2, day: 14 },
   earthday: { month: 4, day: 22 },
-  childrensday: { month: 6, day: 1 },
   halloween: { month: 10, day: 31 },
   christmas: { month: 12, day: 25 }
 }
@@ -174,11 +172,11 @@ export default function CelebrationOverlay({
       >
         <div
           className={`
-            relative h-24 rounded-t-2xl bg-gradient-to-r ${theme.gradient}
+            relative h-24 rounded-t-2xl bg-linear-to-r ${theme.gradient}
             flex items-center justify-center
           `}
         >
-          <span className="text-6xl animate-bounce">
+          <span className="text-6xl ">
             {event.emoji}
           </span>
         </div>
