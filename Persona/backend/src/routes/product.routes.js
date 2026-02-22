@@ -10,13 +10,17 @@ import {
   toggleProductStatus,
   getProductAttributesByType,
   getLandingProducts,
-  getSimilarProducts
+  getSimilarProducts,
+  getStockManagement,
+  getProductBySku
 } from '../controllers/product.controller.js'
 
 const router = express.Router()
 
-router.post('/', createProduct)
 
+router.get('/sku/:sku', getProductBySku)
+router.post('/', createProduct)
+router.get('/stock/manage', getStockManagement)
 router.get('/', getAllProducts)
 
 router.get('/trending-products', getLandingProducts)

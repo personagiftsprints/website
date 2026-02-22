@@ -72,7 +72,7 @@ const itemsPayload = cart.map((item) => {
   const productType = item.productSnapshot?.type || item.type || "other";
 
   // Determine if this is a customizable product
-  const isCustomizable = ["tshirt", "mug", "hoodie"].includes(productType);
+  const isCustomizable = ["tshirt", "mug", "hoodie","mobileCase"].includes(productType);
   const hasCustomization = !!(item.designData && isCustomizable);
 
   const baseItem = {

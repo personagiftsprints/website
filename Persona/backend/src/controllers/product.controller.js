@@ -1,7 +1,14 @@
 
 import Product from '../models/Product.model.js'
 import { PRODUCT_TYPE_ATTRIBUTES } from '../constants/productAttributes.js'
-
+const generateSku = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let sku = ''
+  for (let i = 0; i < 6; i++) {
+    sku += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return sku
+}
 export const getProductAttributesByType = (req, res) => {
   const { type } = req.params
 
@@ -35,6 +42,8 @@ export const getSimilarProducts = async (req, res) => {
         message: "Product not found"
       })
     }
+
+    
 
     const similar = await Product.find({
       type: product.type,
@@ -91,7 +100,25 @@ export const createProduct = async (req, res) => {
       })
     }
 
+const generateUniqueSku = async () => {
+  let sku
+  let exists = true
+
+  while (exists) {
+    sku = generateSku()
+
+    exists = await Product.exists({
+      $or: [
+        { sku },
+        { 'productConfig.variants.sku': sku }
+      ]
+    })
+  }
+
+  return sku
+}
     const exists = await Product.findOne({ slug: finalBasicInfo.slug })
+   
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -112,45 +139,51 @@ export const createProduct = async (req, res) => {
 
     /* ---------------- VARIANT VALIDATION + MAP FIX ---------------- */
 
-    if (hasVariants) {
-      const allowedAttributes =
-        PRODUCT_TYPE_ATTRIBUTES[finalBasicInfo.type] || []
+  if (hasVariants) {
+  const allowedAttributes =
+    PRODUCT_TYPE_ATTRIBUTES[finalBasicInfo.type] || []
 
-      const allowedCodes = allowedAttributes.map(a => a.code)
-      const seen = new Set()
+  const allowedCodes = allowedAttributes.map(a => a.code)
+  const seen = new Set()
 
-      productConfig.variants = productConfig.variants.map(variant => {
-        // Convert attributes array -> Map
-        const attrMap = new Map(variant.attributes)
+  productConfig.variants = await Promise.all(
+    productConfig.variants.map(async (variant) => {
 
-        // Validate attribute codes
-        for (const key of attrMap.keys()) {
-          if (!allowedCodes.includes(key)) {
-            throw new Error(`Invalid attribute "${key}" for product type`)
-          }
+      const attrMap = new Map(variant.attributes)
+
+      for (const key of attrMap.keys()) {
+        if (!allowedCodes.includes(key)) {
+          throw new Error(`Invalid attribute "${key}" for product type`)
         }
+      }
 
-        // Prevent duplicate variant combinations
-        const signature = JSON.stringify([...attrMap.entries()].sort())
-        if (seen.has(signature)) {
-          throw new Error('Duplicate variant combination detected')
-        }
-        seen.add(signature)
+      const signature = JSON.stringify([...attrMap.entries()].sort())
+      if (seen.has(signature)) {
+        throw new Error('Duplicate variant combination detected')
+      }
+      seen.add(signature)
 
-        return {
-          ...variant,
-          attributes: attrMap,
-          stockQuantity: Number(variant.stockQuantity) || 0,
-          soldQuantity: 0
-        }
-      })
-    }
+      const variantSku = await generateUniqueSku()
+
+      return {
+        ...variant,
+        sku: variantSku,
+        attributes: attrMap,
+        stockQuantity: Number(variant.stockQuantity) || 0,
+        soldQuantity: 0
+      }
+    })
+  )
+}
+
+const parentSku = await generateUniqueSku()
 
     /* ---------------- CREATE PRODUCT ---------------- */
 
     const product = await Product.create({
       ...finalBasicInfo,
       pricing,
+       sku:parentSku,
       inventory: hasVariants ? { manageStock: false } : inventory,
       productConfig: hasVariants ? productConfig : null,
       customization,
@@ -171,17 +204,84 @@ export const createProduct = async (req, res) => {
 
 
 
+export const getProductBySku = async (req, res) => {
+  try {
+    const { sku } = req.params
+
+    if (!sku) {
+      return res.status(400).json({
+        success: false,
+        message: "SKU is required"
+      })
+    }
+
+    const normalizedSku = sku.toUpperCase()
+
+    const product = await Product.findOne({
+      $or: [
+        { sku: normalizedSku },
+        { 'productConfig.variants.sku': normalizedSku }
+      ]
+    }).populate('customization.printConfig.configId')
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      })
+    }
+
+    let matchedVariant = null
+
+    if (product.productConfig?.variants?.length > 0) {
+      matchedVariant = product.productConfig.variants.find(
+        v => v.sku === normalizedSku
+      )
+    }
+
+    res.json({
+      success: true,
+      data: {
+        product,
+        matchedVariant,
+        isVariant: !!matchedVariant
+      }
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
 
 
-
-// 2. Get all products (paginated + filters + populated config)
 export const getAllProducts = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1)
     const limit = Math.min(parseInt(req.query.limit) || 20, 50)
     const skip = (page - 1) * limit
 
-    const filter = {} // admin: include active + inactive
+    const { search, type, isActive } = req.query
+
+    const filter = {}
+
+    if (type) {
+      filter.productType = type
+    }
+
+    if (isActive !== undefined) {
+      filter.isActive = isActive === "true"
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { slug: { $regex: search, $options: "i" } },
+        { sku: { $regex: search, $options: "i" } }
+      ]
+    }
 
     const [products, total] = await Promise.all([
       Product.find(filter)
@@ -209,7 +309,6 @@ export const getAllProducts = async (req, res) => {
     })
   }
 }
-
 
 // 3. Get single product by ID (with full populated config)
 export const getProductById = async (req, res) => {
@@ -480,6 +579,109 @@ export const getProductsByType = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch products by type"
+    })
+  }
+}
+
+
+export const getStockManagement = async (req, res) => {
+  try {
+    const { sku, lowStock } = req.query
+    const page = Math.max(parseInt(req.query.page) || 1, 1)
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50)
+    const skip = (page - 1) * limit
+
+    const matchStage = {}
+
+    if (sku) {
+      matchStage.$or = [
+        { sku: sku.toLowerCase() },
+        { 'productConfig.variants.sku': sku.toLowerCase() }
+      ]
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+
+      {
+        $addFields: {
+          isLowStock: {
+            $cond: {
+              if: {
+                $gt: [
+                  { $size: { $ifNull: ['$productConfig.variants', []] } },
+                  0
+                ]
+              },
+              then: {
+                $anyElementTrue: {
+                  $map: {
+                    input: '$productConfig.variants',
+                    as: 'v',
+                    in: {
+                      $lte: [
+                        '$$v.stockQuantity',
+                        '$inventory.lowStockThreshold'
+                      ]
+                    }
+                  }
+                }
+              },
+              else: {
+                $lte: [
+                  '$inventory.stockQuantity',
+                  '$inventory.lowStockThreshold'
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+
+    if (lowStock === 'true') {
+      pipeline.push({ $match: { isLowStock: true } })
+    }
+
+    pipeline.push(
+      { $sort: { 'inventory.stockQuantity': 1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          name: 1,
+          sku: 1,
+          type: 1,
+          inventory: 1,
+          productConfig: 1,
+          isLowStock: 1
+        }
+      }
+    )
+
+    const data = await Product.aggregate(pipeline)
+
+    const totalPipeline = [...pipeline]
+    totalPipeline.splice(-3)
+    totalPipeline.push({ $count: 'total' })
+
+    const totalResult = await Product.aggregate(totalPipeline)
+    const total = totalResult[0]?.total || 0
+
+    res.json({
+      success: true,
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
     })
   }
 }

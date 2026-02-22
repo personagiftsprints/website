@@ -136,6 +136,25 @@ useEffect(() => {
   return result
 }
 
+
+const generateSlug = (text) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+
+
+
+    const handleNameChange = (value) => {
+  setFormData((prev) => ({
+    ...prev,
+    name: value,
+    slug: generateSlug(value)
+  }));
+};
   // Event handlers
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -466,16 +485,14 @@ const findVariant = (variants, selected) =>
                         <input
                           type="text"
                           value={formData.name}
-                          onChange={(e) =>
-                            handleInputChange("name", e.target.value)
-                          }
+                        onChange={(e) => handleNameChange(e.target.value)}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Enter product name"
                           required
                         />
                       </div>
 
-                      {/* Slug */}
+                 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Slug *
@@ -492,7 +509,6 @@ const findVariant = (variants, selected) =>
                         />
                       </div>
 
-                      {/* Product Type */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Product Type *

@@ -11,6 +11,7 @@ import userRoutes from "./src/routes/user.routes.js"
 import adminRoutes from "./src/routes/admin.routes.js"
 import paymentRoutes from "./src/routes/payment.routes.js"
 import orderRoutes from "./src/routes/order.routes.js"
+import collectionRoutes from "./src/routes/collection.routes.js"
 import { connectDB } from "./src/config/db.js"
 
 const app = express()
@@ -53,6 +54,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/payment", paymentRoutes)
+app.use("/api/collections", collectionRoutes)
 app.use("/api/orders", orderRoutes)
 
 /* ---------------- HEALTH ---------------- */

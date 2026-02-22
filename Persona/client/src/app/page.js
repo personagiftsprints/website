@@ -86,6 +86,8 @@ const isLoading = !productsData
         )}
       </main>
 
+     
+
       <CardBlockSection
         heading="Featured Collections"
         items={[

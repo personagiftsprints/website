@@ -19,6 +19,8 @@ import {
   Menu,
   X,
   Printer,
+  ShoppingBasket,
+  ChartBarDecreasing,
 } from "lucide-react"
 import Logo from "@/assets/icons/logo.png"
 
@@ -54,8 +56,9 @@ function SidebarContent({ onItemClick }) {
             Commerce
           </p>
           <NavItem href="/admin/orders" icon={ShoppingBag} label="Orders" onClick={onItemClick} />
+           <NavItem href="/admin/manage-stock" icon={ShoppingBasket} label="Manage stock" onClick={onItemClick} />
           <NavItem href="/admin/products" icon={Package} label="Products" onClick={onItemClick} />
-          <NavItem href="/admin/print-config" icon={Printer} label="Print Config" onClick={onItemClick} />
+          <NavItem href="/admin/print-config" icon={Printer} label="Print config" onClick={onItemClick} />
           <NavItem href="/admin/coupons" icon={Ticket} label="Coupons & Discounts" onClick={onItemClick} />
           <NavItem href="/admin/transactions" icon={Ticket} label="Transactions" onClick={onItemClick} />
         </div>
@@ -64,7 +67,8 @@ function SidebarContent({ onItemClick }) {
           <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase">
             Content
           </p>
-          <NavItem href="/admin/banners" icon={ImageIcon} label="Homepage Banners" onClick={onItemClick} />
+          <NavItem href="/admin/banners" icon={ImageIcon} label="Homepage banners" onClick={onItemClick} />
+           <NavItem href="/admin/collections" icon={ChartBarDecreasing} label="Collections" onClick={onItemClick} />
         </div>
 
         <div>
@@ -72,8 +76,8 @@ function SidebarContent({ onItemClick }) {
             Administration
           </p>
           <NavItem href="/admin/users" icon={Users} label="Customers" onClick={onItemClick} />
-          <NavItem href="/admin/admin-access" icon={Shield} label="Admin Access" onClick={onItemClick} />
-          <NavItem href="/admin/settings" icon={Settings} label="Platform Settings" onClick={onItemClick} />
+          <NavItem href="/admin/admin-access" icon={Shield} label="Admin access" onClick={onItemClick} />
+          <NavItem href="/admin/settings" icon={Settings} label="Platform settings" onClick={onItemClick} />
         </div>
       </nav>
 
@@ -145,7 +149,13 @@ export default function AdminLayout({ children }) {
     return () => window.removeEventListener("resize", check)
   }, [])
 
-  if (loading || !user || user.role !== "admin" || !device) return null
+ useEffect(() => {
+  if (!loading) {
+    if (!user || user.role !== "admin") {
+      router.replace("/")
+    }
+  }
+}, [user, loading])
 
   const allowAdmin = device === "desktop" || acknowledged
 

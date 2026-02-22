@@ -28,7 +28,7 @@ const pricingSchema = new mongoose.Schema(
 /* ---------------- INVENTORY ---------------- */
 const inventorySchema = new mongoose.Schema(
   {
-    sku: { type: String, unique: true, sparse: true },
+  
     stockQuantity: { type: Number, default: 0, min: 0 },
     manageStock: { type: Boolean, default: false },
     allowBackorder: { type: Boolean, default: false },
@@ -71,6 +71,13 @@ const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true },
+    sku: {
+  type: String,
+  required: true,
+  unique: true,
+  lowercase: true,
+  trim: true
+},
     type: {
       type: String,
       required: true,
@@ -134,8 +141,11 @@ productSchema.pre('save', function () {
   }
 })
 
-/* ---------------- INDEXES ---------------- */
-productSchema.index({ slug: 1 })
+
+// productSchema.index({ slug: 1 })
+
+// productSchema.index({ sku: 1 }, { unique: true })
+productSchema.index({ 'productConfig.variants.sku': 1 }, { unique: true, sparse: true })
 productSchema.index({ type: 1, isActive: 1 })
 
 export default mongoose.model('Product', productSchema)

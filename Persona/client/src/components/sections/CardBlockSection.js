@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Card from "../common/Card"
+import { CarTaxiFront, Gift } from "lucide-react"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -43,28 +44,38 @@ export default function CardBlockSection({ heading, items }) {
           </span>
         </motion.div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
-        >
-          {items.map((item, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              className="min-w-0"
-            >
-              <Link
-                href={`/collections/${item.type}`}
-                className="block cursor-pointer"
-              >
-                <Card title={item.title} image={item.image} />
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+     <motion.div
+  variants={containerVariants}
+  initial="hidden"
+  whileInView="visible"
+  viewport={{ once: true }}
+  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+>
+  {items.map((item, index) => (
+    <motion.div
+      key={index}
+      variants={itemVariants}
+      className="min-w-0"
+    >
+      <Link
+        href={`/collections/type/${item.type}`}
+        className="block cursor-pointer"
+      >
+        <Card title={item.title} image={item.image} />
+      </Link>
+    </motion.div>
+  ))}
+</motion.div>
+
+<div className="flex justify-end mt-6">
+  <Link
+    href="/collections"
+    className="text-sm font-medium justify-between items-center flex text-black hover:underline transition animate-pulse"
+  >
+    <Gift/>
+    Explore Collections
+  </Link>
+</div>
       </div>
     </section>
   )

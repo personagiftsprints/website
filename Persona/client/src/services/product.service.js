@@ -26,6 +26,38 @@ export const createProductAPI = async payload => {
 }
 
 
+export const getStockManagement = async ({
+  sku,
+  lowStock,
+  page = 1,
+  limit = 20
+}) => {
+  const params = new URLSearchParams()
+
+  params.append("page", page)
+  params.append("limit", limit)
+
+  if (sku) params.append("sku", sku.toLowerCase())
+  if (lowStock) params.append("lowStock", "true")
+
+  const res = await api.get("/products/stock/manage", { params })
+
+
+
+  return res.data
+}
+
+
+export const getProductBySku = async (sku) => {
+  try {
+    const res = await api.get(`/products/sku/${sku.toLowerCase()}`)
+    return res.data
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || "Product not found"
+    )
+  }
+}
 
 // Get All Products
 export const getAllProducts = async (params = {}) => {
@@ -122,3 +154,5 @@ export const getProductsByType = async (type, params = {}) => {
   })
   return res.data
 }
+
+

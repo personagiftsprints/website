@@ -7,10 +7,16 @@ const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const session = getSession()
-    if (session) setUser(session.user)
+
+    if (session?.user) {
+      setUser(session.user)
+    }
+
+    setLoading(false)
   }, [])
 
   const logout = () => {
@@ -19,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )
