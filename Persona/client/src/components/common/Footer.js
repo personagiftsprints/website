@@ -6,7 +6,7 @@ import StripeLogo from "@/assets/images/stripe.png"
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-zinc-600 text-white">
+    <footer className="w-full bg-zinc-800 text-white">
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3">

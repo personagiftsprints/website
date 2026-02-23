@@ -201,6 +201,12 @@ const orderSchema = new mongoose.Schema(
   ],
   default: "paid"
 },
+packaging: {
+  hamper: { type: String, default: null },
+  hamperCharge: { type: Number, default: 0 },
+  giftWrap: { type: Boolean, default: false },
+  giftWrapCharge: { type: Number, default: 0 }
+},
 
 
     payment: {

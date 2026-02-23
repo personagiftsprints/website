@@ -91,7 +91,7 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Search + Filters */}
-      <div className="bg-white border rounded-xl p-4 flex flex-col lg:flex-row gap-4">
+      <div className="bg-white  rounded-xl p-4 flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -133,7 +133,7 @@ export default function AdminProductsPage() {
       {loading ? (
         <div className="text-center py-16">Loading…</div>
       ) : (
-        <div className="bg-white border rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50 text-sm text-gray-600">
               <tr>
@@ -188,7 +188,7 @@ export default function AdminProductsPage() {
 
                       <button
                         onClick={() => toggleProductStatus(product)}
-                        className="p-2 hover:bg-gray-100 rounded"
+                        className="p-2 hover:bg-gray-100 rounded cursor-pointer"
                         title="Toggle status"
                       >
                         {product.isActive ? <EyeOff size={18} /> : <Eye size={18} />}

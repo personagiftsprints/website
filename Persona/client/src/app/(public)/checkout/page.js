@@ -10,6 +10,9 @@ import LottieAnimation from "@/components/ui/LottieAnimation";
 import appliedAnimation from "@/assets/applied.json";
 import { useAuth } from "@/context/AuthContext";
 import { getMyAccount } from "@/services/account.service";
+import { ShieldCheck, SquareRoundCorner } from "lucide-react";
+import HamperSelectionModal from "@/components/hamper/HamperSelectionModal"
+
 
 function MugDesignPreview({ designData }) {
   const [expanded, setExpanded] = useState(false);
@@ -225,6 +228,15 @@ export default function CheckoutClient() {
   const [productPrices, setProductPrices] = useState({});
   const [loadingPrices, setLoadingPrices] = useState(true);
   const [address, setAddress] = useState(null);
+  const [hamperModalOpen, setHamperModalOpen] = useState(false)
+const [selectedHamper, setSelectedHamper] = useState(null)
+  const [giftWrap, setGiftWrap] = useState(false)
+
+const HAMPERS = [
+  { id: "basic", name: "Basic Hamper", price: 4 },
+  { id: "premium", name: "Premium Hamper", price: 9 },
+  { id: "luxury", name: "Luxury Hamper", price: 14 }
+]
   const [addressForm, setAddressForm] = useState({
     fullName: "",
     email: "",
@@ -347,11 +359,46 @@ export default function CheckoutClient() {
     [items, productPrices]
   );
 
+
+  
   const deliveryCharge =
     subtotal === 0 ? 0 : subtotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
 
   const discountAmount = (subtotal * discount) / 100;
-  const total = subtotal - discountAmount + deliveryCharge;
+  const totalQuantity = items.reduce(
+  (sum, i) => sum + (i.quantity || 1),
+  0
+)
+
+const uniqueProducts = new Set(
+  items.map(i => i.productId)
+).size
+
+const isSingleProduct = uniqueProducts === 1
+
+const shouldShowGiftWrap =
+  isSingleProduct && totalQuantity === 1
+
+const shouldShowHamper =
+  (!isSingleProduct && totalQuantity > 1) ||
+  (isSingleProduct && totalQuantity >= 5)
+
+  const selectedHamperData = HAMPERS.find(
+  h => h.id === selectedHamper
+)
+
+const hamperCharge = selectedHamperData
+  ? selectedHamperData.price
+  : 0
+
+const giftWrapCharge = giftWrap ? 5 : 0
+
+  const total =
+  subtotal -
+  discountAmount +
+  deliveryCharge +
+  hamperCharge +
+  giftWrapCharge;
 
   /* ---------------- COUPON ---------------- */
 
@@ -426,13 +473,19 @@ export default function CheckoutClient() {
         return;
       }
 
-      const data = await createCheckoutSession({
-        mode: "cart",
-        cart: cartWithPrices,
-        couponCode: coupon || null,
-        address,
-        email: address?.email || user?.email || null
-      });
+      console.log("Sending to backend:", {
+  hamper: selectedHamper,
+  giftWrap
+});
+const data = await createCheckoutSession({
+  mode: "cart",
+  cart: cartWithPrices,
+  couponCode: coupon || null,
+  address,
+  email: address?.email || user?.email || null,
+  giftWrap,
+  hamper: selectedHamper
+})
 
       if (typeof data === "string") {
         window.open(data, "_self");
@@ -698,7 +751,7 @@ export default function CheckoutClient() {
           const itemTotal = priceInfo.amount * (item.quantity || 1);
           
           return (
-            <div key={item.id} className="bg-white p-4 flex gap-4 border rounded-lg hover:shadow-md transition">
+            <div key={item.id} className="bg-white p-4 flex gap-4 border border-gray-200 rounded-lg hover:shadow-md transition">
               {/* Product Image */}
               <Link href={`/products/${item.productSlug || item.slug}`} className="w-28 h-28 relative flex-shrink-0">
                 <Image 
@@ -766,10 +819,10 @@ export default function CheckoutClient() {
                 )}
 
                 <div className="flex items-center gap-3 mt-2">
-                  <div className="flex items-center border rounded-lg">
+                  <div className="flex items-center border border-gray-500 rounded-lg">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="px-2 py-1 hover:bg-gray-100 text-gray-600"
+                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer  text-gray-600"
                       disabled={item.quantity <= 1}
                     >
                       −
@@ -784,11 +837,11 @@ export default function CheckoutClient() {
                           updateQuantity(item.id, val);
                         }
                       }}
-                      className="w-12 text-center border-x px-1 py-1 focus:outline-none"
+                      className="w-12 text-center border-x border-gray-500 px-1 py-1 focus:outline-none"
                     />
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="px-2 py-1 hover:bg-gray-100 text-gray-600"
+                      className="px-2 py-1 hover:bg-gray-100 cursor-pointer   text-gray-600"
                     >
                       +
                     </button>
@@ -815,6 +868,18 @@ export default function CheckoutClient() {
       {/* RIGHT SIDE - Summary */}
       <div className="bg-white border-l border-l-gray-200 p-5 space-y-4 sticky top-24 h-fit relative">
         <h3 className="font-semibold text-lg">Price Details</h3>
+            {shouldShowGiftWrap && (
+  <div className="border rounded p-3 space-y-2">
+    <label className="flex items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        checked={giftWrap}
+        onChange={(e) => setGiftWrap(e.target.checked)}
+      />
+      Gift wrap this product (+£5)
+    </label>
+  </div>
+)}
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
@@ -829,7 +894,7 @@ export default function CheckoutClient() {
             </div>
           )}
 
-          <div className="flex justify-between">
+          <div className="flex justify-between text-gray-500">
             <span>Delivery Charges</span>
             {deliveryCharge === 0 ? (
               <span className="text-green-600">FREE</span>
@@ -837,6 +902,20 @@ export default function CheckoutClient() {
               <span>£{deliveryCharge.toFixed(2)}</span>
             )}
           </div>
+
+          {giftWrapCharge > 0 && (
+  <div className="flex justify-between text-sm">
+    <span>Gift Wrap</span>
+    <span>£{giftWrapCharge.toFixed(2)}</span>
+  </div>
+)}
+
+{hamperCharge > 0 && (
+  <div className="flex justify-between text-sm">
+    <span>{selectedHamperData?.name}</span>
+    <span>£{hamperCharge.toFixed(2)}</span>
+  </div>
+)}
 
           <div className="flex justify-between font-semibold border-t pt-3 text-lg">
             <span>Total</span>
@@ -848,20 +927,45 @@ export default function CheckoutClient() {
           </p>
         </div>
 
-        <div className="border rounded p-3 space-y-2">
+    
+        
+       {shouldShowHamper && (
+  <div className="border rounded p-3 space-y-2">
+    <p className="text-sm font-medium">Hamper Packaging</p>
+            {selectedHamper ? (
+              <div className="flex justify-between bg-gray-100 p-3 rounded">
+                <span>{selectedHamper} Hamper</span>
+                <button
+                  onClick={() => setHamperModalOpen(true)}
+                  className="text-indigo-600 text-sm"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setHamperModalOpen(true)}
+                className="w-full bg-indigo-600 text-white py-2 rounded"
+              >
+                Select Hamper
+              </button>
+            )}
+          </div>
+        )}
+        <div className="border border-gray-200 rounded p-3 space-y-2">
           <p className="text-sm font-medium">Apply Coupon</p>
           <div className="flex gap-2">
             <input
               value={coupon}
               onChange={e => setCoupon(e.target.value.toUpperCase())}
               placeholder="Enter code"
-              className="flex-1 border rounded px-3 py-2 text-sm"
+              className="flex-1 border border-gray-200 rounded px-3 py-2 text-sm"
               disabled={applied}
             />
             <button 
               onClick={handleApplyCoupon} 
               disabled={applied} 
-              className="px-4 py-2 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border rounded border-gray-300 cursor-pointer  text-sm hover:bg-gray-50 disabled:opacity-50"
             >
               {applied ? "Applied" : "Apply"}
             </button>
@@ -878,7 +982,7 @@ export default function CheckoutClient() {
         <button
           onClick={handlePlaceOrder}
           disabled={loadingPayment || items.length === 0}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded font-semibold disabled:opacity-60 transition active:scale-[0.98]"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 cursor-pointer rounded font-semibold disabled:opacity-60 transition active:scale-[0.98]"
         >
           {loadingPayment ? (
             <span className="flex items-center justify-center gap-2">
@@ -890,10 +994,21 @@ export default function CheckoutClient() {
           )}
         </button>
 
-        <div className="text-xs text-center text-gray-500">
-          🔒 Secure payments powered by <span className="font-medium">Stripe</span>
-        </div>
+       <div className="flex items-center justify-center select-none gap-2 text-xs text-gray-500">
+  <ShieldCheck className="w-4 h-4 text-green-600" />
+  <span>
+    Secure payments powered by <span className="font-medium">Stripe</span>
+  </span>
+</div>
       </div>
+
+      <HamperSelectionModal
+  open={hamperModalOpen}
+  onClose={() => setHamperModalOpen(false)}
+  onSelect={(hamperId) => setSelectedHamper(hamperId)}
+/>
+
+  
     </div>
   );
 }

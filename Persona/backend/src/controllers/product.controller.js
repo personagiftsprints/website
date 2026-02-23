@@ -107,12 +107,7 @@ const generateUniqueSku = async () => {
   while (exists) {
     sku = generateSku()
 
-    exists = await Product.exists({
-      $or: [
-        { sku },
-        { 'productConfig.variants.sku': sku }
-      ]
-    })
+    exists = await Product.exists({ sku })
   }
 
   return sku
@@ -167,7 +162,7 @@ const generateUniqueSku = async () => {
 
       return {
         ...variant,
-        sku: variantSku,
+      
         attributes: attrMap,
         stockQuantity: Number(variant.stockQuantity) || 0,
         soldQuantity: 0
@@ -594,57 +589,60 @@ export const getStockManagement = async (req, res) => {
     const matchStage = {}
 
     if (sku) {
-      matchStage.$or = [
-        { sku: sku.toLowerCase() },
-        { 'productConfig.variants.sku': sku.toLowerCase() }
-      ]
+      matchStage.sku = sku.toLowerCase()
     }
 
-    const pipeline = [
+    const basePipeline = [
       { $match: matchStage },
 
       {
         $addFields: {
-          isLowStock: {
-            $cond: {
-              if: {
-                $gt: [
-                  { $size: { $ifNull: ['$productConfig.variants', []] } },
-                  0
-                ]
-              },
-              then: {
-                $anyElementTrue: {
-                  $map: {
-                    input: '$productConfig.variants',
-                    as: 'v',
-                    in: {
-                      $lte: [
-                        '$$v.stockQuantity',
-                        '$inventory.lowStockThreshold'
-                      ]
-                    }
-                  }
-                }
-              },
-              else: {
-                $lte: [
-                  '$inventory.stockQuantity',
-                  '$inventory.lowStockThreshold'
-                ]
+          variantCount: {
+            $size: { $ifNull: ['$productConfig.variants', []] }
+          },
+          totalVariantStock: {
+            $sum: {
+              $map: {
+                input: { $ifNull: ['$productConfig.variants', []] },
+                as: 'v',
+                in: '$$v.stockQuantity'
               }
             }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          displayStock: {
+            $cond: {
+              if: { $gt: ['$variantCount', 0] },
+              then: '$totalVariantStock',
+              else: '$inventory.stockQuantity'
+            }
+          }
+        }
+      },
+
+      {
+        $addFields: {
+          isLowStock: {
+            $lte: [
+              '$displayStock',
+              '$inventory.lowStockThreshold'
+            ]
           }
         }
       }
     ]
 
     if (lowStock === 'true') {
-      pipeline.push({ $match: { isLowStock: true } })
+      basePipeline.push({ $match: { isLowStock: true } })
     }
 
-    pipeline.push(
-      { $sort: { 'inventory.stockQuantity': 1 } },
+    const dataPipeline = [
+      ...basePipeline,
+      { $sort: { displayStock: 1 } },
       { $skip: skip },
       { $limit: limit },
       {
@@ -652,20 +650,21 @@ export const getStockManagement = async (req, res) => {
           name: 1,
           sku: 1,
           type: 1,
-          inventory: 1,
-          productConfig: 1,
+          displayStock: 1,
+          variantCount: 1,
           isLowStock: 1
         }
       }
-    )
+    ]
 
-    const data = await Product.aggregate(pipeline)
+    const data = await Product.aggregate(dataPipeline)
 
-    const totalPipeline = [...pipeline]
-    totalPipeline.splice(-3)
-    totalPipeline.push({ $count: 'total' })
+    const countPipeline = [
+      ...basePipeline,
+      { $count: 'total' }
+    ]
 
-    const totalResult = await Product.aggregate(totalPipeline)
+    const totalResult = await Product.aggregate(countPipeline)
     const total = totalResult[0]?.total || 0
 
     res.json({
@@ -678,6 +677,7 @@ export const getStockManagement = async (req, res) => {
         pages: Math.ceil(total / limit)
       }
     })
+
   } catch (error) {
     res.status(500).json({
       success: false,

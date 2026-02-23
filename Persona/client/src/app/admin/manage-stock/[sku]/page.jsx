@@ -43,9 +43,20 @@ export default function StockManagementPage() {
 
   const { product, matchedVariant, isVariant } = data
 
-  const stock = isVariant
-    ? matchedVariant?.stockQuantity
-    : product.inventory?.stockQuantity
+const hasVariants =
+  Array.isArray(product.productConfig?.variants) &&
+  product.productConfig.variants.length > 0
+
+const totalVariantStock = hasVariants
+  ? product.productConfig.variants.reduce(
+      (sum, v) => sum + (v.stockQuantity || 0),
+      0
+    )
+  : 0
+
+const stock = hasVariants
+  ? totalVariantStock
+  : product.inventory?.stockQuantity
 
   const threshold = product.inventory?.lowStockThreshold
 
@@ -92,6 +103,23 @@ export default function StockManagementPage() {
             </span>
           )}
         </div>
+
+       {hasVariants && (
+  <div className="mt-4 border-t pt-4 space-y-2">
+    <div className="font-medium">Variant Breakdown</div>
+
+    {product.productConfig.variants
+      .filter(v => v.stockQuantity > 0)
+      .map((v, i) => (
+        <div key={i} className="text-sm flex justify-between">
+          <span>
+            {Object.values(v.attributes).join(" / ")}
+          </span>
+          <span>{v.stockQuantity}</span>
+        </div>
+      ))}
+  </div>
+)}
 
         <button
           onClick={() =>

@@ -6,7 +6,9 @@ export const createCheckoutSession = async ({
   productId,
   qty,
   couponCode,
-  address
+  address,
+    giftWrap,
+  hamper
 }) => {
   try {
     // ⚠️ api already points to BACKEND (http://localhost:4000)
@@ -18,7 +20,9 @@ export const createCheckoutSession = async ({
         productId,
         qty,
         couponCode,
-        address
+        address,
+         giftWrap,
+    hamper
       }
     )
 

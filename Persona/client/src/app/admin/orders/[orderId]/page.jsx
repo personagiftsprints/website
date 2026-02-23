@@ -632,28 +632,50 @@ export default function AdminOrderDetailPage() {
           {/* Order Summary */}
           <div className="bg-white border border-gray-300 rounded-xl p-4 space-y-4">
             <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal</span>
-                <span>£{order.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Delivery</span>
-                <span>£{order.deliveryCharge.toFixed(2)}</span>
-              </div>
-              {order.discount?.amount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount ({order.discount.percent}%)</span>
-                  <span>-£{order.discount.amount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-semibold text-lg border-t pt-3">
-                <span>Total</span>
-                <span className="text-green-700">
-                  £{order.totalAmount.toFixed(2)}
-                </span>
-              </div>
-            </div>
+           
+
+           <div className="space-y-3 text-sm">
+  <div className="flex justify-between">
+    <span className="text-gray-600">Subtotal</span>
+    <span>£{order.subtotal.toFixed(2)}</span>
+  </div>
+
+  {order.discount?.amount > 0 && (
+    <div className="flex justify-between text-green-600">
+      <span>Discount ({order.discount.percent}%)</span>
+      <span>-£{order.discount.amount.toFixed(2)}</span>
+    </div>
+  )}
+
+  <div className="flex justify-between">
+    <span className="text-gray-600">Delivery</span>
+    <span>£{order.deliveryCharge.toFixed(2)}</span>
+  </div>
+
+  {/* 🔹 PACKAGING SECTION */}
+  {order.packaging?.giftWrapCharge > 0 && (
+    <div className="flex justify-between">
+      <span className="text-gray-600">Gift Wrap</span>
+      <span>£{order.packaging.giftWrapCharge.toFixed(2)}</span>
+    </div>
+  )}
+
+  {order.packaging?.hamperCharge > 0 && (
+    <div className="flex justify-between">
+      <span className="text-gray-600 capitalize">
+        {order.packaging.hamper} Hamper
+      </span>
+      <span>£{order.packaging.hamperCharge.toFixed(2)}</span>
+    </div>
+  )}
+
+  <div className="flex justify-between font-semibold text-lg border-t pt-3">
+    <span>Total</span>
+    <span className="text-green-700">
+      £{order.totalAmount.toFixed(2)}
+    </span>
+  </div>
+</div>
           </div>
 
           {/* Delivery Address */}

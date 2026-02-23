@@ -63,8 +63,7 @@ export default function StockManagementPage() {
             name: product.name,
             type: product.type,
             sku: variant.sku,
-            stock: variant.stockQuantity,
-            attributes: variant.attributes,
+            stock: variant.displayStock,
             isLow: variant.stockQuantity <= threshold
           })
         })
@@ -74,8 +73,8 @@ export default function StockManagementPage() {
           name: product.name,
           type: product.type,
           sku: product.sku || "—",
-          stock: product.inventory?.stockQuantity ?? 0,
-          attributes: null,
+          stock: product.inventory?.stockQuantity ?? product.displayStock ?? 0,
+          
           isLow: product.isLowStock
         })
       }
@@ -115,7 +114,6 @@ export default function StockManagementPage() {
           <thead className="bg-gray-100">
             <tr>
               <th className="p-3 border">Product</th>
-              <th className="p-3 border">Attributes</th>
               <th className="p-3 border">SKU</th>
               <th className="p-3 border">Type</th>
               <th className="p-3 border">Stock</th>
@@ -155,13 +153,7 @@ export default function StockManagementPage() {
                     {row.name}
                   </td>
 
-                  <td className="p-3 border text-sm text-gray-600">
-                    {row.attributes
-                      ? Object.entries(row.attributes)
-                          .map(([k, v]) => `${k}: ${v}`)
-                          .join(", ")
-                      : "—"}
-                  </td>
+               
 
                   <td className="p-3 border font-mono">
                     {row.sku}

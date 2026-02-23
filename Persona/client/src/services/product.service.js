@@ -6,12 +6,12 @@ const api = axios.create({
 
 export const createProductAPI = async payload => {
   try {
-    console.log('Payload sent:', payload)
+    // console.log('Payload sent:', payload)
 
-    console.log(
-      'Creating product with images count:',
-      payload.images?.length || 0
-    )
+    // console.log(
+    //   'Creating product with images count:',
+    //   payload.images?.length || 0
+    // )
 
     const res = await api.post('/products', payload)
 

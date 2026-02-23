@@ -23,10 +23,12 @@ import GeneralRenderer from "@/components/GeneralRenderer";
 import ViewRenderer from "@/components/ViewRenderer";
 import ModelRenderer from "@/components/ModelRenderer";
 import Toggle from "@/components/Toggle";
-import { createProductAPI, uploadImagesAPI,getProductAttribute } from "@/services/product.service";
 import {
-  validateNumberInput,
-} from "@/utils/productUtils";
+  createProductAPI,
+  uploadImagesAPI,
+  getProductAttribute,
+} from "@/services/product.service";
+import { validateNumberInput } from "@/utils/productUtils";
 
 export default function CreateProductPage() {
   // State management
@@ -53,43 +55,31 @@ export default function CreateProductPage() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [productConfig, setProductConfig] = useState(null)
-
-useEffect(() => {
-  if (formData.type !== "tshirt") {
-    setProductConfig(null)
-    return
-  }
-
-  const fetchAttributes = async () => {
-    const res = await getProductAttribute("tshirt")
-
-    const variants = generateVariants(res.data)
-
-    setProductConfig({
-      attributes: res.data,
-      variants
-    })
-  }
-
-  fetchAttributes()
-}, [formData.type])
-
-
+  const [productConfig, setProductConfig] = useState(null);
 
   const fileInputRef = useRef(null);
 
+  useEffect(() => {
+    if (formData.type !== "tshirt") {
+      setProductConfig(null);
+      return;
+    }
 
-useEffect(() => {
-  if (productConfig?.variants?.length) {
-    setFormData(prev => ({
-      ...prev,
-      manageStock: false,
-      stockQuantity: "0"
-    }))
-  }
-}, [productConfig])
+    const fetchAttributes = async () => {
+      try {
+        const res = await getProductAttribute("tshirt");
+        const variants = generateVariants(res.data);
+        setProductConfig({
+          attributes: res.data,
+          variants,
+        });
+      } catch (error) {
+        console.error("Failed to fetch attributes:", error);
+      }
+    };
 
+    fetchAttributes();
+  }, [formData.type]);
 
   // Effects
   useEffect(() => {
@@ -114,47 +104,49 @@ useEffect(() => {
   }, [customizationEnabled, selectedConfig]);
 
   const generateVariants = (attributes) => {
-  const combine = (index, current, result) => {
-    if (index === attributes.length) {
-      result.push({
-        attributes: current,
-        stockQuantity: 0
-      })
-      return
-    }
+    const combine = (index, current, result) => {
+      if (index === attributes.length) {
+        result.push({
+          attributes: current,
+          stockQuantity: 0,
+        });
+        return;
+      }
 
-    attributes[index].values.forEach(value => {
-      combine(index + 1, {
-        ...current,
-        [attributes[index].code]: value
-      }, result)
-    })
-  }
+      attributes[index].values.forEach((value) => {
+        combine(
+          index + 1,
+          {
+            ...current,
+            [attributes[index].code]: value,
+          },
+          result,
+        );
+      });
+    };
 
-  const result = []
-  combine(0, {}, result)
-  return result
-}
+    const result = [];
+    combine(0, {}, result);
+    return result;
+  };
 
+  const generateSlug = (text) =>
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
 
-const generateSlug = (text) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
+  const handleNameChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: value,
+      slug: generateSlug(value),
+    }));
+  };
 
-
-
-    const handleNameChange = (value) => {
-  setFormData((prev) => ({
-    ...prev,
-    name: value,
-    slug: generateSlug(value)
-  }));
-};
   // Event handlers
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -247,14 +239,22 @@ const generateSlug = (text) =>
       }
     }
   };
-const findVariant = (variants, selected) =>
-  variants.find(v =>
-    Object.entries(selected).every(
-      ([k, v2]) => v.attributes[k] === v2
-    )
-  )
+
+  const findVariant = (variants, selected) =>
+    variants.find((v) =>
+      Object.entries(selected).every(([k, v2]) => v.attributes[k] === v2),
+    );
+
+  const isTshirt = formData.type === "tshirt";
+  const showBaseStock = !isTshirt || (isTshirt && !customizationEnabled);
 
   const removeImage = (imageId) => {
+    // Cleanup blob URL
+    const image = formData.images.find(img => img.id === imageId);
+    if (image?.url.startsWith("blob:")) {
+      URL.revokeObjectURL(image.url);
+    }
+    
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((img) => img.id !== imageId),
@@ -281,65 +281,74 @@ const findVariant = (variants, selected) =>
       // 1️⃣ Upload images first
       const images = await uploadImagesAPI(formData.images.map((i) => i.file));
 
-      // 2️⃣ Build JSON payload (NO FormData)
-  const payload = {
-  basicInfo: {
-    name: formData.name,
-    slug: formData.slug,
-    type: formData.type,
-    description: formData.description,
-    material: formData.material,
-    isActive: formData.isActive
-  },
+      const requiresBaseStock = showBaseStock;
 
-  pricing: {
-    basePrice: Number(formData.price) || 0,
-    specialPrice: formData.specialPrice
-      ? Number(formData.specialPrice)
-      : null
-  },
+      const isTshirt = formData.type === "tshirt"
 
-  inventory:
-    formData.type === "tshirt"
-      ? { manageStock: false }
-      : {
-          manageStock: formData.manageStock,
-          stockQuantity: Number(formData.stockQuantity) || 0
+const hasVariantStock =
+  isTshirt &&
+  productConfig?.variants?.some(v => Number(v.stockQuantity) > 0)
+
+const useBaseStock =
+  !isTshirt || !hasVariantStock
+
+      const payload = {
+        basicInfo: {
+          name: formData.name,
+          slug: formData.slug,
+          type: formData.type,
+          description: formData.description,
+          material: formData.material,
+          isActive: formData.isActive,
         },
 
-  productConfig:
-    formData.type === "tshirt" && productConfig
-      ? {
-          attributes: productConfig.attributes,
-          variants: productConfig.variants.map(v => ({
-            sku: Object.values(v.attributes).join("-").toUpperCase(),
-            attributes: Object.entries(v.attributes), // 👈 Map-safe
-            stockQuantity: v.stockQuantity
-          }))
-        }
-      : null,
+        pricing: {
+          basePrice: Number(formData.price) || 0,
+          specialPrice: formData.specialPrice
+            ? Number(formData.specialPrice)
+            : null,
+        },
 
-  customization: {
-    enabled: customizationEnabled,
-    ...(customizationEnabled &&
-      selectedConfig && {
-        printConfig: {
-          configId: selectedConfig._id,
-          configName: selectedConfig.name,
-          configType: selectedConfig.type
-        }
-      })
-  },
+       inventory: useBaseStock
+  ? {
+      manageStock: true,
+      stockQuantity: Number(formData.stockQuantity) || 0
+    }
+  : {
+      manageStock: false
+    },
 
-  images: images.map((img, i) => ({
-    url: img.url,
-    publicId: img.publicId,
-    name: img.name,
-    isMain: i === 0,
-    order: i + 1
-  }))
-}
+productConfig:
+  isTshirt && hasVariantStock
+    ? {
+        attributes: productConfig.attributes,
+        variants: productConfig.variants.map(v => ({
+          attributes: Object.entries(v.attributes),
+          stockQuantity: Number(v.stockQuantity) || 0
+        }))
+      }
+    : null,
 
+        customization: {
+          enabled: customizationEnabled,
+          ...(customizationEnabled &&
+            selectedConfig && {
+              printConfig: {
+                configId: selectedConfig._id,
+                configName: selectedConfig.name,
+                configType: selectedConfig.type,
+              },
+            }),
+        },
+
+        images: images.map((img, i) => ({
+          url: img.url,
+          publicId: img.publicId,
+          name: img.name,
+          isMain: i === 0,
+          order: i + 1,
+        })),
+      };
 
       // 3️⃣ Create product (JSON ONLY)
       const response = await createProductAPI(payload);
@@ -485,14 +494,13 @@ const findVariant = (variants, selected) =>
                         <input
                           type="text"
                           value={formData.name}
-                        onChange={(e) => handleNameChange(e.target.value)}
+                          onChange={(e) => handleNameChange(e.target.value)}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Enter product name"
                           required
                         />
                       </div>
 
-                 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Slug *
@@ -529,49 +537,51 @@ const findVariant = (variants, selected) =>
                           <option value="hoodie">Hoodie</option>
                           <option value="frame">Framed photo</option>
                           <option value="poster">Poster</option>
-                           <option value="3Dcrystal">3D Crystal photo cube</option>
+                          <option value="3Dcrystal">
+                            3D Crystal photo cube
+                          </option>
                         </select>
                       </div>
 
-                     {productConfig?.variants?.length > 0 && (
-  <div className="mt-6 rounded-xl border bg-white shadow-sm">
-    <div className="border-b px-5 py-3">
-      <h4 className="text-sm font-semibold text-gray-800">
-        Variant Stock Management
-      </h4>
-    </div>
+                      {productConfig?.variants?.length > 0 && (
+                        <div className="mt-6 rounded-xl border bg-white shadow-sm">
+                          <div className="border-b px-5 py-3">
+                            <h4 className="text-sm font-semibold text-gray-800">
+                              Variant Stock Management
+                            </h4>
+                          </div>
 
-    <div className="divide-y">
-      {productConfig.variants.map((variant, i) => (
-        <div
-          key={i}
-          className="grid grid-cols-[1fr_120px] items-center gap-4 px-5 py-3"
-        >
-          <div className="text-sm text-gray-700 font-medium">
-            {Object.values(variant.attributes).join(" / ")}
-          </div>
+                          <div className="divide-y">
+                            {productConfig.variants.map((variant, i) => (
+                              <div
+                                key={i}
+                                className="grid grid-cols-[1fr_120px] items-center gap-4 px-5 py-3"
+                              >
+                                <div className="text-sm text-gray-700 font-medium">
+                                  {Object.values(variant.attributes).join(
+                                    " / ",
+                                  )}
+                                </div>
 
-          <input
-            type="number"
-            min="0"
-            className="h-9 w-full rounded-md border px-2 text-sm focus:border-black focus:outline-none"
-            value={variant.stockQuantity}
-            onChange={(e) => {
-              const qty = Number(e.target.value)
-              setProductConfig(prev => {
-                const copy = structuredClone(prev)
-                copy.variants[i].stockQuantity = qty
-                return copy
-              })
-            }}
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
-
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="h-9 w-full rounded-md border px-2 text-sm focus:border-black focus:outline-none"
+                                  value={variant.stockQuantity}
+                                  onChange={(e) => {
+                                    const qty = Number(e.target.value);
+                                    setProductConfig((prev) => {
+                                      const copy = structuredClone(prev);
+                                      copy.variants[i].stockQuantity = qty;
+                                      return copy;
+                                    });
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Product Description */}
                       <div>
@@ -660,8 +670,6 @@ const findVariant = (variants, selected) =>
                           </p>
                         </div>
                       </div>
-
-                    
                     </div>
                   </div>
 
@@ -694,6 +702,23 @@ const findVariant = (variants, selected) =>
                       />
                     </div>
                   </div>
+
+                  {showBaseStock && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Stock Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.stockQuantity}
+                        onChange={(e) =>
+                          handleStockQuantityChange(e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -919,11 +944,11 @@ const ConfigSelectionTab = ({
       <select
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         onChange={(e) => handleConfigSelect(e.target.value)}
-        value={selectedConfig?.type || ""}
+        value={selectedConfig?.slug || ""}
       >
         <option value="">Choose a configuration...</option>
         {printConfigs.map((cfg) => (
-          <option key={cfg.type} value={cfg.type}>
+          <option key={cfg._id || cfg.slug} value={cfg.slug}>
             {cfg.name}
           </option>
         ))}

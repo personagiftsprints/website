@@ -599,6 +599,24 @@ export default function OrderDetailsPage() {
               </div>
             )}
 
+            {order.packaging?.giftWrap && (
+  <div className="flex justify-between">
+    <span className="text-slate-500">Gift Wrap</span>
+    <span>£{order.packaging.giftWrapCharge.toFixed(2)}</span>
+  </div>
+)}
+
+{order.packaging?.hamper && (
+  <div className="flex justify-between">
+    <span className="text-slate-500">
+      {order.packaging.hamper.charAt(0).toUpperCase() +
+        order.packaging.hamper.slice(1)}{" "}
+      Hamper
+    </span>
+    <span>£{order.packaging.hamperCharge.toFixed(2)}</span>
+  </div>
+)}
+
             <div className="flex justify-between">
               <span className="text-slate-500">Delivery</span>
               <span>£{order.deliveryCharge.toFixed(2)}</span>

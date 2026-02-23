@@ -50,7 +50,7 @@ const productConfigSchema = new mongoose.Schema(
     ],
     variants: [
       {
-        sku: { type: String },
+       
         attributes: {
           type: Map,
           of: String,
@@ -145,7 +145,7 @@ productSchema.pre('save', function () {
 // productSchema.index({ slug: 1 })
 
 // productSchema.index({ sku: 1 }, { unique: true })
-productSchema.index({ 'productConfig.variants.sku': 1 }, { unique: true, sparse: true })
+// productSchema.index({ 'productConfig.variants.sku': 1 }, { unique: true, sparse: true })
 productSchema.index({ type: 1, isActive: 1 })
 
 export default mongoose.model('Product', productSchema)

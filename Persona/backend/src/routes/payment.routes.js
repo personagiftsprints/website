@@ -9,20 +9,28 @@ import { orderPlacedTemplate } from "../utils/emailTemplates.js";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const HAMPERS = {
+  basic: 4,
+  premium: 9,
+  luxury: 14,
+};
 
 const DELIVERY_THRESHOLD = 100;
 const DELIVERY_CHARGE = 5;
 
 router.post("/create-checkout-session", optionalAuth, async (req, res) => {
   try {
-    const { cart, address, email, couponCode } = req.body;
+   const { cart, address, email, couponCode, hamper, giftWrap } = req.body;
+
+   console.log("Gifts:",giftWrap)
+   console.log("Hamper:",hamper)
 
     if (!Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ message: "Invalid or empty cart" });
     }
 
     // Log incoming cart for debugging (remove in production if you want)
-    console.log("Received cart:", JSON.stringify(cart, null, 2));
+    // console.log("Received cart:", JSON.stringify(cart, null, 2));
 
     // Calculate subtotal using safe price access
     const subtotal = cart.reduce((s, i) => {
@@ -63,8 +71,24 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
         : discountedSubtotal >= DELIVERY_THRESHOLD
           ? 0
           : DELIVERY_CHARGE;
+    const hamperCharge = hamper && HAMPERS[hamper]
+  ? HAMPERS[hamper]
+  : 0;
 
-    const totalAmount = discountedSubtotal + deliveryCharge;
+const giftWrapCharge = giftWrap ? 5 : 0;
+    const totalAmount =
+  discountedSubtotal +
+  deliveryCharge +
+  hamperCharge +
+  giftWrapCharge;
+
+
+  console.log("---- PACKAGING DEBUG ----");
+console.log("Hamper received:", hamper);
+console.log("Hamper charge:", hamperCharge);
+console.log("Gift wrap received:", giftWrap);
+console.log("Gift wrap charge:", giftWrapCharge);
+console.log("-------------------------");
 
     // Inside router.post("/create-checkout-session")
 // Inside router.post("/create-checkout-session")
@@ -171,39 +195,45 @@ const itemsPayload = cart.map((item) => {
 });
 
     // Create order
-    const order = await Order.create({
-      user: req.user ? req.user._id : null,
-      userType: req.user ? "user" : "guest",
-      items: itemsPayload,
-      subtotal,
-      discount: {
-        code: appliedCoupon?.code || null,
-        percent: discountPercent,
-        amount: discountAmount,
-      },
-      deliveryCharge,
-      totalAmount,
-      deliveryAddress: {
-  fullName: address?.fullName || address?.name || "",
-  phone: address?.phone || "",
-  email: email || address?.email || "",
+ const order = await Order.create({
+  user: req.user ? req.user._id : null,
+  userType: req.user ? "user" : "guest",
+  items: itemsPayload,
+  subtotal,
 
-  addressLine1: address?.addressLine1 || address?.line1 || "",
-  addressLine2: address?.addressLine2 || "",
+  discount: {
+    code: appliedCoupon?.code || null,
+    percent: discountPercent,
+    amount: discountAmount,
+  },
 
-  town: address?.town || address?.city || "",
-  county: address?.county || address?.state || "",
+  deliveryCharge,
 
-  postcode: address?.postcode || address?.postalCode || "",
-
-  countryCode: "GB",
+ packaging: {
+  hamper: hamper || null,
+  hamperCharge: hamperCharge,
+  giftWrap: giftWrap || false,
+  giftWrapCharge: giftWrapCharge,
 },
+  totalAmount,
 
-      payment: {
-        provider: "stripe",
-        status: "pending",
-      },
-    });
+  deliveryAddress: {
+    fullName: address?.fullName || address?.name || "",
+    phone: address?.phone || "",
+    email: email || address?.email || "",
+    addressLine1: address?.addressLine1 || address?.line1 || "",
+    addressLine2: address?.addressLine2 || "",
+    town: address?.town || address?.city || "",
+    county: address?.county || address?.state || "",
+    postcode: address?.postcode || address?.postalCode || "",
+    countryCode: "GB",
+  },
+
+  payment: {
+    provider: "stripe",
+    status: "pending",
+  },
+});
 
     // Stripe line items - use consistent price source
     const lineItems = cart.map((item) => {
@@ -254,6 +284,32 @@ const itemsPayload = cart.map((item) => {
         quantity: 1,
       });
     }
+
+    if (hamperCharge > 0) {
+  lineItems.push({
+    price_data: {
+      currency: "gbp",
+      product_data: {
+        name: `Hamper Packaging (${hamper})`
+      },
+      unit_amount: hamperCharge * 100,
+    },
+    quantity: 1,
+  });
+}
+
+if (giftWrapCharge > 0) {
+  lineItems.push({
+    price_data: {
+      currency: "gbp",
+      product_data: {
+        name: "Gift Wrap"
+      },
+      unit_amount: giftWrapCharge * 100,
+    },
+    quantity: 1,
+  });
+}
 
     const clientUrl = (
       process.env.CLIENT_URL || "http://localhost:5173"
