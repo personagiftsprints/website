@@ -8,7 +8,13 @@ import "./globals.css"
 import CookieConsent from "@/components/CookieConsent"
 import { usePathname } from "next/navigation"
 import CelebrationOverlay from "@/components/CelebrationOverlay"
+import { Montserrat } from "next/font/google"
 
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-montserrat"
+})
 
 export default function RootLayout({ children }) {
   const [authOpen, setAuthOpen] = useState(false)
@@ -24,8 +30,8 @@ export default function RootLayout({ children }) {
   }, [])
 
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={montserrat.variable}>
+      <body className="font-montserrat">
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"

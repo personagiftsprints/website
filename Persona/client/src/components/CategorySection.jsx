@@ -18,7 +18,7 @@ export default function CategorySection({
   return (
     <section className="lg:px-6 mt-12">
       {title && (
-        <h2 className="text-2xl font-semibold mb-6">
+        <h2 className="text-2xl text-[#F9A51B] font-semibold mb-6">
           {title}
         </h2>
       )}

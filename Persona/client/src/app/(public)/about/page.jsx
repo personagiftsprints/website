@@ -8,7 +8,7 @@ export default function AboutPage() {
 
       {/* HERO */}
       <section className="text-center space-y-6">
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight">
+        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-[#F9A51B]">
           Persona Gifts & Prints
         </h1>
         <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
@@ -22,8 +22,8 @@ export default function AboutPage() {
       <section className="grid md:grid-cols-2 gap-10">
         <div className="bg-white border rounded-2xl p-8 space-y-4">
           <div className="flex items-center gap-3">
-            <Gift className="w-6 h-6" />
-            <h2 className="text-xl font-semibold">What We Do</h2>
+            <Gift className="w-6 h-6 text-[#F9A51B]"  />
+            <h2 className="text-xl font-semibold text-[#F9A51B]">What We Do</h2>
           </div>
           <p className="text-gray-600 leading-relaxed">
             We specialise in high-quality personalised gifts including custom mugs,
@@ -35,8 +35,8 @@ export default function AboutPage() {
 
         <div className="bg-white border rounded-2xl p-8 space-y-4">
           <div className="flex items-center gap-3">
-            <Star className="w-6 h-6" />
-            <h2 className="text-xl font-semibold">Our Mission</h2>
+            <Star className="w-6 h-6 text-[#F9A51B]" />
+            <h2 className="text-xl font-semibold text-[#F9A51B]">Our Mission</h2>
           </div>
           <p className="text-gray-600 leading-relaxed">
             Our mission is to make gifting more meaningful. Every product is
@@ -50,9 +50,9 @@ export default function AboutPage() {
       {/* LOCATION */}
       <section className="bg-gray-50 border rounded-2xl p-10">
         <div className="flex items-start gap-4">
-          <MapPin className="w-6 h-6 mt-1" />
+         <MapPin className="w-6 h-6 min-w-[24px] min-h-[24px] shrink-0 text-[#F9A51B]" />
           <div className="space-y-3">
-            <h2 className="text-xl font-semibold">Our Location</h2>
+            <h2 className="text-xl font-semibold text-[#F9A51B]">Our Location</h2>
             <p className="text-gray-600 leading-relaxed">
               Persona Gifts & Prints operates from Warrington, England,
               serving local customers and online orders with care and precision.

@@ -49,8 +49,8 @@ export default function CollectionsListingPage() {
   return (
     <div className="lg:p-10 px-6 max-w-7xl mx-auto">
 
-      <h1 className="text-3xl font-bold mb-10">
-        Collections
+      <h1 className="text-3xl text-[#F9A51B] font-bold mb-10">
+       COLLECTIONS
       </h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-8">

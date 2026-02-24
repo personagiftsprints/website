@@ -70,7 +70,7 @@ export default function CardBlockSection({ heading, items }) {
 <div className="flex justify-end mt-6">
   <Link
     href="/collections"
-    className="text-sm font-medium justify-between items-center flex text-black hover:underline transition animate-pulse"
+    className="text-sm font-medium justify-between items-center flex text-[#F9A51B] hover:underline transition animate-pulse"
   >
     <Gift/>
     Explore Collections

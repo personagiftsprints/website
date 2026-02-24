@@ -233,9 +233,16 @@ useEffect(() => {
   const { pricing, customization: productCustomization, inventory, productConfig } = product;
   const price = pricing.specialPrice ?? pricing.basePrice;
 
-  const isVariantProduct = productConfig?.attributes?.length > 0;
-  const isPrintConfig = productCustomization?.enabled || ['tshirt', 'mug', 'mobileCase', 'hoodie'].includes(product.type);
-  const isCustomFields = customization?.type === 'custom_fields';
+const isVariantProduct = productConfig?.attributes?.length > 0;
+
+const isCustomFields = customization?.type === 'custom_fields';
+
+const isPrintConfig =
+  !isCustomFields &&
+  (
+    productCustomization?.enabled ||
+    ['tshirt', 'mug', 'mobileCase', 'hoodie'].includes(product.type)
+  );
 
   const allAttributesSelected =
     productConfig?.attributes?.every(
@@ -393,14 +400,14 @@ const renderCustomFields = () => {
         </div>
         <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-black transition-all duration-300"
+            className="h-full bg-[#F9A51B] transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Current Field */}
-      <div className="border rounded-xl p-6 bg-gray-50">
+      <div className="border border-gray-300 rounded-xl p-6 bg-gray-50">
         <label className="block mb-4">
           <span className="text-lg font-medium">{currentField.label}</span>
           {currentField.required && <span className="text-red-500 ml-1">*</span>}
@@ -452,7 +459,7 @@ const renderCustomFields = () => {
             type="text"
             value={customFormData[currentField.name] || ''}
             onChange={(e) => handleCustomTextChange(currentField, e.target.value)}
-            placeholder={currentField.textConstraints?.placeholder || `Enter ${currentField.label}`}
+            placeholder={ `Enter the text here `}
             maxLength={currentField.textConstraints?.maxLength}
             className="w-full p-3 border rounded-lg text-lg"
           />
@@ -750,7 +757,7 @@ const renderCustomFields = () => {
       {/* SIMILAR PRODUCTS */}
       {similarProducts.length > 0 && (
         <div className="col-span-1 lg:col-span-2 mt-16">
-          <h2 className="text-2xl font-semibold mb-6">
+          <h2 className="text-2xl font-semibold mb-6 text-[#F9A956]">
             You May Also Like
           </h2>
 

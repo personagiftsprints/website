@@ -273,7 +273,15 @@ const HAMPERS = [
     } else {
       setLoadingPrices(false);
     }
+      if (!address) {
+  alert("PLease add delivery address")
+  
+  
+}
   }, []);
+
+
+
 
   const fetchProductPrices = async (cartItems) => {
     try {
