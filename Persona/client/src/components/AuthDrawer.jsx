@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Lock, User, X } from "lucide-react";
+import { Mail, Lock, User, X,Eye, EyeOff } from "lucide-react";
 import { checkEmail, emailAuth, googleAuth, sendResetLink } from "@/services/auth.service";
 
 import { saveSession } from "@/lib/auth-storage";
@@ -11,6 +11,7 @@ export default function AuthDrawer({ open, onClose }) {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -136,19 +137,28 @@ export default function AuthDrawer({ open, onClose }) {
 
           {step === "details" && isExistingUser && (
             <>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
-                <input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  placeholder="Enter your password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
+<div className="relative">
+  <Lock
+    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+    size={18}
+  />
+
+  <input
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    type={showPassword ? "text" : "password"}
+    placeholder={isExistingUser ? "Enter your password" : "Create a password"}
+    className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword((prev) => !prev)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600"
+  >
+    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+  </button>
+</div>
 
               <button
                 disabled={loading}
@@ -220,20 +230,28 @@ export default function AuthDrawer({ open, onClose }) {
                 />
               </div>
 
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
-                <input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  placeholder="Create a password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
+            <div className="relative">
+  <Lock
+    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+    size={18}
+  />
 
+  <input
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    type={showPassword ? "text" : "password"}
+    placeholder="Create a password"
+    className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword((prev) => !prev)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600"
+  >
+    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+  </button>
+</div>
               <button
                 disabled={loading}
                 onClick={handleSubmit}
