@@ -13,6 +13,50 @@ const imageSchema = new mongoose.Schema(
   { _id: false }
 )
 
+
+
+const customFieldSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      required: true,
+      enum: ['image', 'text']
+    },
+    label: {
+      type: String,
+      required: true
+    },
+    name: {
+      type: String,
+      required: true
+    },
+    required: {
+      type: Boolean,
+      default: false
+    },
+    order: {
+      type: Number,
+      default: 0
+    },
+    // For image fields
+    imageConstraints: {
+      maxSize: { type: Number, default: 5 },
+      allowedFormats: { type: [String], default: ['jpg', 'png', 'webp'] },
+      minWidth: Number,
+      maxWidth: Number,
+      minHeight: Number,
+      maxHeight: Number
+    },
+    // For text fields
+    textConstraints: {
+      maxLength: Number,
+      minLength: Number,
+      placeholder: String
+    }
+  },
+  { _id: false }
+);
+
 /* ---------------- PRICING ---------------- */
 const pricingSchema = new mongoose.Schema(
   {
@@ -98,6 +142,12 @@ const productSchema = new mongoose.Schema(
   type: productConfigSchema,
   default: null
 },
+ customizationType: {
+      type: String,
+      enum: ['print_config', 'custom_fields', 'none'],
+      default: 'none'
+    },
+customFields: [customFieldSchema],
 
     description: String,
     material: String,

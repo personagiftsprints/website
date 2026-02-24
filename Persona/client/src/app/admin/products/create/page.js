@@ -51,15 +51,52 @@ export default function CreateProductPage() {
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [activeTab, setActiveTab] = useState("product-info");
   const [printLayers, setPrintLayers] = useState([]);
-
+const [customizationType, setCustomizationType] = useState('none');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [productConfig, setProductConfig] = useState(null);
+  const [customFields, setCustomFields] = useState([]);
+const [imageFieldCount, setImageFieldCount] = useState(0);
+const [textFieldCount, setTextFieldCount] = useState(0);
 
   const fileInputRef = useRef(null);
-
+const generateCustomFields = () => {
+  const fields = [];
+  
+  // Add image fields
+  for (let i = 1; i <= imageFieldCount; i++) {
+    fields.push({
+      type: 'image',
+      label: `Upload Image ${i}`,
+      name: `image_${i}`,
+      required: i === 1, // First image required, others optional
+      order: fields.length,
+      imageConstraints: {
+        maxSize: 5,
+        allowedFormats: ['jpg', 'png', 'webp']
+      }
+    });
+  }
+  
+  // Add text fields
+  for (let i = 1; i <= textFieldCount; i++) {
+    fields.push({
+      type: 'text',
+      label: `Text Input ${i}`,
+      name: `text_${i}`,
+      required: false,
+      order: fields.length,
+      textConstraints: {
+        maxLength: 100,
+        placeholder: `Enter text ${i}`
+      }
+    });
+  }
+  
+  setCustomFields(fields);
+};
   useEffect(() => {
     if (formData.type !== "tshirt") {
       setProductConfig(null);
@@ -272,55 +309,46 @@ export default function CreateProductPage() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess(false);
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setSuccess(false);
+  setLoading(true);
 
-    try {
-      // 1️⃣ Upload images first
-      const images = await uploadImagesAPI(formData.images.map((i) => i.file));
+  try {
+    // 1️⃣ Upload images first
+    const images = await uploadImagesAPI(formData.images.map((i) => i.file));
 
-      const requiresBaseStock = showBaseStock;
+    const requiresBaseStock = showBaseStock;
+    const isTshirt = formData.type === "tshirt";
+    const hasVariantStock =
+      isTshirt &&
+      productConfig?.variants?.some(v => Number(v.stockQuantity) > 0);
+    const useBaseStock = !isTshirt || !hasVariantStock;
 
-      const isTshirt = formData.type === "tshirt"
+const payload = {
+  basicInfo: {
+    name: formData.name,
+    slug: formData.slug,
+    type: formData.type,
+    description: formData.description,
+    material: formData.material,
+    isActive: formData.isActive,
+  },
 
-const hasVariantStock =
-  isTshirt &&
-  productConfig?.variants?.some(v => Number(v.stockQuantity) > 0)
+  pricing: {
+    basePrice: Number(formData.price) || 0,
+    specialPrice: formData.specialPrice ? Number(formData.specialPrice) : null,
+  },
 
-const useBaseStock =
-  !isTshirt || !hasVariantStock
+  inventory: useBaseStock
+    ? {
+        manageStock: true,
+        stockQuantity: Number(formData.stockQuantity) || 0
+      }
+    : { manageStock: false },
 
-      const payload = {
-        basicInfo: {
-          name: formData.name,
-          slug: formData.slug,
-          type: formData.type,
-          description: formData.description,
-          material: formData.material,
-          isActive: formData.isActive,
-        },
-
-        pricing: {
-          basePrice: Number(formData.price) || 0,
-          specialPrice: formData.specialPrice
-            ? Number(formData.specialPrice)
-            : null,
-        },
-
-       inventory: useBaseStock
-  ? {
-      manageStock: true,
-      stockQuantity: Number(formData.stockQuantity) || 0
-    }
-  : {
-      manageStock: false
-    },
-
-productConfig:
-  isTshirt && hasVariantStock
+  productConfig: isTshirt && hasVariantStock
     ? {
         attributes: productConfig.attributes,
         variants: productConfig.variants.map(v => ({
@@ -330,56 +358,68 @@ productConfig:
       }
     : null,
 
-        customization: {
-          enabled: customizationEnabled,
-           printLayers: customizationEnabled ? printLayers : [],
-          ...(customizationEnabled &&
-            selectedConfig && {
-              printConfig: {
-                configId: selectedConfig._id,
-                configName: selectedConfig.name,
-                configType: selectedConfig.type,
-              },
-            }),
+  // ✅ This is correct
+  customizationType: customizationType,
+  
+  ...(customizationType === 'print_config' && {
+    customization: {
+      enabled: true,
+      ...(selectedConfig && {
+        printConfig: {
+          configId: selectedConfig._id,
+          configName: selectedConfig.name,
+          configType: selectedConfig.type,
         },
+      }),
+    },
+  }),
 
-        images: images.map((img, i) => ({
-          url: img.url,
-          publicId: img.publicId,
-          name: img.name,
-          isMain: i === 0,
-          order: i + 1,
-        })),
-      };
+  ...(customizationType === 'custom_fields' && {
+    customFields: customFields,
+    customization: {
+      enabled: true
+      // ✅ Removed printLayers
+    },
+  }),
 
-      // 3️⃣ Create product (JSON ONLY)
-      const response = await createProductAPI(payload);
+  images: images.map((img, i) => ({
+    url: img.url,
+    publicId: img.publicId,
+    name: img.name,
+    isMain: i === 0,
+    order: i + 1,
+  })),
+};
 
-      if (!response.success) {
-        throw new Error(response.message || "Failed to create product");
-      }
+console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
+    // 3️⃣ Create product
+    const response = await createProductAPI(payload);
 
-      setSuccess(true);
-
-      // Cleanup blob URLs
-      formData.images.forEach((img) => {
-        if (img.url.startsWith("blob:")) {
-          URL.revokeObjectURL(img.url);
-        }
-      });
-
-      alert(`Product "${formData.name}" created successfully!`);
-    } catch (err) {
-      console.error("Create product error:", err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          "Failed to create product. Please try again.",
-      );
-    } finally {
-      setLoading(false);
+    if (!response.success) {
+      throw new Error(response.message || "Failed to create product");
     }
-  };
+
+    setSuccess(true);
+    
+    // Cleanup blob URLs
+    formData.images.forEach((img) => {
+      if (img.url.startsWith("blob:")) {
+        URL.revokeObjectURL(img.url);
+      }
+    });
+
+    alert(`Product "${formData.name}" created successfully!`);
+  } catch (err) {
+    console.error("Create product error:", err);
+    setError(
+      err.response?.data?.message ||
+        err.message ||
+        "Failed to create product. Please try again.",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetForm = () => {
     setFormData({
@@ -688,22 +728,160 @@ productConfig:
                   </div>
 
                   {/* Customization Section */}
-                  <div className="pt-6 border-t">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          Customization
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Enable custom print areas and configurations
-                        </p>
-                      </div>
-                      <Toggle
-                        enabled={customizationEnabled}
-                        onToggle={() => setCustomizationEnabled((v) => !v)}
-                      />
-                    </div>
-                  </div>
+                 <div className="pt-6 border-t">
+  <div className="flex items-center justify-between mb-4">
+    <div>
+      <h3 className="font-semibold text-gray-900">Customization</h3>
+      <p className="text-sm text-gray-600 mt-1">
+        Choose how customers can customize this product
+      </p>
+    </div>
+  </div>
+
+  {/* Customization Type Selection */}
+  <div className="space-y-4">
+    <div className="flex gap-4">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          name="customizationType"
+          value="none"
+          checked={customizationType === 'none'}
+          onChange={(e) => {
+            setCustomizationType(e.target.value);
+            setCustomizationEnabled(false);
+          }}
+          className="w-4 h-4"
+        />
+        <span className="text-sm">No Customization</span>
+      </label>
+      
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          name="customizationType"
+          value="print_config"
+          checked={customizationType === 'print_config'}
+          onChange={(e) => {
+            setCustomizationType(e.target.value);
+            setCustomizationEnabled(true);
+          }}
+          className="w-4 h-4"
+        />
+        <span className="text-sm">Print Configuration (T-Shirt, Mug, etc.)</span>
+      </label>
+      
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          name="customizationType"
+          value="custom_fields"
+          checked={customizationType === 'custom_fields'}
+          onChange={(e) => {
+            setCustomizationType(e.target.value);
+            setCustomizationEnabled(false);
+          }}
+          className="w-4 h-4"
+        />
+        <span className="text-sm">Custom Fields (Image/Text Uploads)</span>
+      </label>
+    </div>
+
+    {/* Print Config Section */}
+    {customizationType === 'print_config' && (
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <p className="text-sm text-gray-600 mb-3">Select print configuration for complex products</p>
+        <select
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+          onChange={(e) => handleConfigSelect(e.target.value)}
+          value={selectedConfig?.type || ""}
+        >
+          <option value="">Choose a configuration...</option>
+          {printConfigs.map((cfg) => (
+            <option key={cfg._id || cfg.type} value={cfg.type}>
+              {cfg.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    )}
+
+    {/* Custom Fields Builder Section */}
+    {customizationType === 'custom_fields' && (
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+        <h4 className="font-medium text-gray-900">Define Custom Fields</h4>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Number of Image Uploads
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="10"
+              value={imageFieldCount}
+              onChange={(e) => setImageFieldCount(parseInt(e.target.value) || 0)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="0"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              How many images user can upload
+            </p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Number of Text Inputs
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="10"
+              value={textFieldCount}
+              onChange={(e) => setTextFieldCount(parseInt(e.target.value) || 0)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="0"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              How many text fields user can fill
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={generateCustomFields}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Generate Fields
+        </button>
+
+        {/* Preview Generated Fields */}
+        {customFields.length > 0 && (
+          <div className="mt-4 border-t pt-4">
+            <h5 className="font-medium text-gray-700 mb-3">Preview Fields:</h5>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {customFields.map((field, idx) => (
+                <div key={idx} className="p-3 bg-white rounded-lg border flex items-center gap-2">
+                  <span className="text-lg">
+                    {field.type === 'image' ? '🖼️' : '📝'}
+                  </span>
+                  <span className="text-sm font-medium flex-1">{field.label}</span>
+                  {field.required && (
+                    <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                      Required
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+</div>
 
                   {showBaseStock && (
                     <div>
@@ -991,6 +1169,8 @@ const PreviewTab = ({
     </div>
   </div>
 );
+
+
 
 const ProductSummary = ({
   formData,

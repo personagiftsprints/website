@@ -201,6 +201,142 @@ const MobileCaseDesignDisplay = ({ item, orderNumber }) => {
   );
 };
 
+// Add this new component after MobileCaseDesignDisplay and before MugDesignDisplay
+
+// ✅ NEW: Custom Fields Design Display Component
+const CustomFieldsDesignDisplay = ({ item, orderNumber }) => {
+  const [expanded, setExpanded] = useState(true);
+  
+  // Get custom fields data from multiple possible locations
+  const customFieldsData = item.customization?.data?.custom_fields || 
+                          item.designData || 
+                          {};
+  
+  const fields = customFieldsData.fields || [];
+  const uploadedImages = customFieldsData.uploaded_images || {};
+  const formData = customFieldsData.data || {};
+  const fieldCount = customFieldsData.field_count || { images: 0, texts: 0 };
+
+  // If no custom fields data, don't render
+  if (fields.length === 0 && Object.keys(uploadedImages).length === 0) {
+    return null;
+  }
+
+  // Separate image and text fields
+  const imageFields = fields.filter(f => f.type === 'image');
+  const textFields = fields.filter(f => f.type === 'text');
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-xs font-medium">
+          📦 Custom Product Details
+        </span>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-teal-600 hover:text-teal-800 underline"
+        >
+          {expanded ? 'Hide details' : 'View details'}
+        </button>
+      </div>
+
+      {expanded && (
+        <>
+          {/* Uploaded Images Section */}
+          {Object.keys(uploadedImages).length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-md font-semibold text-teal-700 mb-3 flex items-center gap-2">
+                <span>🖼️</span> Uploaded Images ({Object.keys(uploadedImages).length})
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {Object.entries(uploadedImages).map(([fieldName, url]) => {
+                  // Find the field label
+                  const field = imageFields.find(f => f.name === fieldName);
+                  const label = field?.label || fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  
+                  return (
+                    <div key={fieldName} className="border rounded-xl overflow-hidden bg-white shadow-sm">
+                      <div className="bg-teal-500 text-white px-3 py-1.5 text-xs font-medium">
+                        {label}
+                      </div>
+                      <div className="p-3 bg-gray-50 relative group">
+                        <img
+                          src={url}
+                          alt={label}
+                          className="w-full h-32 object-contain mx-auto"
+                        />
+                        <div className="absolute bottom-2 right-2 flex gap-2 z-10">
+                          <ViewButton url={url} />
+                          <DownloadButton
+                            url={url}
+                            filename={`order-${orderNumber}-${fieldName}.${url.split('.').pop()}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Text Fields Section */}
+          {textFields.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-md font-semibold text-teal-700 mb-3 flex items-center gap-2">
+                <FileText size={20} /> Text Inputs ({textFields.length})
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {textFields.map((field) => {
+                  const value = formData[field.name] || '';
+                  
+                  return (
+                    <div key={field.name} className="bg-white rounded-lg p-4 shadow-sm border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-gray-800">
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded border text-gray-700">
+                        {value || <span className="text-gray-400 italic">No input provided</span>}
+                      </div>
+                      {field.textConstraints?.maxLength && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Max length: {field.textConstraints.maxLength} characters
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Field Summary */}
+          {(fieldCount.images > 0 || fieldCount.texts > 0) && (
+            <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
+              <h5 className="font-semibold text-teal-800 mb-2">Customization Summary</h5>
+              <div className="flex flex-wrap gap-3">
+                {fieldCount.images > 0 && (
+                  <span className="bg-white text-teal-700 px-3 py-1 rounded-full text-sm border border-teal-200">
+                    🖼️ {fieldCount.images} Image{fieldCount.images > 1 ? 's' : ''}
+                  </span>
+                )}
+                {fieldCount.texts > 0 && (
+                  <span className="bg-white text-teal-700 px-3 py-1 rounded-full text-sm border border-teal-200">
+                    📝 {fieldCount.texts} Text Input{fieldCount.texts > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
 // Mug Design Display Component - UPDATED with text design support
 const MugDesignDisplay = ({ item, orderNumber }) => {
@@ -627,7 +763,119 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
 
       </div>
       
-      
+      {/* Front/Back Views */}
+      <div className="grid md:grid-cols-2 gap-8">
+        {["front", "back"].map((side) => {
+          // Find all images for this side
+          const sideUploadedImages = uploadedImages.filter(img => 
+            img.view === side || img.area?.includes(side) || img.area === `${side}_center`
+          );
+          
+          const previewUrl = previewUrls[side];
+          const areaData = printAreas[side];
+          const mainImageUrl = areaData?.image?.url;
+          const position = areaData?.image?.position;
+          
+          // Get text for this side
+          const sideText = Object.entries(textLayers).find(([key]) => 
+            !key.includes('full_wrap') && (key === side || key.includes(side))
+          )?.[1];
+
+          if (sideUploadedImages.length === 0 && !previewUrl && !mainImageUrl && !sideText) return null;
+
+          return (
+            <div key={side} className="border rounded-xl overflow-hidden bg-white shadow-sm">
+              <div className="bg-purple-600 text-white px-5 py-3 font-medium capitalize text-center">
+                {side.charAt(0).toUpperCase() + side.slice(1)} View
+              
+              
+              </div>
+
+
+              <div className="p-4 bg-gray-50">
+                {/* Show images if available */}
+                {sideUploadedImages.length > 0 ? (
+                  <div className="space-y-4">
+                    {sideUploadedImages.map((img, idx) => (
+                      <div key={idx} className="relative border rounded-lg overflow-hidden bg-white">
+                        <img
+                          src={img.url}
+                          alt={`${side} upload ${idx}`}
+                          className="w-full h-48 object-contain p-2"
+                        />
+                        <div className="absolute top-2 right-2 flex gap-2">
+                          <ViewButton url={img.url} />
+                          <DownloadButton
+                            url={img.url}
+                            filename={`order-${orderNumber}-${side}-${idx}.${img.format || 'png'}`}
+                          />
+                        </div>
+                        <div className="p-2 text-xs bg-gray-50 border-t">
+                          <span className="font-medium">{img.format?.toUpperCase()}</span>
+                          <span className="ml-2 text-gray-600 truncate block">{img.filename}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : previewUrl || mainImageUrl ? (
+                  <div className="relative">
+                    <img
+                      src={previewUrl || mainImageUrl}
+                      alt={`${side} preview`}
+                      className="w-full h-64 object-contain mx-auto"
+                    />
+                    <div className="absolute bottom-3 right-3 flex gap-2">
+                      <ViewButton url={previewUrl || mainImageUrl} />
+                      <DownloadButton
+                        url={previewUrl || mainImageUrl}
+                        filename={`order-${orderNumber}-${side}.png`}
+                      />
+                    </div>
+                  </div>
+                ) : sideText ? (
+                  <div className="w-full h-64 flex items-center justify-center bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-center p-4">
+                      <div className="text-3xl mb-2">✏️</div>
+                      <p 
+                        className="text-lg break-words"
+                        style={{
+                          fontFamily: sideText.fontFamily || 'Arial',
+                          color: sideText.color || '#000',
+                          fontWeight: sideText.fontWeight || 'normal'
+                        }}
+                      >
+                        {sideText.content}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                
+                {/* Text details if text exists */}
+                {sideText && (
+                  <div className="mt-4 px-4 py-3 text-sm bg-blue-50 rounded-lg">
+                    <div className="font-medium mb-2">Text: "{sideText.content}"</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Font: {sideText.fontFamily || 'Arial'}</div>
+                      <div>Size: {sideText.fontSize || 40}px</div>
+                      <div className="flex items-center gap-1">
+                        Color: 
+                        <span className="w-4 h-4 rounded-full border" style={{ backgroundColor: sideText.color || '#000' }} />
+                      </div>
+                      <div>Weight: {sideText.fontWeight || 'normal'}</div>
+                    </div>
+                  </div>
+                )}
+                
+                {position && position.scale && (
+                  <div className="mt-2 px-4 py-2 text-xs text-gray-600 border-t">
+                    Image Scale: {Math.round((position.scale || 0.5) * 100)}%
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
 
       {/* All Images Gallery */}
@@ -1013,6 +1261,7 @@ export default function AdminOrderDetailPage() {
     const fetchOrder = async () => {
       try {
         const res = await getOrderAdminById(orderId);
+        console.log(res)
         setOrder(res.order);
         setStatus(res.order.orderStatus);
       } catch (err) {
@@ -1173,25 +1422,35 @@ export default function AdminOrderDetailPage() {
                 </div>
 
                 {/* Product-Specific Customization Section */}
-                <div className="p-6 bg-gray-50 border-t">
-                  {productType === "tshirt" && (
-                    <TshirtDesignDisplay item={item} orderNumber={order.orderNumber} />
-                  )}
+               {/* Product-Specific Customization Section */}
+<div className="p-6 bg-gray-50 border-t">
+  {productType === "tshirt" && (
+    <TshirtDesignDisplay item={item} orderNumber={order.orderNumber} />
+  )}
 
-                  {productType === "mug" && (
-                    <MugDesignDisplay item={item} orderNumber={order.orderNumber} />
-                  )}
+  {productType === "mug" && (
+    <MugDesignDisplay item={item} orderNumber={order.orderNumber} />
+  )}
 
-                  {productType === "mobileCase" && (
-                    <MobileCaseDesignDisplay item={item} orderNumber={order.orderNumber} />
-                  )}
+  {productType === "mobileCase" && (
+    <MobileCaseDesignDisplay item={item} orderNumber={order.orderNumber} />
+  )}
 
-                  {!["tshirt", "mug", "mobileCase"].includes(productType) && (
-                    <div className="text-center text-gray-500 py-8">
-                      No customization details for this product
-                    </div>
-                  )}
-                </div>
+  {/* ✅ NEW: Check for custom fields products */}
+  {!["tshirt", "mug", "mobileCase"].includes(productType) && (
+    <>
+      {/* First try to show custom fields if they exist */}
+      {(item.customization?.data?.custom_fields || item.designData?.type === 'custom_fields') ? (
+        <CustomFieldsDesignDisplay item={item} orderNumber={order.orderNumber} />
+      ) : (
+        // If no custom fields, show the default message
+        <div className="text-center text-gray-500 py-8">
+          No customization details for this product
+        </div>
+      )}
+    </>
+  )}
+</div>
               </div>
             );
           })}

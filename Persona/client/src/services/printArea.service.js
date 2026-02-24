@@ -21,3 +21,4 @@ export const updatePrintConfig = async (slug, configId, payload) => {
   )
   return res.data?.data
 }
+

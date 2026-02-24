@@ -97,7 +97,7 @@ const tshirtCustomizationSchema = new mongoose.Schema(
   { _id: false }
 )
 
-// 📦 Generic customization wrapper for different product types
+// Add to customizationDataSchema (optional, not required)
 const customizationDataSchema = new mongoose.Schema(
   {
     productType: { 
@@ -110,12 +110,24 @@ const customizationDataSchema = new mongoose.Schema(
     // Future product types
     mug: mongoose.Schema.Types.Mixed,
     hoodie: mongoose.Schema.Types.Mixed,
+    // Custom fields products
+    custom_fields: {
+      type: {
+        fields: Array,
+        data: mongoose.Schema.Types.Mixed,
+        uploaded_images: mongoose.Schema.Types.Mixed,
+        field_count: {
+          images: Number,
+          texts: Number
+        }
+      },
+      default: null
+    },
     // Generic fallback
     other: mongoose.Schema.Types.Mixed
   },
   { _id: false }
 )
-
 const orderItemSchema = new mongoose.Schema(
   {
     productId: {
@@ -142,11 +154,18 @@ const orderItemSchema = new mongoose.Schema(
       enabled: { type: Boolean, default: false },
       type: { 
         type: String,
-        enum: ["tshirt", "mug", "hoodie", "normal","mobileCase","frame","3Dcrystal"],
+        enum: ["tshirt", "mug", "hoodie", "normal","mobileCase","frame","3Dcrystal","other"],
         default: "none"
+      },
+
+       customizationType: { 
+        type: String,
+        enum: ['print_config', 'custom_fields', 'none'],
+        default: 'none'
       },
       data: customizationDataSchema
     },
+      data: customizationDataSchema,
     // 👇 DEPRECATED - keep for backward compatibility
     designData: {
       type: mongoose.Schema.Types.Mixed,
