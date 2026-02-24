@@ -81,12 +81,18 @@ function SidebarContent({ onItemClick }) {
         </div>
       </nav>
 
-      <div className="border-t border-gray-400 p-4">
-        <button className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">
-          <LogOut size={18} />
-          Logout
-        </button>
-      </div>
+    <div className="border-t border-gray-400 p-4">
+  <button
+    onClick={() => {
+      localStorage.removeItem("authToken")
+      window.location.href = "/"
+    }}
+    className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded hover:bg-red-50"
+  >
+    <LogOut size={18} />
+    Logout
+  </button>
+</div>
     </>
   )
 }
