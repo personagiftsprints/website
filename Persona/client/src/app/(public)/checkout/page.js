@@ -464,9 +464,10 @@ const giftWrapCharge = giftWrap ? 5 : 0
 
   const handlePlaceOrder = async () => {
     try {
-      if(!address){
-        alert("Please add delivery address")
-      }
+      if (!address) {
+    alert("Please add a delivery address before placing the order.");
+    return;
+  }
       setLoadingPayment(true);
       
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");

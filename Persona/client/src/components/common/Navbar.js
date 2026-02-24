@@ -148,9 +148,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <nav className="hidden lg:flex gap-8 text-sm text-gray-700">
           <Link href="/">Home</Link>
+            <Link href="/about">About</Link>
+            <Link href="/collections">Collection</Link>
           <Link href="/trending">Trending</Link>
-          <Link href="/about">About</Link>
-          <Link href="/collections">Collection</Link>
+        
+          
         </nav>
 
         <Link
