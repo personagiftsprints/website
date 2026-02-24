@@ -50,6 +50,7 @@ export default function CreateProductPage() {
   const [printConfigs, setPrintConfigs] = useState([]);
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [activeTab, setActiveTab] = useState("product-info");
+  const [printLayers, setPrintLayers] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -331,6 +332,7 @@ productConfig:
 
         customization: {
           enabled: customizationEnabled,
+           printLayers: customizationEnabled ? printLayers : [],
           ...(customizationEnabled &&
             selectedConfig && {
               printConfig: {
@@ -944,11 +946,11 @@ const ConfigSelectionTab = ({
       <select
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         onChange={(e) => handleConfigSelect(e.target.value)}
-        value={selectedConfig?.slug || ""}
+        value={selectedConfig?.type || ""}
       >
         <option value="">Choose a configuration...</option>
         {printConfigs.map((cfg) => (
-          <option key={cfg._id || cfg.slug} value={cfg.slug}>
+          <option key={cfg._id || cfg.type} value={cfg.type}>
             {cfg.name}
           </option>
         ))}

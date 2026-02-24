@@ -72,6 +72,11 @@ const tshirtCustomizationSchema = new mongoose.Schema(
       type: Map,
       of: String
     },
+       text_layers: Object,        // Store text content and styling
+          text_positions: Object,     // Store text positioning
+          text_content: Object,  
+    
+
     // Store the final composite preview image
     preview_image_url: String,
     // Store original uploaded image references
@@ -84,7 +89,9 @@ const tshirtCustomizationSchema = new mongoose.Schema(
     }],
     metadata: {
       design_timestamp: Date,
-      image_positions: mongoose.Schema.Types.Mixed
+      image_positions: mongoose.Schema.Types.Mixed,
+       text_positions: Object,    // Also store in metadata
+            text_summary: Array  
     }
   },
   { _id: false }

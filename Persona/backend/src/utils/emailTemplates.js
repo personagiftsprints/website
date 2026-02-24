@@ -23,7 +23,7 @@ If you did not request this, you can safely ignore this email.
       <!-- HEADER -->
       <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;
                   display:flex;align-items:center;gap:12px;">
-        <img src="https://i.ibb.co/rfKSd0yj/logo.png"
+        <img src="https://res.cloudinary.com/dx9rxauty/image/upload/v1771900510/logo_bkof2v.png"
              alt="Persona Gifts & Prints"
              style="height:36px;width:auto;" />
         <div>
@@ -124,7 +124,7 @@ If you have any questions, please contact our support team.
                   align-items:center;
                   gap:12px;">
         <img
-          src="https://i.ibb.co/rfKSd0yj/logo.png"
+          src="https://res.cloudinary.com/dx9rxauty/image/upload/v1771900510/logo_bkof2v.png"
           alt="Persona Gifts & Prints"
           style="height:36px;width:auto;display:block;"
         />
@@ -241,7 +241,7 @@ ${orderLink}
       <!-- HEADER -->
       <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;
                   display:flex;align-items:center;gap:12px;">
-        <img src="https://i.ibb.co/rfKSd0yj/logo.png"
+        <img src="https://res.cloudinary.com/dx9rxauty/image/upload/v1771900510/logo_bkof2v.png"
              alt="Persona Gifts & Prints"
              style="height:36px;width:auto;" />
         <div>

@@ -201,16 +201,151 @@ const MobileCaseDesignDisplay = ({ item, orderNumber }) => {
   );
 };
 
-// Mug Design Display Component
+
+// Mug Design Display Component - UPDATED with text design support
 const MugDesignDisplay = ({ item, orderNumber }) => {
   const mugData = item.customization?.data?.mug || {};
   const printAreas = mugData.print_areas || {};
   const previewUrls = mugData.preview_urls || {};
   const cloudinaryUrls = mugData.cloudinary_urls || {};
   const positions = mugData.positions || {};
+  
+  // Get text data from multiple possible locations
+  const textLayers = mugData.text_layers || item.designData?.text_layers || {};
+  const textPositions = mugData.text_positions || item.designData?.text_positions || {};
+  const textContent = mugData.text_content || item.designData?.text_content || {};
+  const textSummary = mugData.metadata?.text_summary || item.designData?.metadata?.text_summary || [];
 
-  // Check if it's a wrap design (has full_wrap preview)
-  const isWrapDesign = previewUrls.full_wrap || Object.keys(cloudinaryUrls).some(key => key.includes('full_wrap'));
+  // ============================================
+  // COMPREHENSIVE IMAGE EXTRACTION FUNCTION
+  // ============================================
+  const extractAllImages = () => {
+    const images = [];
+    
+    // 1. Extract from cloudinaryUrls (primary source for uploaded images)
+    if (cloudinaryUrls && typeof cloudinaryUrls === 'object') {
+      Object.entries(cloudinaryUrls).forEach(([key, url]) => {
+        if (url && typeof url === 'string' && url.startsWith('http')) {
+          images.push({
+            url: url,
+            type: 'uploaded',
+            area: key,
+            source: 'cloudinary_urls',
+            filename: url.split('/').pop() || 'image',
+            format: url.split('.').pop() || 'unknown'
+          });
+        }
+      });
+    }
+    
+    // 2. Extract from print_areas images
+    if (printAreas && typeof printAreas === 'object') {
+      Object.entries(printAreas).forEach(([view, areaData]) => {
+        // Check for image in the area
+        if (areaData?.image?.url) {
+          // Avoid duplicates with cloudinaryUrls
+          const exists = images.some(img => img.url === areaData.image.url);
+          if (!exists) {
+            images.push({
+              url: areaData.image.url,
+              type: 'print_area_image',
+              view: view,
+              area: areaData.area || view,
+              source: 'print_areas.image',
+              filename: areaData.image.url.split('/').pop() || 'image',
+              format: areaData.image.url.split('.').pop() || 'unknown',
+              position: areaData.image.position || {}
+            });
+          }
+        }
+        
+        // Check for images in wrap/multi-type areas
+        if (areaData?.images && typeof areaData.images === 'object') {
+          Object.entries(areaData.images).forEach(([slot, slotData]) => {
+            if (slotData?.url) {
+              const exists = images.some(img => img.url === slotData.url);
+              if (!exists) {
+                images.push({
+                  url: slotData.url,
+                  type: 'wrap_image',
+                  view: view,
+                  slot: slot,
+                  source: 'print_areas.images',
+                  filename: slotData.url.split('/').pop() || 'image',
+                  format: slotData.url.split('.').pop() || 'unknown',
+                  position: slotData.position || {}
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // 3. Extract preview images (marked as preview type)
+    if (previewUrls && typeof previewUrls === 'object') {
+      Object.entries(previewUrls).forEach(([view, url]) => {
+        if (url && typeof url === 'string' && url.startsWith('http')) {
+          // Check if this preview URL is different from uploaded images
+          const isDuplicate = images.some(img => img.url === url);
+          if (!isDuplicate) {
+            images.push({
+              url: url,
+              type: 'preview',
+              view: view,
+              source: 'preview_urls',
+              filename: url.split('/').pop() || 'preview',
+              format: url.split('.').pop() || 'png'
+            });
+          }
+        }
+      });
+    }
+    
+    // 4. Extract from positions object (might contain image references)
+    if (positions && typeof positions === 'object') {
+      // positions usually reference cloudinaryUrls, so we don't add duplicates
+      // but we can add position info to existing images
+      Object.entries(positions).forEach(([areaId, posData]) => {
+        const matchingImage = images.find(img => img.area === areaId || img.url.includes(areaId));
+        if (matchingImage && !matchingImage.position) {
+          matchingImage.position = posData;
+        }
+      });
+    }
+    
+    // 5. Extract from item.designData if available (backup)
+    if (item.designData?.cloudinary_urls && typeof item.designData.cloudinary_urls === 'object') {
+      Object.entries(item.designData.cloudinary_urls).forEach(([key, url]) => {
+        if (url && typeof url === 'string' && url.startsWith('http')) {
+          const exists = images.some(img => img.url === url);
+          if (!exists) {
+            images.push({
+              url: url,
+              type: 'design_data_upload',
+              area: key,
+              source: 'designData.cloudinary_urls',
+              filename: url.split('/').pop() || 'image',
+              format: url.split('.').pop() || 'unknown'
+            });
+          }
+        }
+      });
+    }
+    
+    return images;
+  };
+
+  // Get all images
+  const allImages = extractAllImages();
+  
+  // Separate by type for better organization
+  const uploadedImages = allImages.filter(img => img.type === 'uploaded' || img.type === 'print_area_image' || img.type === 'design_data_upload');
+  const previewImages = allImages.filter(img => img.type === 'preview');
+  const wrapImages = allImages.filter(img => img.type === 'wrap_image');
+
+  // Check if it's a wrap design
+  const isWrapDesign = previewUrls.full_wrap || wrapImages.length > 0 || Object.keys(cloudinaryUrls).some(key => key.includes('full_wrap'));
 
   if (isWrapDesign) {
     // Full Wrap Design - Show 3-panel grid
@@ -223,6 +358,9 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
 
     return (
       <div className="space-y-8">
+
+        
+           
         {/* Full Wrap Preview Image */}
         {previewUrls.full_wrap && (
           <div className="border rounded-xl overflow-hidden bg-white shadow-sm relative">
@@ -246,16 +384,25 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
           </div>
         )}
 
-        {/* 3-Panel Individual Images */}
+        
+
+
+
+        {/* 3-Panel Individual Images - Using extracted images */}
         <div>
           <h4 className="text-lg font-semibold text-purple-700 mb-4">3-Panel Wrap Design</h4>
           <div className="grid md:grid-cols-3 gap-4">
             {slotOrder.map((slot) => {
-              const slotKey = Object.keys(cloudinaryUrls).find(key => key.includes(slot));
-              const imageUrl = slotKey ? cloudinaryUrls[slotKey] : null;
-              const position = positions[slotKey] || {};
+              // Find image for this slot
+              const slotImage = wrapImages.find(img => img.slot === slot) || 
+                               uploadedImages.find(img => img.area?.includes(slot));
+              const imageUrl = slotImage?.url;
+              const position = slotImage?.position || positions[`full_wrap_3panel_${slot}`] || {};
+              
+              // Get text for this slot
+              const slotText = Object.entries(textLayers).find(([key]) => key.includes(slot))?.[1];
 
-              if (!imageUrl) return null;
+              if (!imageUrl && !slotText) return null;
 
               return (
                 <div key={slot} className="border rounded-xl overflow-hidden bg-white shadow-sm relative">
@@ -263,22 +410,58 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
                     {slotLabels[slot]}
                   </div>
                   <div className="p-3 bg-gray-50 relative group">
-                    <img
-                      src={imageUrl}
-                      alt={`${slot} panel`}
-                      className="w-full h-40 object-contain mx-auto"
-                    />
+                    {imageUrl ? (
+                      <div className="relative">
+                        <img
+                          src={imageUrl}
+                          alt={`${slot} panel`}
+                          className="w-full h-40 object-contain mx-auto"
+                        />
+                        {/* Format badge */}
+                        <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                          {slotImage?.format?.toUpperCase() || 'IMG'}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 flex items-center justify-center bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="text-center">
+                          <div className="text-2xl mb-1">✏️</div>
+                          <div className="text-xs text-gray-600 max-w-[120px] mx-auto break-words">
+                            "{slotText?.content}"
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Text badge if both image and text exist */}
+                    {imageUrl && slotText && (
+                      <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                        📝
+                      </div>
+                    )}
+                    
                     <div className="absolute bottom-2 right-2 flex gap-2 z-10">
-                      <ViewButton url={imageUrl} />
-                      <DownloadButton
-                        url={imageUrl}
-                        filename={`order-${orderNumber}-wrap-${slot}.png`}
-                      />
+                      {imageUrl && <ViewButton url={imageUrl} />}
+                      {imageUrl && (
+                        <DownloadButton
+                          url={imageUrl}
+                          filename={`order-${orderNumber}-wrap-${slot}.${slotImage?.format || 'png'}`}
+                        />
+                      )}
                     </div>
                   </div>
-                  {position.scale && (
-                    <div className="px-3 py-2 text-xs text-gray-600 border-t">
-                      Size: {Math.round((position.scale || 0.5) * 100)}%
+                  
+                  {/* Image details */}
+                  {imageUrl && (
+                    <div className="px-3 py-2 text-xs bg-gray-100 border-t">
+                      <div className="truncate text-gray-600">{slotImage?.filename || imageUrl.split('/').pop()}</div>
+                    </div>
+                  )}
+                  
+                  {/* Text details if text exists */}
+                  {slotText && (
+                    <div className="px-3 py-2 text-xs border-t bg-blue-50">
+                      <div className="font-medium mb-1">Text: "{slotText.content}"</div>
                     </div>
                   )}
                 </div>
@@ -286,67 +469,310 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
             })}
           </div>
         </div>
+        
+        {/* All Images Gallery */}
+        {uploadedImages.length > 0 && (
+          <div className="bg-white rounded-xl border overflow-hidden mt-6">
+            <div className="bg-purple-50 px-6 py-4 border-b flex items-center gap-2">
+              <span className="text-2xl">🖼️</span>
+              <h5 className="text-lg font-semibold text-purple-800">All Uploaded Images</h5>
+              <span className="ml-auto bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+                {uploadedImages.length} image{uploadedImages.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {uploadedImages.map((img, idx) => (
+                  <div key={idx} className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                    <div className="relative h-32 bg-gray-50">
+                      <img
+                        src={img.url}
+                        alt={`Upload ${idx}`}
+                        className="w-full h-full object-contain p-2"
+                      />
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        <ViewButton url={img.url} />
+                      </div>
+                    </div>
+                    <div className="p-2 text-xs border-t">
+                      <div className="font-medium truncate">{img.filename}</div>
+                      <div className="text-gray-500 mt-1">Format: {img.format?.toUpperCase()}</div>
+                      {img.area && <div className="text-gray-500">Area: {img.area}</div>}
+                      {img.view && <div className="text-gray-500">View: {img.view}</div>}
+                      {img.slot && <div className="text-gray-500">Slot: {img.slot}</div>}
+                      <DownloadButton
+                        url={img.url}
+                        filename={`order-${orderNumber}-img-${idx}.${img.format || 'png'}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Text Designs Section */}
+        {Object.keys(textLayers).length > 0 && (
+          <div className="bg-white rounded-xl border overflow-hidden mt-6">
+            <div className="bg-purple-50 px-6 py-4 border-b flex items-center gap-2">
+              <FileText size={20} className="text-purple-600" />
+              <h5 className="text-lg font-semibold text-purple-800">Text Designs</h5>
+              <span className="ml-auto bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+                {Object.keys(textLayers).length} text layer{Object.keys(textLayers).length > 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {Object.entries(textLayers).map(([areaId, textData]) => {
+                const slot = areaId.includes('_') ? areaId.split('_').pop() : 'unknown';
+                const slotLabel = slot === 'front' ? 'Front (Left)' : 
+                                 slot === 'center' ? 'Center' : 
+                                 slot === 'back' ? 'Back (Right)' : slot;
+                
+                return (
+                  <div key={areaId} className="border rounded-lg p-5 bg-gray-50">
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                      <div>
+                        <h6 className="font-bold text-gray-900 text-lg capitalize">
+                          Wrap - {slotLabel}
+                        </h6>
+                      </div>
+                      
+                      {/* Quick Preview of Text */}
+                      <div className="bg-purple-100 p-4 rounded-lg border shadow-sm max-w-xs">
+                        <p 
+                          className="break-words text-center"
+                          style={{
+                            fontFamily: textData.fontFamily || 'Arial',
+                            fontSize: `${textData.fontSize || 40}px`,
+                            color: textData.color || '#000000',
+                            fontWeight: textData.fontWeight || 'normal',
+                          }}
+                        >
+                          {textData.content || 'No text'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      <div className="bg-white p-3 rounded-lg border">
+                        <span className="text-xs text-gray-500 block mb-1">Font Family</span>
+                        <span className="font-medium text-gray-900">{textData.fontFamily || 'Arial'}</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border">
+                        <span className="text-xs text-gray-500 block mb-1">Font Size</span>
+                        <span className="font-medium text-gray-900">{textData.fontSize || 40}px</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border">
+                        <span className="text-xs text-gray-500 block mb-1">Font Weight</span>
+                        <span className="font-medium text-gray-900 capitalize">{textData.fontWeight || 'normal'}</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg border">
+                        <span className="text-xs text-gray-500 block mb-1">Color</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: textData.color || '#000000' }} />
+                          <span className="font-medium text-gray-900 font-mono text-sm">{textData.color || '#000000'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Single View Design (front/back) - Show both sides if available
-  const hasFront = previewUrls.front || printAreas.front;
-  const hasBack = previewUrls.back || printAreas.back;
-
-  if (!hasFront && !hasBack) return null;
-
+  // Single View Design (front/back)
   return (
-    <div>
+    <div className="space-y-8">
       <h4 className="text-lg font-semibold text-purple-700 mb-4">Mug Design</h4>
-      <div className="grid md:grid-cols-2 gap-8">
-        {["front", "back"].map((side) => {
-          const previewUrl = previewUrls[side];
-          const areaData = printAreas[side];
-          const imageUrl = areaData?.image?.url;
-          const position = areaData?.image?.position;
+        
 
-          if (!previewUrl && !imageUrl) return null;
+        
+      <div className="flex flex-row">
 
-          return (
-            <div key={side} className="border rounded-xl overflow-hidden bg-white shadow-sm relative">
-              <div className="bg-purple-600 text-white px-5 py-3 font-medium capitalize text-center">
-                {side.charAt(0).toUpperCase() + side.slice(1)} View
-              </div>
-              <div className="p-4 bg-gray-50 relative group">
-                {/* Show preview if available, otherwise show the placed image */}
-                <img
-                  src={previewUrl || imageUrl}
-                  alt={`${side} preview`}
-                  className="w-full h-64 object-contain mx-auto"
+         <div className="p-4 bg-gray-50 relative group">
+              <img
+                src={previewUrls.front}
+                alt="Full wrap preview"
+                className="w-full h-80 object-contain mx-auto"
+              />
+              <div className="absolute bottom-3 right-3 flex gap-2 z-10">
+                <ViewButton url={previewUrls.front} />
+                <DownloadButton
+                  url={previewUrls.front}
+                  filename={`order-${orderNumber}-full-wrap-preview.png`}
                 />
-                <div className="absolute bottom-3 right-3 flex gap-2 z-10">
-                  <ViewButton url={previewUrl || imageUrl} />
-                  <DownloadButton
-                    url={previewUrl || imageUrl}
-                    filename={`order-${orderNumber}-${side}-mug.png`}
-                  />
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 relative group">
+              <img
+                src={previewUrls.back}
+                alt="Full wrap preview"
+                className="w-full h-80 object-contain mx-auto"
+              />
+              <div className="absolute bottom-3 right-3 flex gap-2 z-10">
+                <ViewButton url={previewUrls.back} />
+                <DownloadButton
+                  url={previewUrls.back}
+                  filename={`order-${orderNumber}-full-wrap-preview.png`}
+                />
+              </div>
+            </div>
+
+      </div>
+      
+      
+
+
+      {/* All Images Gallery */}
+      {uploadedImages.length > 0 && (
+        <div className="bg-white rounded-xl border overflow-hidden mt-6">
+          <div className="bg-purple-50 px-6 py-4 border-b flex items-center gap-2">
+            <span className="text-2xl">🖼️</span>
+            <h5 className="text-lg font-semibold text-purple-800">All Uploaded Images</h5>
+            <span className="ml-auto bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+              {uploadedImages.length} image{uploadedImages.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {uploadedImages.map((img, idx) => (
+                <div key={idx} className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                  <div className="relative h-32 bg-gray-50">
+                    <img
+                      src={img.url}
+                      alt={`Upload ${idx}`}
+                      className="w-full h-full object-contain p-2"
+                    />
+                    <div className="absolute top-1 right-1 flex gap-1">
+                      <ViewButton url={img.url} />
+                    </div>
+                  </div>
+                  <div className="p-2 text-xs border-t">
+                    <div className="font-medium truncate">{img.filename}</div>
+                    <div className="text-gray-500 mt-1">Format: {img.format?.toUpperCase()}</div>
+                    {img.area && <div className="text-gray-500">Area: {img.area}</div>}
+                    {img.view && <div className="text-gray-500">View: {img.view}</div>}
+                    <DownloadButton
+                      url={img.url}
+                      filename={`order-${orderNumber}-img-${idx}.${img.format || 'png'}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Text Designs Section */}
+      {Object.keys(textLayers).length > 0 && (
+        <div className="bg-white rounded-xl border overflow-hidden mt-6">
+          <div className="bg-purple-50 px-6 py-4 border-b flex items-center gap-2">
+            <FileText size={20} className="text-purple-600" />
+            <h5 className="text-lg font-semibold text-purple-800">Text Designs</h5>
+            <span className="ml-auto bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+              {Object.keys(textLayers).length} text layer{Object.keys(textLayers).length > 1 ? 's' : ''}
+            </span>
+          </div>
+          
+          <div className="p-6 space-y-6">
+            {Object.entries(textLayers).map(([areaId, textData]) => {
+              const side = areaId.includes('front') ? 'front' : 
+                          areaId.includes('back') ? 'back' : 'front';
+              const areaName = side.charAt(0).toUpperCase() + side.slice(1);
+              
+              return (
+                <div key={areaId} className="border rounded-lg p-5 bg-gray-50">
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                    <div>
+                      <h6 className="font-bold text-gray-900 text-lg capitalize">
+                        {areaName} View Text
+                      </h6>
+                    </div>
+                    
+                    <div className="bg-purple-100 p-4 rounded-lg border shadow-sm max-w-xs">
+                      <p 
+                        className="break-words text-center"
+                        style={{
+                          fontFamily: textData.fontFamily || 'Arial',
+                          fontSize: `${textData.fontSize || 40}px`,
+                          color: textData.color || '#000000',
+                          fontWeight: textData.fontWeight || 'normal',
+                        }}
+                      >
+                        {textData.content || 'No text'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Font Family</span>
+                      <span className="font-medium text-gray-900">{textData.fontFamily || 'Arial'}</span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Font Size</span>
+                      <span className="font-medium text-gray-900">{textData.fontSize || 40}px</span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Font Weight</span>
+                      <span className="font-medium text-gray-900 capitalize">{textData.fontWeight || 'normal'}</span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Color</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: textData.color || '#000000' }} />
+                        <span className="font-medium text-gray-900 font-mono text-sm">{textData.color || '#000000'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      
+      {/* Text Summary */}
+      {textSummary.length > 0 && !Object.keys(textLayers).length && (
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h6 className="font-semibold text-blue-800 mb-2">Text Designs Summary</h6>
+          <div className="space-y-2">
+            {textSummary.map((item, idx) => (
+              <div key={idx} className="bg-white p-3 rounded border border-blue-100">
+                <div className="flex items-start justify-between">
+                  <span className="font-medium capitalize">{item.area_id?.replace(/_/g, ' ')}</span>
+                  <span className="text-sm text-gray-600">"{item.text}"</span>
                 </div>
               </div>
-              {position && (
-                <div className="px-4 py-2 text-xs text-gray-600 border-t">
-                  Size: {Math.round((position.scale || 0.5) * 100)}%
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
 // T-Shirt Design Display Component
+// T-Shirt Design Display Component - UPDATED with text design support
 const TshirtDesignDisplay = ({ item, orderNumber }) => {
   const tshirtData = item.customization?.data?.tshirt || {};
   const printAreas = tshirtData.print_areas || {};
   const previewUrls = tshirtData.preview_urls || item.designData?.preview_urls || {};
   const mainPreview = tshirtData.preview_image_url || item.designData?.preview_url;
+  
+  // ✅ NEW: Get text data from multiple possible locations
+  const textLayers = tshirtData.text_layers || item.designData?.text_layers || {};
+  const textPositions = tshirtData.text_positions || item.designData?.text_positions || {};
+  const textContent = tshirtData.text_content || item.designData?.text_content || {};
+  const textSummary = tshirtData.metadata?.text_summary || item.designData?.metadata?.text_summary || [];
 
   return (
     <div className="space-y-8">
@@ -374,10 +800,9 @@ const TshirtDesignDisplay = ({ item, orderNumber }) => {
                   </div>
                 </div>
               ) : (
-                <div className="h-80  items-center justify-center flex flex-col  text-gray-400 bg-gray-100">
-                  <Image src={GrayLogo} alt="no preview" className="w-32 "/>
-                  <p>  No {side} preview available</p>
-                
+                <div className="h-80 items-center justify-center flex flex-col text-gray-400 bg-gray-100">
+                  <Image src={GrayLogo} alt="no preview" className="w-32"/>
+                  <p>No {side} preview available</p>
                 </div>
               )}
             </div>
@@ -385,10 +810,138 @@ const TshirtDesignDisplay = ({ item, orderNumber }) => {
         })}
       </div>
 
-      {/* Print Areas Details */}
+      {/* ✅ NEW: Text Designs Section */}
+      {Object.keys(textLayers).length > 0 && (
+        <div className="bg-white rounded-xl border overflow-hidden">
+          <div className="bg-indigo-50 px-6 py-4 border-b flex items-center gap-2">
+            <FileText size={20} className="text-indigo-600" />
+            <h5 className="text-lg font-semibold text-indigo-800">Text Designs</h5>
+            <span className="ml-auto bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm">
+              {Object.keys(textLayers).length} text layer{Object.keys(textLayers).length > 1 ? 's' : ''}
+            </span>
+          </div>
+          
+          <div className="p-6 space-y-6">
+            {Object.entries(textLayers).map(([areaId, textData]) => {
+              // Find which view this area belongs to
+              const areaView = Object.entries(printAreas).find(([_, area]) => 
+                area?.area === areaId || areaId.includes(area?.area)
+              )?.[0] || 'front';
+              
+              const position = textPositions[areaId] || textData.position || {};
+              const areaName = areaId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              
+              return (
+                <div key={areaId} className="border rounded-lg p-5 bg-gray-50">
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                    <div>
+                      <h6 className="font-bold text-gray-900 text-lg capitalize">
+                        {areaName}
+                      </h6>
+                      <span className="text-sm text-gray-500 capitalize bg-white px-3 py-1 rounded-full inline-block mt-1">
+                        {areaView} view
+                      </span>
+                    </div>
+                    
+                    {/* Quick Preview of Text */}
+                    <div className="bg-slate-200 p-4 rounded-lg border shadow-sm max-w-xs">
+                      <p 
+                        className="break-words text-center"
+                        style={{
+                          fontFamily: textData.fontFamily || 'Arial',
+                          fontSize: `${textData.fontSize || 40}px`,
+                          color: textData.color || '#000000',
+                          fontWeight: textData.fontWeight || 'normal',
+                          textShadow: textData.textShadow || 'none'
+                        }}
+                      >
+                        {textData.content || 'No text'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Text Properties Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    {/* Font Family */}
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Font Family</span>
+                      <span className="font-medium text-gray-900 block truncate" 
+                            style={{ fontFamily: textData.fontFamily || 'Arial' }}>
+                        {textData.fontFamily || 'Arial'}
+                      </span>
+                    </div>
+
+                    {/* Font Size */}
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Font Size</span>
+                      <span className="font-medium text-gray-900">
+                        {textData.fontSize || 40}px
+                      </span>
+                    </div>
+
+                    {/* Font Weight */}
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Font Weight</span>
+                      <span className="font-medium text-gray-900 capitalize">
+                        {textData.fontWeight || 'normal'}
+                      </span>
+                    </div>
+
+                    {/* Text Color */}
+                    <div className="bg-white p-3 rounded-lg border">
+                      <span className="text-xs text-gray-500 block mb-1">Color</span>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-6 h-6 rounded-full border"
+                          style={{ backgroundColor: textData.color || '#000000' }}
+                        />
+                        <span className="font-medium text-gray-900 font-mono text-sm">
+                          {textData.color || '#000000'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Position Information */}
+                  {position && (position.x !== 0 || position.y !== 0 || position.scale !== 1 || position.rotate !== 0) && (
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      {position.x !== 0 && (
+                        <div className="bg-gray-100 p-2 rounded text-sm">
+                          <span className="text-gray-600">X Position:</span>
+                          <span className="ml-2 font-medium">{position.x}px</span>
+                        </div>
+                      )}
+                      {position.y !== 0 && (
+                        <div className="bg-gray-100 p-2 rounded text-sm">
+                          <span className="text-gray-600">Y Position:</span>
+                          <span className="ml-2 font-medium">{position.y}px</span>
+                        </div>
+                      )}
+                      {position.scale !== 1 && (
+                        <div className="bg-gray-100 p-2 rounded text-sm">
+                          <span className="text-gray-600">Scale:</span>
+                          <span className="ml-2 font-medium">{Math.round(position.scale * 100)}%</span>
+                        </div>
+                      )}
+                      {position.rotate !== 0 && (
+                        <div className="bg-gray-100 p-2 rounded text-sm">
+                          <span className="text-gray-600">Rotation:</span>
+                          <span className="ml-2 font-medium">{position.rotate}°</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Print Areas Details (Images Only) - Keep existing but separate */}
       {Object.keys(printAreas).length > 0 && (
         <div>
-          <h5 className="text-lg font-semibold text-gray-800 mb-4">Print Areas & Designs</h5>
+          <h5 className="text-lg font-semibold text-gray-800 mb-4">Print Areas & Images</h5>
           <div className="grid md:grid-cols-2 gap-6">
             {Object.entries(printAreas).map(([viewKey, area]) => (
               <div key={viewKey} className="bg-white rounded-lg p-4 shadow-sm border">
@@ -424,6 +977,23 @@ const TshirtDesignDisplay = ({ item, orderNumber }) => {
                     )}
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Text Summary (Simplified View) */}
+      {textSummary.length > 0 && !Object.keys(textLayers).length && (
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h6 className="font-semibold text-blue-800 mb-2">Text Designs Summary</h6>
+          <div className="space-y-2">
+            {textSummary.map((item, idx) => (
+              <div key={idx} className="bg-white p-3 rounded border border-blue-100">
+                <div className="flex items-start justify-between">
+                  <span className="font-medium capitalize">{item.area_id?.replace(/_/g, ' ')}</span>
+                  <span className="text-sm text-gray-600">"{item.text}"</span>
+                </div>
               </div>
             ))}
           </div>

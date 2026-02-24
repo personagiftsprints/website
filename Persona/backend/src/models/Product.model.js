@@ -87,7 +87,7 @@ const productSchema = new mongoose.Schema(
         'mobileCase',
         'hoodie',
         'poster',
-        'pillow',
+        'frame',
         'sticker',
         'hat',
         'normal',
