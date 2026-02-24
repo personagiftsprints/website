@@ -143,6 +143,10 @@ const itemsPayload = cart.map((item) => {
                   front: item.designData?.preview_url || null,
                   back: null,
                 },
+
+                  text_layers: item.designData.text_layers || {},
+                text_positions: item.designData.text_positions || {},
+                text_content: item.designData.text_content || {},
                 uploaded_images: Object.entries(
                   item.designData.cloudinary_urls || {},
                 ).map(([areaId, url]) => ({
@@ -166,6 +170,8 @@ const itemsPayload = cart.map((item) => {
                     new Date(),
                   image_positions:
                     item.designData.metadata?.image_positions || {},
+                      text_positions: item.designData.text_positions || {},
+                  text_summary: item.designData.metadata?.text_summary || [],
                 },
               },
             }),
@@ -312,7 +318,7 @@ if (giftWrapCharge > 0) {
 }
 
     const clientUrl = (
-      process.env.CLIENT_URL || "http://localhost:5173"
+      process.env.CLIENT_BASE_URL || "http://localhost:5173"
     ).replace(/\/$/, "");
 
     const session = await stripe.checkout.sessions.create({

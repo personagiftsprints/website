@@ -24,12 +24,17 @@ export default function CustomizeRouterPage() {
 
       const product = res.data
 
-      const printType =
-        typeFromQuery ||
-        (product.customization?.enabled
-          ? product.customization.printConfig?.configType
-          : product.type) ||
-        "general"
+      const allowedTypes = ["tshirt", "mug", "mobileCase"]
+
+let resolvedType =
+  typeFromQuery ||
+  (product.customization?.enabled
+    ? product.customization.printConfig?.configType
+    : product.type)
+
+const printType = allowedTypes.includes(resolvedType)
+  ? resolvedType
+  : "general"
 
       const qs = searchParams.toString()
       const suffix = qs ? `?${qs}` : ""
