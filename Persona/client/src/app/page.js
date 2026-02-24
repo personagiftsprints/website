@@ -89,7 +89,7 @@ const isLoading = !productsData
      
 
       <CardBlockSection
-        heading="Featured Collections"
+        heading="FEATURED COLLECTIONS"
         items={[
           {
             title: "T-Shirts",
@@ -119,20 +119,20 @@ const isLoading = !productsData
 
 <div className="lg:px-32 pb-20">
     <CategorySection
-  title="Trending Products"
+  title="TRENDING PRODUCTS"
   products={productsData?.trending || []}
   loading={isLoading}
 />
 
 <CategorySection
-  title="T-Shirts"
+  title="TSHIRTS"
   products={productsData?.tshirts || []}
   loading={isLoading}
   columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
 />
 
 <CategorySection
-  title="Mugs"
+  title="MUGS"
   products={productsData?.mugs || []}
   loading={isLoading}
   columns="grid-cols-2 sm:grid-cols-4 lg:grid-cols-4"
@@ -142,7 +142,7 @@ const isLoading = !productsData
 
 
 <CategorySection
-  title="Mobile cover"
+  title="MOBILE COVER"
   products={productsData?.mobileCase || []}
   loading={isLoading}
   columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
@@ -150,7 +150,7 @@ const isLoading = !productsData
 
 
 <CategorySection
-  title="Normal"
+  title="NORMAL"
   products={productsData?.normal || []}
   loading={isLoading}
   columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"

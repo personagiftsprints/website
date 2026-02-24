@@ -103,3 +103,12 @@ input[type="number"] {
   background: #f38a00;
   color: #fff;
 }
+
+
+:root {
+  --font-montserrat: 'Montserrat', sans-serif;
+}
+
+.font-montserrat {
+  font-family: var(--font-montserrat);
+}
