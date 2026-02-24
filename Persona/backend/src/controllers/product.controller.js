@@ -64,7 +64,65 @@ export const getSimilarProducts = async (req, res) => {
     })
   }
 }
+// Get product customization info by slug
+export const getProductCustomization = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    
+    const product = await Product.findOne({ 
+      slug: slug,
+      isActive: true 
+    });
 
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    let customization = {
+      type: product.customizationType || 'none',
+      enabled: false
+    };
+
+    // Check if it's a print config product
+    const isPrintConfigType = ['tshirt', 'mug', 'mobileCase', 'hoodie'].includes(product.type);
+    
+    if (product.customizationType === 'print_config' || isPrintConfigType) {
+      customization = {
+        type: 'print_config',
+        enabled: true,
+        config: product.customization?.printConfig || null
+      };
+    } 
+    // Check if it's a custom fields product
+    else if (product.customizationType === 'custom_fields' || product.customFields?.length > 0) {
+      const fields = product.customFields || [];
+      customization = {
+        type: 'custom_fields',
+        enabled: true,
+        fields: fields,
+        fieldCount: {
+          images: fields.filter(f => f.type === 'image').length,
+          texts: fields.filter(f => f.type === 'text').length
+        }
+      };
+    }
+
+    res.json({
+      success: true,
+      data: customization
+    });
+
+  } catch (error) {
+    console.error('Get product customization error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
 
 export const createProduct = async (req, res) => {
   try {
@@ -75,6 +133,8 @@ export const createProduct = async (req, res) => {
       customization,
       images,
       productConfig,
+         customizationType,  // Make sure this is included!
+      customFields  ,
 
       name,
       slug,
@@ -89,7 +149,8 @@ export const createProduct = async (req, res) => {
       slug,
       type,
       description,
-      material,
+      material,   customizationType,  // Make sure this is included!
+      customFields  ,
       isActive
     }
 
@@ -182,6 +243,8 @@ const parentSku = await generateUniqueSku()
       inventory: hasVariants ? { manageStock: false } : inventory,
       productConfig: hasVariants ? productConfig : null,
       customization,
+         customizationType,  // Make sure this is included!
+      customFields  ,
       images
     })
 

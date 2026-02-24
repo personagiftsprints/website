@@ -156,3 +156,36 @@ export const getProductsByType = async (type, params = {}) => {
 }
 
 
+export const getProductCustomization = async (slug) => {
+  try {
+    const response = await api.get(`/products/customization/${slug}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching product customization:', error);
+    throw error;
+  }
+};
+
+
+export const prepareCustomFieldCartItem = (product, formData, uploadedUrls) => {
+  return {
+    productId: product._id,
+    productSlug: product.slug,
+    name: product.name,
+    productType: product.type,
+    image: product.thumbnail || product.images?.[0]?.url,
+    price: product.pricing?.specialPrice || product.pricing?.basePrice,
+    currency: product.pricing?.currency || 'GBP',
+    quantity: 1,
+    designData: {
+      type: 'custom_fields',
+      fields: product.customFields || [],
+      data: formData,
+      uploaded_images: uploadedUrls,
+      fieldCount: {
+        images: (product.customFields || []).filter(f => f.type === 'image').length,
+        texts: (product.customFields || []).filter(f => f.type === 'text').length
+      }
+    }
+  };
+};

@@ -92,12 +92,14 @@ console.log("-------------------------");
 
     // Inside router.post("/create-checkout-session")
 // Inside router.post("/create-checkout-session")
+// In your itemsPayload mapping, update the customization object:
+
 const itemsPayload = cart.map((item) => {
   const productType = item.productSnapshot?.type || item.type || "other";
 
-  // Determine if this is a customizable product
-  const isCustomizable = ["tshirt", "mug", "hoodie","mobileCase"].includes(productType);
-  const hasCustomization = !!(item.designData && isCustomizable);
+  const isPrintConfig = ["tshirt", "mug", "hoodie", "mobileCase"].includes(productType);
+  const isCustomFields = item.designData?.type === 'custom_fields';
+  const hasCustomization = !!(item.designData && (isPrintConfig || isCustomFields));
 
   const baseItem = {
     productId: item.productId
@@ -118,11 +120,13 @@ const itemsPayload = cart.map((item) => {
 
     quantity: Number(item.quantity) || 1,
 
-    // === FIXED: Use valid enum values ===
+    // ✅ UPDATED: Added customizationType field
     customization: {
       enabled: hasCustomization,
-      // Use "normal" for non-customized items, not "none"
-      type: hasCustomization ? productType : "normal",
+      // This is the PRODUCT TYPE (tshirt, mug, frame, etc.)
+      type: productType,
+      // This is the CUSTOMIZATION TYPE (print_config, custom_fields, none)
+      customizationType: isPrintConfig ? 'print_config' : (isCustomFields ? 'custom_fields' : 'none'),
       data: hasCustomization
         ? {
             productType: productType,
@@ -143,8 +147,7 @@ const itemsPayload = cart.map((item) => {
                   front: item.designData?.preview_url || null,
                   back: null,
                 },
-
-                  text_layers: item.designData.text_layers || {},
+                text_layers: item.designData.text_layers || {},
                 text_positions: item.designData.text_positions || {},
                 text_content: item.designData.text_content || {},
                 uploaded_images: Object.entries(
@@ -170,15 +173,13 @@ const itemsPayload = cart.map((item) => {
                     new Date(),
                   image_positions:
                     item.designData.metadata?.image_positions || {},
-                      text_positions: item.designData.text_positions || {},
+                  text_positions: item.designData.text_positions || {},
                   text_summary: item.designData.metadata?.text_summary || [],
                 },
               },
             }),
-            // Add mug handling here if needed
             ...(productType === "mug" && {
               mug: {
-                // Mug specific data structure
                 print_areas: item.designData.print_areas || {},
                 cloudinary_urls: item.designData.cloudinary_urls || {},
                 preview_urls: item.designData.preview_urls || {},
@@ -189,11 +190,19 @@ const itemsPayload = cart.map((item) => {
                 positions: item.designData.positions || {},
               },
             }),
+            ...(isCustomFields && {
+              custom_fields: {
+                fields: item.designData.fields || [],
+                data: item.designData.data || {},
+                uploaded_images: item.designData.uploaded_images || {},
+                field_count: item.designData.field_count || {}
+              }
+            })
           }
-        : null, // null for non-customized items
+        : null,
     },
 
-    // Keep for backward compatibility (safe)
+    // Keep for backward compatibility
     designData: item.designData || null,
   };
 

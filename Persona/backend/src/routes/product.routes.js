@@ -12,7 +12,8 @@ import {
   getLandingProducts,
   getSimilarProducts,
   getStockManagement,
-  getProductBySku
+  getProductBySku,
+  getProductCustomization
 } from '../controllers/product.controller.js'
 
 const router = express.Router()
@@ -29,6 +30,8 @@ router.get('/slug/:slug', getProductBySlug)
 router.get('/:id', getProductById)
 router.get('/product-attributes/:type', getProductAttributesByType )
 router.get('/similar/:type', getSimilarProducts  )
+// Add this after your existing routes
+router.get('/customization/:slug', getProductCustomization);
 
 router.put('/:id', updateProduct)
 router.delete('/:id', deleteProduct)
