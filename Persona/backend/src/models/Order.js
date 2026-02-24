@@ -225,7 +225,7 @@ const orderSchema = new mongoose.Schema(
     "cancelled",
     "out_for_delivery"
   ],
-  default: "paid"
+  default: "processing"
 },
 packaging: {
   hamper: { type: String, default: null },

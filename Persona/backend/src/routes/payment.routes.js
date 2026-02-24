@@ -243,7 +243,7 @@ const itemsPayload = cart.map((item) => {
     postcode: address?.postcode || address?.postalCode || "",
     countryCode: "GB",
   },
-
+ orderStatus: "created",  
   payment: {
     provider: "stripe",
     status: "pending",
@@ -390,6 +390,7 @@ router.post("/webhook", async (req, res) => {
     }
 
     order.orderStatus = "paid";
+    order.payment.status = "paid";
     order.payment = {
       provider: "stripe",
       paymentId: session.payment_intent,
