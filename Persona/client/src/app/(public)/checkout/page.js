@@ -223,10 +223,12 @@ function TshirtDesignPreview({ designData }) {
 
 export default function CheckoutClient() {
   const { user } = useAuth();
+  
 
   const [items, setItems] = useState([]);
   const [productPrices, setProductPrices] = useState({});
   const [loadingPrices, setLoadingPrices] = useState(true);
+
   const [address, setAddress] = useState(null);
   const [hamperModalOpen, setHamperModalOpen] = useState(false)
 const [selectedHamper, setSelectedHamper] = useState(null)
@@ -258,6 +260,7 @@ const HAMPERS = [
   const [showCelebration, setShowCelebration] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
+    const hasAddress = Boolean(address)
 
   const DELIVERY_THRESHOLD = 100;
   const DELIVERY_CHARGE = 5;
@@ -273,13 +276,52 @@ const HAMPERS = [
     } else {
       setLoadingPrices(false);
     }
-      if (!address) {
-  alert("PLease add delivery address")
-  
-  
-}
+   
   }, []);
 
+
+  useEffect(() => {
+  const loadAddress = async () => {
+    if (user) {
+      setLoadingAddresses(true)
+
+      try {
+        const res = await getMyAccount()
+        const addresses = res.user?.addresses || []
+        setUserAddresses(addresses)
+
+        if (addresses.length > 0) {
+          setAddress(addresses[0])
+
+          alert(
+            `We will deliver to:\n\n${addresses[0].addressLine1}, ${addresses[0].town}, ${addresses[0].postcode}\n\nYou can change this if needed.`
+          )
+        } else {
+          alert("Please add a delivery address to continue.")
+          window.location.href = "/account/address"
+        }
+
+      } catch (err) {
+        console.error("Failed to load user addresses", err)
+      } finally {
+        setLoadingAddresses(false)
+      }
+
+    } else {
+      const savedAddress = JSON.parse(
+        localStorage.getItem("delivery_address") || "null"
+      )
+
+      if (savedAddress) {
+        setAddress(savedAddress)
+      } else {
+        setShowAddressForm(true)
+      }
+    }
+  }
+
+  loadAddress()
+}, [user])
 
 
 
@@ -462,57 +504,50 @@ const giftWrapCharge = giftWrap ? 5 : 0
 
   /* ---------------- PLACE ORDER ---------------- */
 
-  const handlePlaceOrder = async () => {
-    try {
-      if (!address) {
-    alert("Please add a delivery address before placing the order.");
-    return;
+const handlePlaceOrder = async () => {
+  if (!address) {
+    alert("Please add a delivery address before placing the order.")
+    return
   }
-      setLoadingPayment(true);
-      
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
-      const cartWithPrices = cart.map(item => ({
-        ...item,
-        price: getItemPrice(item).amount
-      }));
+  try {
+    setLoadingPayment(true)
 
-      if (!address) {
-        alert("Please add a delivery address");
-        return;
-      }
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
 
-      console.log("Sending to backend:", {
-  hamper: selectedHamper,
-  giftWrap
-});
-const data = await createCheckoutSession({
-  mode: "cart",
-  cart: cartWithPrices,
-  couponCode: coupon || null,
-  address,
-  email: address?.email || user?.email || null,
-  giftWrap,
-  hamper: selectedHamper
-})
+    const cartWithPrices = cart.map(item => ({
+      ...item,
+      price: getItemPrice(item).amount
+    }))
 
-      if (typeof data === "string") {
-        window.open(data, "_self");
-        return;
-      }
+    const data = await createCheckoutSession({
+      mode: "cart",
+      cart: cartWithPrices,
+      couponCode: coupon || null,
+      address,
+      email: address?.email || user?.email || null,
+      giftWrap,
+      hamper: selectedHamper
+    })
 
-      if (!data?.url) {
-        throw new Error("Stripe URL missing");
-      }
-
-      window.open(data.url, "_self");
-    } catch (err) {
-      console.error("PLACE ORDER ERROR ❌", err);
-      alert(err.message);
-    } finally {
-      setLoadingPayment(false);
+    if (typeof data === "string") {
+      window.open(data, "_self")
+      return
     }
-  };
+
+    if (!data?.url) {
+      throw new Error("Stripe URL missing")
+    }
+
+    window.open(data.url, "_self")
+
+  } catch (err) {
+    console.error("PLACE ORDER ERROR ❌", err)
+    alert(err.message)
+  } finally {
+    setLoadingPayment(false)
+  }
+}
 
   const getProductType = (item) => {
     return item.productSnapshot?.type || item.type || "other";
@@ -988,20 +1023,37 @@ const data = await createCheckoutSession({
           </div>
         )}
 
-        <button
-          onClick={handlePlaceOrder}
-          disabled={loadingPayment || items.length === 0}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 cursor-pointer rounded font-semibold disabled:opacity-60 transition active:scale-[0.98]"
-        >
-          {loadingPayment ? (
-            <span className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Processing...
-            </span>
-          ) : (
-            "PLACE ORDER"
-          )}
-        </button>
+      <button
+  onClick={() => {
+    if (!hasAddress) {
+      if (user) {
+        window.location.href = "/account/address"
+      } else {
+        setShowAddressForm(true)
+      }
+      return
+    }
+
+    handlePlaceOrder()
+  }}
+  disabled={loadingPayment || items.length === 0}
+  className={`w-full py-3 cursor-pointer rounded font-semibold transition active:scale-[0.98] ${
+    hasAddress
+      ? "bg-orange-500 hover:bg-orange-600 text-white"
+      : "bg-gray-400 hover:bg-gray-500 text-white"
+  } disabled:opacity-60`}
+>
+  {loadingPayment ? (
+    <span className="flex items-center justify-center gap-2">
+      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      Processing...
+    </span>
+  ) : hasAddress ? (
+    "PLACE ORDER"
+  ) : (
+    "ADD ADDRESS"
+  )}
+</button>
 
        <div className="flex items-center justify-center select-none gap-2 text-xs text-gray-500">
   <ShieldCheck className="w-4 h-4 text-green-600" />

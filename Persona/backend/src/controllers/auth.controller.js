@@ -160,6 +160,7 @@ export const resetPasswordWithToken = async (req, res) => {
 export const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body
+    console.log(" called requestPasswordReset")
 
     const user = await User.findOne({ email })
 

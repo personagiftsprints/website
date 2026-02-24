@@ -9,6 +9,7 @@ const transporter = nodemailer.createTransport({
 })
 
 export const sendMail = async ({ to, subject, html, text }) => {
+  console.log("SEDN MAIL function called")
   const info = await transporter.sendMail({
     from: process.env.EMAIL_FROM,
     to,
