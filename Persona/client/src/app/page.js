@@ -18,7 +18,7 @@ function FloatingSocials() {
     <div className="fixed right-4 top-1/2 -translate-y-1/2  bottom-6 z-40 flex flex-col gap-3">
       {/* Instagram */}
       <a
-        href="https://www.instagram.com/yourpage"
+        href="https://www.instagram.com/persona_gifts_prints"
         target="_blank"
         rel="noopener noreferrer"
         className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg hover:scale-110 transition-transform"
@@ -29,7 +29,7 @@ function FloatingSocials() {
 
       {/* WhatsApp */}
       <a
-        href="https://wa.me/yourphonenumber"
+        href="https://wa.me/447436131651?text=hello"
         target="_blank"
         rel="noopener noreferrer"
         className="w-11 h-11 flex items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg hover:scale-110 transition-transform"
