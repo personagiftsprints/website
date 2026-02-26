@@ -166,6 +166,14 @@ export const getProductCustomization = async (slug) => {
   }
 };
 
+export const searchProducts = async (query, type = '') => {
+  const params = new URLSearchParams()
+  if (query) params.append('q', query)
+  if (type) params.append('type', type)
+
+  const res = await api.get(`/products/search?${params.toString()}`)
+  return res.data
+}
 
 export const prepareCustomFieldCartItem = (product, formData, uploadedUrls) => {
   return {
