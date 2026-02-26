@@ -10,7 +10,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3">
-            <Image src={Logo} alt="Persona Logo" width={40} height={40} />
+            <Image src={Logo} alt="Persona Logo" width={80} height={80} />
             <h2 className="text-xl font-semibold text-[#f9a51b]">
               PERSONA
             </h2>

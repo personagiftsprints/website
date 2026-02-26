@@ -8,9 +8,9 @@ export default function AboutPage() {
 
         {/* HERO - more emotional + visual weight */}
         <section className="text-center space-y-6 md:space-y-8">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-[#F9A51B] to-[#f28c1a] bg-clip-text text-transparent">
-            Persona Gifts & Prints
-          </h1>
+         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-orange-500 via-amber-500 to-pink-500 bg-clip-text text-transparent">
+   Persona Gifts & Prints
+</h1>
           <p className="text-xl sm:text-2xl font-medium text-gray-700 max-w-4xl mx-auto leading-relaxed">
             Turning moments into memories — one thoughtful, personalised gift at a time.
           </p>

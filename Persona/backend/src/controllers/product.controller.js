@@ -260,7 +260,53 @@ const parentSku = await generateUniqueSku()
   }
 }
 
+export const searchProducts = async (req, res) => {
+  try {
+    const { q, type } = req.query
+    const page = Math.max(parseInt(req.query.page) || 1, 1)
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50)
+    const skip = (page - 1) * limit
 
+    const filter = { isActive: true }
+
+    if (type) {
+      filter.type = type
+    }
+
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { type: { $regex: q, $options: "i" } },
+        { slug: { $regex: q, $options: "i" } }
+      ]
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select('name slug type thumbnail pricing inventory'),
+      Product.countDocuments(filter)
+    ])
+
+    res.json({
+      success: true,
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Search failed"
+    })
+  }
+}
 
 export const getProductBySku = async (req, res) => {
   try {
@@ -326,7 +372,7 @@ export const getAllProducts = async (req, res) => {
     const filter = {}
 
     if (type) {
-      filter.productType = type
+      filter.type = type
     }
 
     if (isActive !== undefined) {
@@ -335,7 +381,7 @@ export const getAllProducts = async (req, res) => {
 
     if (search) {
       filter.$or = [
-        { title: { $regex: search, $options: "i" } },
+        { name: { $regex: search, $options: "i" } },
         { slug: { $regex: search, $options: "i" } },
         { sku: { $regex: search, $options: "i" } }
       ]
