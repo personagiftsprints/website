@@ -78,8 +78,100 @@ If you did not request this, you can safely ignore this email.
   </div>
   `
 })
+export const accountCreatedTemplate = ({ name }) => ({
+  subject: "Welcome to Persona Gifts & Prints 🎉",
 
+  text: `Hello ${name},
 
+Your account has been successfully created on Persona Gifts & Prints.
+
+Visit our website:
+https://personagifts.co.uk
+
+You can now log in and start shopping.
+
+If you did not create this account, please contact us immediately at:
+info@personagifts.co.uk
+
+— Persona Gifts & Prints
+https://personagifts.co.uk
+`,
+
+  html: `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+              background-color:#f9fafb;
+              padding:24px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;
+                border-radius:8px;border:1px solid #e5e7eb;overflow:hidden;">
+
+      <!-- HEADER -->
+      <div style="padding:20px 24px;border-bottom:1px solid #e5e7eb;
+                  display:flex;align-items:center;gap:12px;">
+        <img src="https://res.cloudinary.com/dx9rxauty/image/upload/v1771900510/logo_bkof2v.png"
+             alt="Persona Gifts & Prints"
+             style="height:36px;width:auto;" />
+        <div>
+          <p style="margin:0;font-size:14px;font-weight:600;color:#111827;">
+            Persona Gifts & Prints
+          </p>
+          <p style="margin:2px 0 0;font-size:12px;color:#6b7280;">
+            Account Created
+          </p>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:24px;color:#374151;font-size:14px;line-height:1.6;">
+        <p>Hello ${name},</p>
+
+        <p>
+          Your account has been successfully created.
+          You can now start exploring our personalised gifts and prints.
+        </p>
+
+        <p style="margin:16px 0;">
+          <a href="https://personagifts.co.uk"
+             style="display:inline-block;
+                    padding:12px 22px;
+                    background:#111827;
+                    color:#ffffff;
+                    text-decoration:none;
+                    border-radius:6px;
+                    font-weight:500;">
+            Visit Our Website
+          </a>
+        </p>
+
+        <p>
+          If this wasn’t you, please contact our support team at
+          <a href="mailto:info@personagifts.co.uk"
+             style="color:#111827;font-weight:500;text-decoration:none;">
+            info@personagifts.co.uk
+          </a>.
+        </p>
+
+        <p>
+          Welcome aboard,<br />
+          <strong>Persona Gifts & Prints</strong>
+        </p>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:16px 24px;background:#f9fafb;
+                  border-top:1px solid #e5e7eb;
+                  font-size:12px;color:#6b7280;text-align:center;">
+        © ${new Date().getFullYear()} Persona Gifts & Prints.<br/>
+        <a href="https://personagifts.co.uk"
+           style="color:#6b7280;text-decoration:none;">
+           https://personagifts.co.uk
+        </a><br/>
+        This is an automated email.
+      </div>
+
+    </div>
+  </div>
+  `
+})
 
 
 export const orderPlacedTemplate = ({

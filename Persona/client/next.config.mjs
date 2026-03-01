@@ -16,7 +16,10 @@ const nextConfig = {
         { protocol: "https", hostname: "cdn.example.com" },
         { protocol: "https", hostname: "images.unsplash.com" },
         { protocol: "https", hostname: "i.ibb.co" },
-        { protocol: "https", hostname: " www.svgrepo.com" }
+        { protocol: "https", hostname: " www.svgrepo.com" },
+         { protocol: "https", hostname: " m.media-amazon.com" },
+
+        
 
        
       ]

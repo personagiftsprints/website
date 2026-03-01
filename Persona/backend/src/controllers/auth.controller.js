@@ -5,7 +5,7 @@ import User from "../models/User.js"
 import crypto from "crypto"
 
 
-import { passwordResetTemplate } from "../utils/emailTemplates.js"
+import { accountCreatedTemplate, passwordResetTemplate } from "../utils/emailTemplates.js"
 import { sendMail } from "../utils/mailer.js"
 
 
@@ -98,9 +98,23 @@ export const emailAuth = async (req, res) => {
 
   const token = signToken(user)
 
+
+
+      const emailTemplate = accountCreatedTemplate({
+    name: firstName
+  })
+
+  await sendMail({
+    to: email,
+    subject: emailTemplate.subject,
+    text: emailTemplate.text,
+    html: emailTemplate.html
+  })
+
   res.json({
     status: "success",
     token,
+    message: "Please check your email to verify your account.",
     user: {
       _id: user._id,
       email: user.email,
@@ -115,6 +129,33 @@ export const emailAuth = async (req, res) => {
 export const getMe = async (req, res) => {
   const user = await User.findById(req.user._id).select("-password")
   res.json({ status: "success", user })
+}
+
+
+export const verifyEmail = async (req, res) => {
+  const { token } = req.query
+
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex")
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpires: { $gt: Date.now() }
+  })
+
+  if (!user) {
+    return res.status(400).json({ message: "Invalid or expired token" })
+  }
+
+  user.isEmailVerified = true
+  user.emailVerificationToken = undefined
+  user.emailVerificationExpires = undefined
+
+  await user.save()
+
+  res.json({ status: "success" })
 }
 
 
