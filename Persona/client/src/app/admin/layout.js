@@ -58,6 +58,7 @@ function SidebarContent({ onItemClick }) {
           <NavItem href="/admin/orders" icon={ShoppingBag} label="Orders" onClick={onItemClick} />
            <NavItem href="/admin/manage-stock" icon={ShoppingBasket} label="Manage stock" onClick={onItemClick} />
           <NavItem href="/admin/products" icon={Package} label="Products" onClick={onItemClick} />
+           <NavItem href="/admin/design-library" icon={ImageIcon} label="Deisgn library" onClick={onItemClick} />
           <NavItem href="/admin/print-config" icon={Printer} label="Print config" onClick={onItemClick} />
           <NavItem href="/admin/coupons" icon={Ticket} label="Coupons & Discounts" onClick={onItemClick} />
           <NavItem href="/admin/transactions" icon={Ticket} label="Transactions" onClick={onItemClick} />
