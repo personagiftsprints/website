@@ -75,6 +75,7 @@ export const emailCheck = async (req, res) => {
 export const emailAuth = async (req, res) => {
   const { email, password, firstName, lastName } = req.body
   let user = await User.findOne({ email })
+  let isNewUser = false
 
   if (user) {
     if (!user.password) {
@@ -94,27 +95,27 @@ export const emailAuth = async (req, res) => {
       provider: "email",
       role: "customer",
     })
+    isNewUser = true
   }
 
   const token = signToken(user)
 
+  if (isNewUser) {
+    const emailTemplate = accountCreatedTemplate({
+      name: user.firstName
+    })
 
-
-      const emailTemplate = accountCreatedTemplate({
-    name: firstName
-  })
-
-  await sendMail({
-    to: email,
-    subject: emailTemplate.subject,
-    text: emailTemplate.text,
-    html: emailTemplate.html
-  })
+    sendMail({
+      to: user.email,
+      subject: emailTemplate.subject,
+      text: emailTemplate.text,
+      html: emailTemplate.html
+    }).catch(console.error)
+  }
 
   res.json({
     status: "success",
     token,
-    message: "Please check your email to verify your account.",
     user: {
       _id: user._id,
       email: user.email,

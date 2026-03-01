@@ -1,22 +1,28 @@
-import nodemailer from "nodemailer"
+import { Resend } from "resend"
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const sendMail = async ({ to, subject, html, text }) => {
-  console.log("SEDN MAIL function called")
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    text,
-    html
-  })
+  try {
+    console.log("USING HARDCODED FROM")
 
-  console.log("📧 Email sent:", info.messageId)
+    const response = await resend.emails.send({
+      from: "Persona <noreply@personagifts.co.uk>",
+      to,
+      subject,
+      html,
+      text
+    })
+
+    console.log("FULL RESPONSE:", response)
+
+    if (response.error) {
+      console.error("Email failed:", response.error)
+      return
+    }
+
+    console.log("📧 Email sent:", response.data?.id)
+  } catch (err) {
+    console.error("Email failed (catch):", err)
+  }
 }
