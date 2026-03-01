@@ -47,7 +47,7 @@ export default function ResetPasswordClient() {
 
       if (res.data.status === "success") {
         setSuccess(true)
-        setTimeout(() => router.push("/login"), 2000)
+        setTimeout(() => router.push("/"), 2000)
       }
 
     } catch (err) {
