@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const sendMail = async ({ to, subject, html, text }) => {
   try {
-    console.log("USING HARDCODED FROM")
+    // console.log("USING HARDCODED FROM")
 
     const response = await resend.emails.send({
       from: "Persona <noreply@personagifts.co.uk>",
@@ -21,7 +21,7 @@ export const sendMail = async ({ to, subject, html, text }) => {
       return
     }
 
-    console.log("📧 Email sent:", response.data?.id)
+    // console.log("📧 Email sent:", response.data?.id)
   } catch (err) {
     console.error("Email failed (catch):", err)
   }

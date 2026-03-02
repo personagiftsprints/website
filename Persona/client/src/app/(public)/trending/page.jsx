@@ -63,7 +63,7 @@ const Page = () => {
             <Smile className="h-10 w-10 text-orange-500" />
             <h3 className="font-semibold text-lg">Happy Customers</h3>
             <p className="text-sm text-gray-600">
-              Thousands of satisfied buyers across India.
+              Thousands of satisfied buyers across UK.
             </p>
           </div>
 
