@@ -25,7 +25,7 @@ const isLoading = !productsData
   useEffect(() => {
   TrendingProducts()
     .then(data => {
-      console.log(data)
+      // console.log(data)
       setProductsData(data)
 
      
