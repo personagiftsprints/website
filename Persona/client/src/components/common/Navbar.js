@@ -272,13 +272,17 @@ export default function Navbar() {
             </button>
 
             {/* Contact Us */}
-            <a
-              href="mailto:info@persona.co.uk?subject=Customer%20Enquiry"
-              className="hidden lg:flex items-center gap-1.5 text-[14px] text-gray-700 hover:text-black"
-            >
+
+
+
+            <Link href="/contact"  className="hidden lg:flex items-center gap-1.5 text-[14px] text-gray-700 hover:text-black">
+            
              
               Contact Us
-            </a>
+           
+            </Link>
+
+           
 
             <Link
               href="/cart"
