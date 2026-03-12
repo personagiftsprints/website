@@ -13,3 +13,9 @@ export const updateHomeBanner = (formData) =>
 
 export const updateDiscountBanner = (payload) =>
   api.put("/home-content/discount-banner", payload)
+
+export const addHomeBanner = (formData) =>
+  api.post("/home-content/home-banners", formData)
+
+export const deleteHomeBanner = (id) =>
+  api.delete(`/home-content/home-banners/${id}`)

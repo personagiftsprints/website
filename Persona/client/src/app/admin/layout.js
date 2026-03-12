@@ -69,7 +69,9 @@ function SidebarContent({ onItemClick }) {
             Content
           </p>
           <NavItem href="/admin/banners" icon={ImageIcon} label="Homepage banners" onClick={onItemClick} />
-           <NavItem href="/admin/collections" icon={ChartBarDecreasing} label="Collections" onClick={onItemClick} />
+          <NavItem href="/admin/collections" icon={ChartBarDecreasing} label="Collections" onClick={onItemClick} />
+          <NavItem href="/admin/events" icon={ChartBarDecreasing} label="Events" onClick={onItemClick} />
+          <NavItem href="/admin/categories" icon={Package} label="Categories" onClick={onItemClick} />
         </div>
 
         <div>

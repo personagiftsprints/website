@@ -25,3 +25,7 @@ export const updateCollection = async (id, payload) => {
 export const deleteCollection = async (id) => {
   return await api.delete(`/collections/${id}`)
 }
+
+export const toggleCollectionStatus = async (id) => {
+  return await api.patch(`/collections/${id}/status`)
+}

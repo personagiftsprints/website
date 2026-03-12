@@ -44,6 +44,8 @@ export default function CreateProductPage() {
     manageStock: false,
     isActive: true,
     images: [],
+    category: "",
+    subcategory: "",
   });
 
   const [customizationEnabled, setCustomizationEnabled] = useState(false);
@@ -60,6 +62,26 @@ const [customizationType, setCustomizationType] = useState('none');
   const [customFields, setCustomFields] = useState([]);
 const [imageFieldCount, setImageFieldCount] = useState(0);
 const [textFieldCount, setTextFieldCount] = useState(0);
+
+const [categoriesList, setCategoriesList] = useState([]);
+const [subcategoriesMap, setSubcategoriesMap] = useState({});
+
+useEffect(() => {
+  import("@/services/category.service").then((module) => {
+    module.getCategories().then(res => res && setCategoriesList(res));
+    module.getSubcategories().then(res => {
+      if (res) {
+        const map = {};
+        res.forEach(sub => {
+          const catId = sub.category._id || sub.category;
+          if (!map[catId]) map[catId] = [];
+          map[catId].push(sub);
+        });
+        setSubcategoriesMap(map);
+      }
+    });
+  });
+}, []);
 
   const fileInputRef = useRef(null);
 const generateCustomFields = () => {
@@ -334,6 +356,8 @@ const payload = {
     description: formData.description,
     material: formData.material,
     isActive: formData.isActive,
+    category: formData.category || undefined,
+    subcategory: formData.subcategory || undefined,
   },
 
   pricing: {
@@ -392,7 +416,8 @@ const payload = {
 };
 
 console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
-    // 3️⃣ Create product
+
+
     const response = await createProductAPI(payload);
 
     if (!response.success) {
@@ -583,6 +608,44 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                             3D Crystal photo cube
                           </option>
                         </select>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Category *
+                          </label>
+                          <select
+                            value={formData.category}
+                            onChange={(e) => {
+                              handleInputChange("category", e.target.value);
+                              handleInputChange("subcategory", "");
+                            }}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                          >
+                            <option value="">Select category</option>
+                            {categoriesList.map((cat) => (
+                              <option key={cat._id} value={cat._id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Subcategory
+                          </label>
+                          <select
+                            value={formData.subcategory}
+                            onChange={(e) => handleInputChange("subcategory", e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Select subcategory</option>
+                            {(subcategoriesMap[formData.category] || []).map((sub) => (
+                              <option key={sub._id} value={sub._id}>{sub.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       {productConfig?.variants?.length > 0 && (

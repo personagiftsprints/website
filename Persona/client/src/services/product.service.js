@@ -155,6 +155,20 @@ export const getProductsByType = async (type, params = {}) => {
   return res.data
 }
 
+export const getProductsByCategory = async (categorySlug, subcategorySlug = null, params = {}) => {
+  const url = subcategorySlug 
+    ? `/products/category/${categorySlug}/${subcategorySlug}` 
+    : `/products/category/${categorySlug}`
+    
+  const res = await api.get(url, {
+    params: {
+      page: params.page || 1,
+      limit: params.limit || 20
+    }
+  })
+  return res.data
+}
+
 
 export const getProductCustomization = async (slug) => {
   try {

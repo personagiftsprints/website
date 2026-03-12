@@ -93,6 +93,22 @@ export  const getAllCollections = async (req, res) => {
   }
 }
 
+export const getActiveCollections = async (req, res) => {
+  try {
+    const collections = await Collection.find({ isActive: true }).sort({ createdAt: -1 })
+
+    res.json({
+      success: true,
+      data: collections
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 export const getCollectionById = async (req, res) => {
   try {
     const { id } = req.params
@@ -242,6 +258,32 @@ export const deleteCollection = async (req, res) => {
     res.json({
       success: true,
       message: "Collection deleted successfully"
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+export const toggleCollectionStatus = async (req, res) => {
+  try {
+    const collection = await Collection.findById(req.params.id)
+
+    if (!collection) {
+      return res.status(404).json({
+        success: false,
+        message: "Collection not found"
+      })
+    }
+
+    collection.isActive = !collection.isActive
+    await collection.save()
+
+    res.json({
+      success: true,
+      data: collection
     })
   } catch (error) {
     res.status(500).json({

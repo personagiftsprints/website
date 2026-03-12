@@ -390,6 +390,7 @@ export const getAllProducts = async (req, res) => {
     const [products, total] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1 })
+        .populate('category subcategory')
         .skip(skip)
         .limit(limit),
       Product.countDocuments(filter)
@@ -419,6 +420,7 @@ export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('customization.printConfig.configId')
+      .populate('category subcategory')
 
     if (!product) {
       return res.status(404).json({
@@ -447,7 +449,9 @@ export const getProductBySlug = async (req, res) => {
     const product = await Product.findOne({ 
       slug: req.params.slug,
       isActive: true 
-    }).populate('customization.printConfig.configId')
+    })
+    .populate('customization.printConfig.configId')
+    .populate('category subcategory')
 
     if (!product) {
       return res.status(404).json({
@@ -663,6 +667,7 @@ export const getProductsByType = async (req, res) => {
     const [products, total] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1 })
+        .populate('category subcategory')
         .skip(skip)
         .limit(limit),
       Product.countDocuments(filter)
@@ -683,6 +688,69 @@ export const getProductsByType = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch products by type"
+    })
+  }
+}
+
+import Category from '../models/Category.js'
+import Subcategory from '../models/Subcategory.js'
+
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categorySlug, subcategorySlug } = req.params
+    const page = Math.max(parseInt(req.query.page) || 1, 1)
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50)
+    const skip = (page - 1) * limit
+
+    const category = await Category.findOne({ slug: categorySlug })
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found' })
+    }
+
+    const filter = {
+      category: category._id,
+      isActive: true
+    }
+
+    let pageTitle = category.name
+    let subcategory = null
+
+    if (subcategorySlug) {
+      subcategory = await Subcategory.findOne({ slug: subcategorySlug, category: category._id })
+      if (!subcategory) {
+        return res.status(404).json({ success: false, message: 'Subcategory not found' })
+      }
+      filter.subcategory = subcategory._id
+      pageTitle = `${subcategory.name} - ${category.name}`
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1 })
+        .populate('category subcategory')
+        .skip(skip)
+        .limit(limit),
+      Product.countDocuments(filter)
+    ])
+
+    res.json({
+      success: true,
+      data: products,
+      pageTitle,
+      category,
+      subcategory,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error("Get products by category error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch products by category"
     })
   }
 }

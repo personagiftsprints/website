@@ -42,12 +42,17 @@ export default function CategorySection({
       className={`bg-white ${roundedClass} border border-gray-200 overflow-hidden hover:shadow-lg transition`}
     >
       <div className={`relative aspect-square bg-gray-100 ${roundedClass}`}>
-        <Image
-          src={product.thumbnail}
-          alt={product.name}
-          fill
-          className="object-cover"
-        />
+        {(product.thumbnail || product.images?.[0]?.url) ? (
+          <img
+            src={product.thumbnail || product.images?.[0]?.url}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            No Image
+          </div>
+        )}
       </div>
 
       <div className="p-3">

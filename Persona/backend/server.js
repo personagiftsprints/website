@@ -12,6 +12,8 @@ import adminRoutes from "./src/routes/admin.routes.js"
 import paymentRoutes from "./src/routes/payment.routes.js"
 import orderRoutes from "./src/routes/order.routes.js"
 import collectionRoutes from "./src/routes/collection.routes.js"
+import categoryRoutes from "./src/routes/category.routes.js"
+import eventRoutes from "./src/routes/event.routes.js"
 import { connectDB } from "./src/config/db.js"
 
 const app = express()
@@ -56,6 +58,8 @@ app.use("/api/admin", adminRoutes)
 app.use("/api/payment", paymentRoutes)
 app.use("/api/collections", collectionRoutes)
 app.use("/api/orders", orderRoutes)
+app.use("/api/categories", categoryRoutes)
+app.use("/api/events", eventRoutes)
 
 /* ---------------- HEALTH ---------------- */
 app.get("/", (req, res) => {
