@@ -98,6 +98,9 @@ export default function EditProductPage() {
   const [variants, setVariants] = useState([])
   const [images, setImages] = useState([])
 
+  const [categoriesList, setCategoriesList] = useState([])
+  const [subcategoriesMap, setSubcategoriesMap] = useState({})
+
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -105,7 +108,9 @@ export default function EditProductPage() {
     basePrice: "",
     specialPrice: "",
     stockQuantity: "",
-    isActive: true
+    isActive: true,
+    category: "",
+    subcategory: ""
   })
 
   const fileInputRef = useRef(null)
@@ -122,6 +127,21 @@ export default function EditProductPage() {
   /* ---------------- LOAD PRODUCT ---------------- */
 
   useEffect(() => {
+    import("@/services/category.service").then(module => {
+      module.getCategories().then(res => res.success && setCategoriesList(res.data))
+      module.getSubcategories().then(res => {
+        if (res.success) {
+          const map = {}
+          res.data.forEach(sub => {
+            const catId = sub.category._id || sub.category
+            if (!map[catId]) map[catId] = []
+            map[catId].push(sub)
+          })
+          setSubcategoriesMap(map)
+        }
+      })
+    })
+
     getProductById(id)
       .then(res => {
         const p = res.data
@@ -134,7 +154,9 @@ export default function EditProductPage() {
           basePrice: String(p.pricing.basePrice),
           specialPrice: p.pricing.specialPrice?.toString() || "",
           stockQuantity: String(p.inventory.stockQuantity || 0),
-          isActive: p.isActive
+          isActive: p.isActive,
+          category: p.category?._id || p.category || "",
+          subcategory: p.subcategory?._id || p.subcategory || ""
         })
 
         if (p.type === "tshirt" && p.productConfig?.variants) {
@@ -230,6 +252,8 @@ export default function EditProductPage() {
         description: form.description,
         material: form.material,
         isActive: form.isActive,
+        category: form.category || undefined,
+        subcategory: form.subcategory || undefined,
         pricing: {
           basePrice: Number(form.basePrice),
           specialPrice: form.specialPrice
@@ -376,6 +400,41 @@ export default function EditProductPage() {
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     placeholder="e.g., 100% Cotton"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Category *
+                    </label>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm({ ...form, category: e.target.value, subcategory: "" })}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      required
+                    >
+                      <option value="">Select category</option>
+                      {categoriesList.map(cat => (
+                        <option key={cat._id} value={cat._id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subcategory
+                    </label>
+                    <select
+                      value={form.subcategory}
+                      onChange={e => setForm({ ...form, subcategory: e.target.value })}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    >
+                      <option value="">Select subcategory</option>
+                      {(subcategoriesMap[form.category] || []).map(sub => (
+                        <option key={sub._id} value={sub._id}>{sub.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

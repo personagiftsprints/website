@@ -1,11 +1,13 @@
 "use client"
-
+import CategoryBar from "@/components/common/CategoryBar"
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { montserratBold } from "@/lib/fonts"
 import { ShoppingCart, ChevronDown, ShieldCheck, Mail, Search, X } from "lucide-react"
 import { getBanner } from "@/services/home-content.service"
+import { getCategories, getSubcategories } from "@/services/category.service"
+import { getEvents } from "@/services/event.service"
 import Logo from "@/assets/icons/logo.png"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
@@ -134,8 +136,55 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [categories, setCategories] = useState([])
+  const [subcategoriesMap, setSubcategoriesMap] = useState({})
+  const [events, setEvents] = useState([])
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false)
   const searchInputRef = useRef(null)
   const router = useRouter()
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const catRes = await getCategories({ activeOnly: true })
+        const subRes = await getSubcategories({ activeOnly: true })
+        if (catRes && Array.isArray(catRes)) setCategories(catRes)
+        else if (catRes?.data && Array.isArray(catRes.data)) setCategories(catRes.data)
+          
+        if (subRes && Array.isArray(subRes)) {
+          const map = {}
+          subRes.forEach(sub => {
+            const catId = sub.category?._id || sub.category
+            if (!map[catId]) map[catId] = []
+            map[catId].push(sub)
+          })
+          setSubcategoriesMap(map)
+        } else if (subRes && Array.isArray(subRes.data)) {
+           const map = {}
+           subRes.data.forEach(sub => {
+             const catId = sub.category?._id || sub.category
+             if (!map[catId]) map[catId] = []
+             map[catId].push(sub)
+           })
+           setSubcategoriesMap(map)
+        }
+      } catch (e) {
+        console.error("Failed to load categories")
+      }
+    }
+
+    const fetchEvts = async () => {
+      try {
+        const evRes = await getEvents({ activeOnly: true })
+        if (evRes) setEvents(evRes)
+      } catch (e) {
+        console.error("Failed to load events")
+      }
+    }
+
+    fetchCats()
+    fetchEvts()
+  }, [])
 
   // Auto-focus input when search overlay opens
   useEffect(() => {
@@ -172,15 +221,27 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white">
+      <header className="sticky top-0 z-[10000] bg-white">
         <OfferBanner />
 
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <nav className="hidden lg:flex gap-8 text-sm text-gray-700">
-            <Link href="/">Home</Link>
-            <Link href="/about">About</Link>
-            <Link href="/collections">Collection</Link>
-            <Link href="/trending">Trending</Link>
+          <nav className="hidden lg:flex gap-8 text-sm text-gray-700 items-center">
+            <Link href="/" className="hover:text-black">Home</Link>
+            
+         
+            <Link href="/about" className="hover:text-black">About</Link>
+            <Link href="/collections" className="hover:text-black">Collection</Link>
+            <Link href="/trending" className="hover:text-black">Trending</Link>
+            
+            {events.map(evt => (
+              <Link 
+                key={evt._id} 
+                href={`/event/${evt.slug}`} 
+                className="text-[#f9a51b] font-bold hover:text-orange-600 transition"
+              >
+                {evt.title}
+              </Link>
+            ))}
           </nav>
 
           <Link
@@ -237,6 +298,12 @@ export default function Navbar() {
             </button>
           </div>
         </div>
+
+  <CategoryBar
+     categories={categories}
+     subcategoriesMap={subcategoriesMap}
+  />
+
       </header>
 
       {/* ── Full-Screen Search Overlay (slides from top) ── */}
@@ -364,6 +431,12 @@ export default function Navbar() {
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Trending
                 </Link>
+                {events.map(evt => (
+                  <Link key={`mobile-${evt._id}`} href={`/event/${evt.slug}`} onClick={() => setOpen(false)}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl text-[#f9a51b] font-bold hover:bg-orange-50 transition">
+                    {evt.title}
+                  </Link>
+                ))}
                 <Link href="/order" onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Orders

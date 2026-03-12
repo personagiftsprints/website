@@ -1,6 +1,7 @@
-
 import Product from '../models/Product.model.js'
 import { PRODUCT_TYPE_ATTRIBUTES } from '../constants/productAttributes.js'
+import Category from '../models/Category.js'
+import Subcategory from '../models/Subcategory.js'
 const generateSku = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let sku = ''
@@ -390,6 +391,7 @@ export const getAllProducts = async (req, res) => {
     const [products, total] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1 })
+        .populate('category subcategory')
         .skip(skip)
         .limit(limit),
       Product.countDocuments(filter)
@@ -419,6 +421,7 @@ export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('customization.printConfig.configId')
+      .populate('category subcategory')
 
     if (!product) {
       return res.status(404).json({
@@ -447,7 +450,9 @@ export const getProductBySlug = async (req, res) => {
     const product = await Product.findOne({ 
       slug: req.params.slug,
       isActive: true 
-    }).populate('customization.printConfig.configId')
+    })
+    .populate('customization.printConfig.configId')
+    .populate('category subcategory')
 
     if (!product) {
       return res.status(404).json({
@@ -530,58 +535,43 @@ export const updateProduct = async (req, res) => {
 
 export const getLandingProducts = async (req, res) => {
   try {
-    const [trending, tshirts, mugs,mobileCase,normal] = await Promise.all([
-      Product.find({ isActive: true })
-        .sort({ 'inventory.soldQuantity': -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing type'),
+    const trending = await Product.find({ isActive: true })
+      .sort({ 'inventory.soldQuantity': -1 })
+      .limit(10)
+      .select('name slug thumbnail pricing type');
 
-      Product.find({ isActive: true, type: 'tshirt' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing'),
+    // Fetch all active subcategories
+    const subcategories = await Subcategory.find({ isActive: true }).sort({ name: 1 });
 
-      Product.find({ isActive: true, type: 'mug' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing'),
-     Product.find({ isActive: true, type: 'mobileCase' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing'),
-    Product.find({ isActive: true, type: 'normal' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing'),
+    // Fetch products for each subcategory (limit to 10 for landing page)
+    const subcategoryProducts = await Promise.all(
+      subcategories.map(async (sub) => {
+        const products = await Product.find({ subcategory: sub._id, isActive: true })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .select('name slug thumbnail pricing');
+        
+        return {
+          _id: sub._id,
+          name: sub.name,
+          slug: sub.slug,
+          products
+        };
+      })
+    );
 
-      Product.find({ isActive: true, type: 'hoodie' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing'),
-
-      Product.find({ isActive: true, type: '3Dcrystal' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing'),
-        Product.find({ isActive: true, type: 'frame' })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('name slug thumbnail pricing')
-    ])
-
-    
+    // Filter out subcategories with no products
+    const filteredSubcategories = subcategoryProducts.filter(item => item.products.length > 0);
 
     return res.status(200).json({
       success: true,
       data: {
         trending,
-        tshirts,
-        mugs,
-        normal,mobileCase
-        
+        subcategories: filteredSubcategories
       }
-    })
+    });
   } catch (error) {
+    console.error('getLandingProducts error:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch landing products',
@@ -663,6 +653,7 @@ export const getProductsByType = async (req, res) => {
     const [products, total] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1 })
+        .populate('category subcategory')
         .skip(skip)
         .limit(limit),
       Product.countDocuments(filter)
@@ -683,6 +674,68 @@ export const getProductsByType = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch products by type"
+    })
+  }
+}
+
+
+
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categorySlug, subcategorySlug } = req.params
+    const page = Math.max(parseInt(req.query.page) || 1, 1)
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50)
+    const skip = (page - 1) * limit
+
+    const category = await Category.findOne({ slug: categorySlug })
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found' })
+    }
+
+    const filter = {
+      category: category._id,
+      isActive: true
+    }
+
+    let pageTitle = category.name
+    let subcategory = null
+
+    if (subcategorySlug) {
+      subcategory = await Subcategory.findOne({ slug: subcategorySlug, category: category._id })
+      if (!subcategory) {
+        return res.status(404).json({ success: false, message: 'Subcategory not found' })
+      }
+      filter.subcategory = subcategory._id
+      pageTitle = `${subcategory.name} - ${category.name}`
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1 })
+        .populate('category subcategory')
+        .skip(skip)
+        .limit(limit),
+      Product.countDocuments(filter)
+    ])
+
+    res.json({
+      success: true,
+      data: products,
+      pageTitle,
+      category,
+      subcategory,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+  } catch (error) {
+    console.error("Get products by category error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch products by category"
     })
   }
 }

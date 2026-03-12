@@ -15,7 +15,8 @@ import CategorySection from "@/components/CategorySection"
 
 
 export default function Home() {
-  const [bannerUrl, setBannerUrl] = useState(null)
+  const [banners, setBanners] = useState([])
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
   const controls = useAnimation()
 const [trendingProductsData, setTrendingProducts] = useState([])
 const [productsData, setProductsData] = useState(null)
@@ -39,12 +40,26 @@ const isLoading = !productsData
   useEffect(() => {
     getBanner()
       .then(data => {
-        if (data?.homeBanner?.imageUrl) {
-          setBannerUrl(data.homeBanner.imageUrl)
+        let items = [];
+        if (data?.homeBanners) items = data.homeBanners;
+        else if (data?.data?.homeBanners) items = data.data.homeBanners;
+        else if (data?.homeBanner?.imageUrl) items = [data.homeBanner];
+        else if (data?.data?.homeBanner?.imageUrl) items = [data.data.homeBanner];
+        
+        if (items && items.length > 0) {
+          setBanners(items);
         }
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prev => (prev + 1) % banners.length)
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [banners.length])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -61,16 +76,41 @@ const isLoading = !productsData
     <div className="w-full min-h-screen flex flex-col bg-white">
       <Navbar />
 
-      <main className="w-full relative h-[20vh] lg:h-[60vh] lg:px-6 px-[2px] pt-6">
-        {bannerUrl ? (
-          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl ">
-            <Image
-              src={bannerUrl}
-              alt="Persona Banner"
-              fill
-              priority
-              className="object-cover"
-            />
+      <main className="w-full relative h-[20vh] lg:h-[60vh] lg:px-6 px-[2px] pt-6 group">
+        {banners.length > 0 ? (
+          <div className="relative w-full h-full overflow-hidden lg:rounded-3xl">
+            {banners.map((banner, index) => (
+              <div
+                key={banner._id || index}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentBannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                }`}
+              >
+                <Image
+                  src={banner.imageUrl}
+                  alt={`Persona Banner ${index + 1}`}
+                  fill
+                  priority={index === 0}
+                  className="object-cover"
+                />
+              </div>
+            ))}
+            
+            {/* Pagination Dots */}
+            {banners.length > 1 && (
+              <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-20">
+                {banners.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentBannerIndex(index)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${
+                      index === currentBannerIndex ? "bg-white w-8 " : "bg-white/50 hover:bg-white/80"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           
@@ -118,51 +158,22 @@ const isLoading = !productsData
 
 
 <div className="lg:px-32 pb-20">
+  <CategorySection
+    title="TRENDING PRODUCTS"
+    products={productsData?.trending || []}
+    loading={isLoading}
+  />
+
+  {productsData?.subcategories?.map((sub) => (
     <CategorySection
-  title="TRENDING PRODUCTS"
-  products={productsData?.trending || []}
-  loading={isLoading}
-/>
-
-<CategorySection
-  title="TSHIRTS"
-  products={productsData?.tshirts || []}
-  loading={isLoading}
-  columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
-/>
-
-<CategorySection
-  title="MUGS"
-  products={productsData?.mugs || []}
-  loading={isLoading}
-  columns="grid-cols-2 sm:grid-cols-4 lg:grid-cols-4"
-/>
-
-
-
-
-<CategorySection
-  title="MOBILE COVER"
-  products={productsData?.mobileCase || []}
-  loading={isLoading}
-  columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-/>
-
-
-<CategorySection
-  title="NORMAL"
-  products={productsData?.normal || []}
-  loading={isLoading}
-  columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-/>
-
-
-
-
-
-
+      key={sub._id}
+      title={sub.name.toUpperCase()}
+      products={sub.products || []}
+      loading={isLoading}
+      columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+    />
+  ))}
 </div>
-
 
       <Footer />
 

@@ -13,7 +13,8 @@ import {
   getSimilarProducts,
   getStockManagement,
   getProductBySku,
-  getProductCustomization
+  getProductCustomization,
+  getProductsByCategory
 } from '../controllers/product.controller.js'
 import { searchProducts } from '../controllers/product.controller.js'
 const router = express.Router()
@@ -26,6 +27,8 @@ router.get('/', getAllProducts)
 router.get('/search', searchProducts)
 router.get('/trending-products', getLandingProducts)
 router.get('/type/:type', getProductsByType)   // 👈 ADD THIS
+router.get('/category/:categorySlug', getProductsByCategory)
+router.get('/category/:categorySlug/:subcategorySlug', getProductsByCategory)
 router.get('/slug/:slug', getProductBySlug)
 router.get('/:id', getProductById)
 router.get('/product-attributes/:type', getProductAttributesByType )

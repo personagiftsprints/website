@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { getAllCollections, deleteCollection } from "@/services/collection.service"
+import { Eye, EyeOff, Trash2 } from "lucide-react"
+import { getAllCollections, deleteCollection, toggleCollectionStatus } from "@/services/collection.service"
 
 export default function CollectionsPage() {
   const router = useRouter()
@@ -14,13 +15,16 @@ export default function CollectionsPage() {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const response = await getAllCollections(1, 50)
+        const response = await getAllCollections(1, 100)
 
-        if (response.success) {
-          setCollections(response.data)
+        if (response?.data) {
+          setCollections(response.data.data || response.data)
+        } else if (response?.success) {
+           setCollections(response.data)
         } else {
-          setCollections([])
+           setCollections(response)
         }
+        
       } catch (error) {
         console.error("Failed to load collections", error)
         setCollections([])
@@ -31,6 +35,21 @@ export default function CollectionsPage() {
 
     fetchCollections()
   }, [])
+
+  const reloadCollections = async () => {
+    try {
+      const response = await getAllCollections(1, 100)
+      if (response?.data) {
+          setCollections(response.data.data || response.data)
+      } else if (response?.success) {
+          setCollections(response.data)
+      } else {
+          setCollections(response)
+      }
+    } catch (error) {
+       console.error(error)
+    }
+  }
 
   const handleOpenCollection = (collection) => {
     const url = collection.slug
@@ -51,10 +70,11 @@ export default function CollectionsPage() {
 
       const res = await deleteCollection(id)
 
-      if (res.success) {
-        setCollections(prev =>
-          prev.filter(c => c._id !== id)
-        )
+      if (res?.data?.success || res?.success || res?.status === 200) {
+        setCollections(prev => {
+          let arr = Array.isArray(prev) ? prev : (prev.data || prev.data?.data || [])
+          return arr.filter(c => c._id !== id)
+        })
       } else {
         alert("Failed to delete collection")
       }
@@ -65,6 +85,20 @@ export default function CollectionsPage() {
       setDeletingId(null)
     }
   }
+
+  const handleToggleStatus = async (e, id) => {
+    e.stopPropagation()
+    try {
+      await toggleCollectionStatus(id)
+      reloadCollections()
+    } catch (error) {
+      alert("Error toggling collection status")
+    }
+  }
+
+  // Helper to ensure collections is mapped properly
+  const cols = Array.isArray(collections) ? collections : (collections?.data?.data || collections?.data || [])
+
 
   return (
     <div className="p-6">
@@ -101,7 +135,7 @@ export default function CollectionsPage() {
             </thead>
 
             <tbody>
-              {collections.map((collection) => (
+              {cols.map((collection) => (
                 <tr
                   key={collection._id}
                   onClick={() => handleOpenCollection(collection)}
@@ -112,34 +146,35 @@ export default function CollectionsPage() {
                   </td>
 
                   <td className="p-3">
-                    {collection.type}
+                    {collection.type === 'PRODUCT_TYPE' ? 'Product Type' : 'Manual'}
                   </td>
 
                   <td className="p-3">
-                    {collection.isActive ? (
-                      <span className="text-green-600 font-medium">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="text-red-500">
-                        Inactive
-                      </span>
-                    )}
+                    <span className={`px-2 py-1 text-xs rounded-full ${collection.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {collection.isActive !== false ? 'Active' : 'Disabled'}
+                    </span>
                   </td>
 
                   <td className="p-3 text-sm text-gray-500">
                     {new Date(collection.createdAt).toLocaleDateString()}
                   </td>
 
-                  <td className="p-3">
+                  <td className="p-3 flex items-center space-x-3">
+                    <button
+                      onClick={(e) => handleToggleStatus(e, collection._id)}
+                      className={`${collection.isActive !== false ? 'text-gray-500 hover:text-gray-700' : 'text-green-500 hover:text-green-700'}`}
+                      title={collection.isActive !== false ? "Disable" : "Enable"}
+                    >
+                      {collection.isActive !== false ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                    
                     <button
                       onClick={(e) => handleDelete(e, collection._id)}
                       disabled={deletingId === collection._id}
-                      className="text-red-600 hover:underline disabled:opacity-50"
+                      className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                      title="Delete"
                     >
-                      {deletingId === collection._id
-                        ? "Deleting..."
-                        : "Delete"}
+                      {deletingId === collection._id ? "..." : <Trash2 size={18} />}
                     </button>
                   </td>
 

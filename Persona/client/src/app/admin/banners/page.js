@@ -3,9 +3,12 @@
 import {
   getBanner,
   updateHomeBanner,
+  addHomeBanner,
+  deleteHomeBanner,
   updateDiscountBanner
 } from "@/services/home-content.service"
 import { useState, useCallback, useEffect } from "react"
+import { Trash2 } from "lucide-react"
 import Cropper from "react-easy-crop"
 
 const BANNER_WIDTH = 8063
@@ -40,7 +43,7 @@ function getCroppedImg(imageSrc, cropPixels) {
 }
 
 function HomeBanner() {
-  const [currentBanner, setCurrentBanner] = useState(null)
+  const [banners, setBanners] = useState([])
   const [imageSrc, setImageSrc] = useState(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -50,9 +53,17 @@ function HomeBanner() {
   useEffect(() => {
     getBanner()
       .then(res => {
-        if (res?.homeBanner?.imageUrl) {
-          setCurrentBanner(res.homeBanner.imageUrl)
+        let items = []
+        if (res?.homeBanners) {
+           items = res.homeBanners
+        } else if (res?.homeBanners) {
+           items = res.homeBanners
+        } else if (res?.homeBanner?.imageUrl) {
+           items = [res.homeBanner]
+        } else if (res?.homeBanner?.imageUrl) {
+           items = [res.homeBanner]
         }
+        setBanners(items)
       })
       .catch(() => {})
   }, [])
@@ -82,30 +93,61 @@ function HomeBanner() {
     const formData = new FormData()
     formData.append("bannerImage", file)
 
-    const res = await updateHomeBanner(formData)
-    setCurrentBanner(res.homeBanner.imageUrl)
+    const res = await addHomeBanner(formData)
+    
+    // Attempt to parse response format depending on axios setup
+    if (res?.homeBanners) setBanners(res.homeBanners)
+    else if (res?.homeBanners) setBanners(res.homeBanners)
+
     setImageSrc(null)
     setSaving(false)
   }
 
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this banner?")) return
+    try {
+      const res = await deleteHomeBanner(id)
+      if (res?.homeBanners) setBanners(res.homeBanners)
+      else if (res?.homeBanners) setBanners(res.homeBanners)
+      else setBanners(prev => prev.filter(b => b._id !== id))
+    } catch (e) {
+      alert("Failed to delete banner")
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="text-sm font-medium">Current Banner</div>
+      <div className="text-sm font-medium">Current Banners</div>
 
-      <div className="w-full h-65 md:h-90 rounded-xl border overflow-hidden bg-gray-100 flex items-center justify-center">
-        {currentBanner ? (
-          <img src={currentBanner} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-sm text-gray-500">
-            Banner size required: 8063 × 2419
-          </span>
-        )}
+      {banners.length === 0 ? (
+        <div className="w-full h-32 rounded-xl border flex items-center justify-center bg-gray-50">
+          <span className="text-sm text-gray-500">No banners uploaded yet. Size required: 8063 × 2419</span>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {banners.map((banner, i) => (
+             <div key={banner._id || i} className="relative group rounded-xl overflow-hidden border">
+                <div className="w-full h-40 md:h-64 bg-gray-100 flex items-center justify-center">
+                   <img src={banner.imageUrl} className="w-full h-full object-cover" />
+                </div>
+                <button
+                  onClick={() => handleDelete(banner._id)}
+                  className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-red-600"
+                >
+                  <Trash2 size={18} />
+                </button>
+             </div>
+          ))}
+        </div>
+      )}
+
+      <div className="pt-4 border-t mt-8">
+        <label className="block text-sm font-medium mb-3">Add New Banner</label>
+        <input type="file" accept="image/*" onChange={onSelectFile} />
       </div>
 
-      <input type="file" accept="image/*" onChange={onSelectFile} />
-
       {imageSrc && (
-        <div className="relative w-full h-105 bg-black rounded-xl overflow-hidden">
+        <div className="relative w-full h-[600px] bg-black rounded-xl overflow-hidden mt-4">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -121,13 +163,13 @@ function HomeBanner() {
             <button
               onClick={saveCrop}
               disabled={saving}
-              className="px-4 py-2 bg-white rounded-lg font-medium"
+              className="px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Banner"}
             </button>
             <button
               onClick={() => setImageSrc(null)}
-              className="px-4 py-2 bg-gray-300 rounded-lg"
+              className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition"
             >
               Cancel
             </button>

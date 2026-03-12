@@ -5,8 +5,7 @@ const homeBannerSchema = new mongoose.Schema(
     imageUrl: { type: String, required: true },
     width: { type: Number, default: 8063 },
     height: { type: Number, default: 2419 }
-  },
-  { _id: false }
+  }
 )
 
 const discountBannerSchema = new mongoose.Schema(
@@ -19,7 +18,8 @@ const discountBannerSchema = new mongoose.Schema(
 
 const homeContentSchema = new mongoose.Schema(
   {
-    homeBanner: homeBannerSchema,
+    homeBanner: { type: mongoose.Schema.Types.Mixed }, // legacy single obj
+    homeBanners: [homeBannerSchema],
     discountBanner: discountBannerSchema
   },
   { timestamps: true }
