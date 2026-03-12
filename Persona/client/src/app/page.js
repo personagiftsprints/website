@@ -158,51 +158,22 @@ const isLoading = !productsData
 
 
 <div className="lg:px-32 pb-20">
+  <CategorySection
+    title="TRENDING PRODUCTS"
+    products={productsData?.trending || []}
+    loading={isLoading}
+  />
+
+  {productsData?.subcategories?.map((sub) => (
     <CategorySection
-  title="TRENDING PRODUCTS"
-  products={productsData?.trending || []}
-  loading={isLoading}
-/>
-
-<CategorySection
-  title="TSHIRTS"
-  products={productsData?.tshirts || []}
-  loading={isLoading}
-  columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
-/>
-
-<CategorySection
-  title="MUGS"
-  products={productsData?.mugs || []}
-  loading={isLoading}
-  columns="grid-cols-2 sm:grid-cols-4 lg:grid-cols-4"
-/>
-
-
-
-
-<CategorySection
-  title="MOBILE COVER"
-  products={productsData?.mobileCase || []}
-  loading={isLoading}
-  columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-/>
-
-
-<CategorySection
-  title="NORMAL"
-  products={productsData?.normal || []}
-  loading={isLoading}
-  columns="grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-/>
-
-
-
-
-
-
+      key={sub._id}
+      title={sub.name.toUpperCase()}
+      products={sub.products || []}
+      loading={isLoading}
+      columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+    />
+  ))}
 </div>
-
 
       <Footer />
 

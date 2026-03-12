@@ -3,12 +3,18 @@
 import Link from "next/link"
 import { useState } from "react"
 import { ChevronRight } from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function CategoryBar({ categories, subcategoriesMap }) {
   const [active, setActive] = useState(null)
 
   return (
-    <div className="border-t border-gray-100 bg-white">
+    <motion.div
+      initial={{ y: -50, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="border-t border-gray-100 bg-white"
+    >
 
       <div className="max-w-7xl mx-auto px-4">
 
@@ -70,6 +76,6 @@ export default function CategoryBar({ categories, subcategoriesMap }) {
 
       </div>
       
-    </div>
+    </motion.div>
   )
 }
