@@ -112,3 +112,11 @@ input[type="number"] {
 .font-montserrat {
   font-family: var(--font-montserrat);
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

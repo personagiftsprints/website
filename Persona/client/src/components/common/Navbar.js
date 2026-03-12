@@ -142,6 +142,7 @@ export default function Navbar() {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false)
   const searchInputRef = useRef(null)
   const router = useRouter()
+  const [expandedCat, setExpandedCat] = useState(null)
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -244,6 +245,13 @@ export default function Navbar() {
             ))}
           </nav>
 
+          <button
+            onClick={() => setOpen(true)}
+            className="lg:hidden w-9 h-9 flex items-center justify-center -ml-2"
+          >
+            ☰
+          </button>
+
           <Link
             href="/"
             className={`${montserratBold.className} flex items-center gap-2 text-2xl sm:text-3xl font-extrabold text-[#f9a51b]`}
@@ -290,25 +298,23 @@ export default function Navbar() {
 
             <UserMenuDesktop />
 
-            <button
-              onClick={() => setOpen(true)}
-              className="lg:hidden w-9 h-9 flex items-center justify-center"
-            >
-              ☰
-            </button>
           </div>
         </div>
 
-  <CategoryBar
+<div className="hidden lg:block">
+    <CategoryBar
      categories={categories}
      subcategoriesMap={subcategoriesMap}
   />
+
+</div>
+
 
       </header>
 
       {/* ── Full-Screen Search Overlay (slides from top) ── */}
       <div
-        className={`fixed inset-0 z-[100] transition-all duration-300 ease-in-out ${
+        className={`fixed inset-0 z-[10005] transition-all duration-300 ease-in-out ${
           searchOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -390,10 +396,10 @@ export default function Navbar() {
         <>
           <div
             onClick={() => setOpen(false)}
-            className="fixed inset-0 bg-black/40 z-40"
+            className="fixed inset-0 bg-black/40 z-[10001]"
           />
 
-          <aside className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl">
+          <aside className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-white z-[10002] shadow-2xl">
             <div className="h-full flex flex-col bg-white">
 
               {/* Profile Header */}
@@ -418,7 +424,7 @@ export default function Navbar() {
               </div>
 
               {/* Navigation */}
-              <nav className="flex-1 px-4 py-6 space-y-2">
+              <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
                 <Link href="/" onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Home
@@ -437,6 +443,49 @@ export default function Navbar() {
                     {evt.title}
                   </Link>
                 ))}
+
+                <div className="pt-8 pb-2 px-4 shadow-sm">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Shop by Category</p>
+                </div>
+
+                {categories.map(cat => {
+                   const subs = subcategoriesMap[cat._id] || [];
+                   const isExpanded = expandedCat === cat._id;
+                   
+                   return (
+                     <div key={`drawer-${cat._id}`} className="space-y-1">
+                        <button 
+                          onClick={() => setExpandedCat(isExpanded ? null : cat._id)}
+                          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 ${isExpanded ? "bg-orange-50 text-orange-600" : "text-gray-700 hover:bg-gray-50"}`}
+                        >
+                          <span className="font-medium">{cat.name}</span>
+                          {subs.length > 0 && (
+                            <ChevronDown size={16} className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
+                          )}
+                        </button>
+                        
+                        {isExpanded && subs.length > 0 && (
+                          <div className="ml-4 pl-4 border-l border-orange-100 space-y-1">
+                             {subs.map(sub => (
+                               <Link
+                                 key={`drawer-sub-${sub._id}`}
+                                 href={`/category/${cat.slug}/${sub.slug}`}
+                                 onClick={() => setOpen(false)}
+                                 className="block py-2.5 text-sm text-gray-500 hover:text-orange-500 transition-colors"
+                               >
+                                 {sub.name}
+                               </Link>
+                             ))}
+                          </div>
+                        )}
+                     </div>
+                   )
+                })}
+
+                <div className="pt-8 pb-2 px-4">
+                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Quick Links</p>
+                </div>
+
                 <Link href="/order" onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Orders

@@ -18,7 +18,7 @@ export default function CategoryBar({ categories, subcategoriesMap }) {
 
       <div className="max-w-7xl mx-auto px-4">
 
-       <ul className="flex justify-center gap-10 text-sm font-medium text-gray-500 h-12 items-center overflow-visible ">
+       <ul className="flex lg:justify-center justify-start gap-6 lg:gap-10 text-sm font-medium text-gray-500 h-14 items-center overflow-x-auto no-scrollbar scroll-smooth px-4 lg:px-0">
 
           {categories.map(cat => {
             const subs = subcategoriesMap[cat._id] || []
