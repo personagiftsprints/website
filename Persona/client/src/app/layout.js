@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext"
 import AuthDrawer from "@/components/AuthDrawer"
 import CookieConsent from "@/components/CookieConsent"
 import CelebrationOverlay from "@/components/CelebrationOverlay"
+import MaintenanceOverlay from "@/components/common/MaintenanceOverlay"
 import { Montserrat } from "next/font/google"
 import { Instagram } from "lucide-react"
 import "./globals.css"
@@ -86,6 +87,7 @@ export default function RootLayout({ children }) {
         />
 
         <AuthProvider>
+          <MaintenanceOverlay />
           <CelebrationOverlay />
           {children}
           <CookieConsent />
