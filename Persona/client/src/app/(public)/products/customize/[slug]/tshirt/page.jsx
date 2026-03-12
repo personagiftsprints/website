@@ -7,6 +7,7 @@ import tshirtData from "@/assets/print-models/tshirt.json"
 import { getProductBySlug, uploadImagesAPI } from "@/services/product.service"
 import { getPrintConfigBySlug } from "@/services/printArea.service"
 import { useRouter } from "next/navigation"
+import DesignLibraryModal from "@/components/design/DesignLibraryModal"
 
 export default function TshirtColorPreview() {
   const { slug } = useParams()
@@ -31,6 +32,8 @@ export default function TshirtColorPreview() {
     back: null
   })
   const [isConfirming, setIsConfirming] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [libraryDesigns, setLibraryDesigns] = useState({}) // Stores design objects from library
 
   // New state for controlling area visibility
   const [showCenterChest, setShowCenterChest] = useState(false)
@@ -239,6 +242,11 @@ const getStructuredProductDataForCart = (cloudinaryUrlsData) => {
           source: 'cloudinary',
           position: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
         },
+        library_design: libraryDesigns[area.id] ? {
+          is_library: true,
+          id: libraryDesigns[area.id]._id,
+          name: libraryDesigns[area.id].name
+        } : null,
         view: 'front'
       }
     } else if (textLayers[area.id]?.content) {
@@ -277,6 +285,11 @@ const getStructuredProductDataForCart = (cloudinaryUrlsData) => {
           source: 'cloudinary',
           position: imagePositions[area.id] || { x: 0, y: 0, scale: 0.5, rotate: 0 }
         },
+        library_design: libraryDesigns[area.id] ? {
+          is_library: true,
+          id: libraryDesigns[area.id]._id,
+          name: libraryDesigns[area.id].name
+        } : null,
         view: 'back'
       }
     } else if (textLayers[area.id]?.content) {
@@ -746,11 +759,20 @@ const addDesignToCart = async (cloudinaryUrlsData) => {
     const uploadedUrls = {}
 
     try {
-      // Check if there are any images to upload
-      const imageFiles = Object.values(uploadedImages)
+      // Check if there are any images to upload (only those that are File objects)
+      const imageFiles = Object.entries(uploadedImages)
+        .filter(([areaId, file]) => file instanceof File)
+        .map(([areaId, file]) => file)
+
+      // Get pre-existing remote URLs (from library)
+      Object.entries(imagePreviews).forEach(([areaId, url]) => {
+        if (url.startsWith('http')) {
+          uploadedUrls[areaId] = url
+        }
+      })
 
       if (imageFiles.length === 0) {
-        console.log('No images to upload')
+        console.log('No new images to upload, using existing remote URLs')
         return uploadedUrls
       }
 
@@ -977,6 +999,87 @@ const handlePreviewAndAddToCart = async () => {
     setSelectedArea(area || null)
   }
 
+  const handleLibrarySelect = (design) => {
+    console.log("🎨 Library design selected:", design)
+    try {
+      let areaToUse = selectedArea
+
+      // If no area selected, try to default to Center Chest or first available area
+      if (!areaToUse) {
+        const frontAreas = printConfig?.views?.front?.areas || []
+        const centerChest = frontAreas.find(a => a.id === 'center_chest' || a.name === 'Center Chest')
+        
+        if (centerChest && (showCenterChest || view !== 'front')) {
+          areaToUse = centerChest
+          setSelectedArea(centerChest)
+          console.log("📍 Auto-selected area:", centerChest.name)
+        } else if (currentViewAreas.length > 0) {
+          areaToUse = currentViewAreas[0]
+          setSelectedArea(currentViewAreas[0])
+          console.log("📍 Auto-selected first available area:", currentViewAreas[0].name)
+        }
+      }
+
+      if (!areaToUse) {
+        alert("Please select a print area first.")
+        return
+      }
+
+      const areaId = areaToUse.id
+      console.log("🎯 Applying design to area:", areaId)
+    
+      // Check if user can upload to a specific area (reuse same logic)
+      if (!canUploadToArea(areaId)) {
+        console.warn("🚫 Area upload blocked by business logic")
+        alert("You can only choose one area in the front view. Please remove the existing design first.")
+        return
+      }
+
+      if (imagePreviews[areaId]) {
+        if (!imagePreviews[areaId].startsWith('http')) {
+          URL.revokeObjectURL(imagePreviews[areaId])
+        }
+      }
+
+      // If front view, remove other designs just like regular upload
+      if (view === "front") {
+        const frontAreas = printConfig?.views?.front?.areas || []
+        frontAreas.forEach(area => {
+          if (area.id !== areaId && (uploadedImages[area.id] || libraryDesigns[area.id])) {
+            console.log("♻️ Removing existing design in other front area:", area.id)
+            removeImage(area.id)
+          }
+        })
+      }
+
+      setImagePreviews(prev => ({
+        ...prev,
+        [areaId]: design.imageUrl
+      }))
+
+      setLibraryDesigns(prev => ({
+        ...prev,
+        [areaId]: design
+      }))
+
+      // We set uploadedImages to a placeholder string to indicate this area is occupied
+      setUploadedImages(prev => ({
+        ...prev,
+        [areaId]: "LIBRARY_DESIGN" 
+      }))
+
+      setImagePositions(prev => ({
+        ...prev,
+        [areaId]: { x: 0, y: 0, scale: design.metadata?.defaultScale || 0.5, rotate: 0 }
+      }))
+
+      console.log("✅ Design applied successfully")
+    } catch (err) {
+      console.error("❌ Error applying library design:", err)
+      alert("Failed to apply design: " + err.message)
+    }
+  }
+
   const removeImage = (areaId) => {
     const previewUrl = imagePreviews[areaId]
     if (previewUrl) {
@@ -996,6 +1099,12 @@ const handlePreviewAndAddToCart = async () => {
     })
 
     setImagePositions(prev => {
+      const newState = { ...prev }
+      delete newState[areaId]
+      return newState
+    })
+
+    setLibraryDesigns(prev => {
       const newState = { ...prev }
       delete newState[areaId]
       return newState
@@ -1635,6 +1744,29 @@ const handlePreviewAndAddToCart = async () => {
               </div>
             </div>
 
+            {/* ✅ NEW: Design library trigger */}
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎨</span>
+                <div>
+                  <p className="text-sm font-bold text-orange-800">Confused about design?</p>
+                  <p className="text-[10px] text-orange-600">Choose from our professional library</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  // If in front view and no area selected, default to center chest
+                  if (view === "front" && !showCenterChest) {
+                    setShowCenterChest(true)
+                  }
+                  setShowLibrary(true)
+                }}
+                className="w-full py-2 bg-[#F9A51B] text-white rounded-lg font-bold text-sm hover:bg-orange-600 transition-all flex items-center justify-center gap-2"
+              >
+                Open Design Library
+              </button>
+            </div>
+
             {/* Size Selector */}
             <div className="w-full mt-6">
               <h4 className="font-semibold mb-3 text-sm">Size</h4>
@@ -2040,6 +2172,19 @@ const handlePreviewAndAddToCart = async () => {
                     onChange={(e) => handleImageUpload(e, selectedArea.id)}
                   />
                 </label>
+                
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-[1px] bg-gray-200"></div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR</span>
+                  <div className="flex-1 h-[1px] bg-gray-200"></div>
+                </div>
+
+                <button
+                  onClick={() => setShowLibrary(true)}
+                  className="w-full py-3 border-2 border-[#F9A51B] text-[#F9A51B] rounded-xl font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>🖼️</span> Choose from Gallery
+                </button>
 
                 {/* Text Controls */}
                 <div className="space-y-4">
@@ -2332,6 +2477,14 @@ const handlePreviewAndAddToCart = async () => {
           </div>
         </aside>
       </div>
+      {showLibrary && (
+        <DesignLibraryModal 
+          productType={product?.type || "tshirt"}
+          onSelect={handleLibrarySelect}
+          onClose={() => setShowLibrary(false)}
+          currentDesignUrl={imagePreviews[selectedArea?.id]}
+        />
+      )}
     </div>
   )
 }

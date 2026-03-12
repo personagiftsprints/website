@@ -190,6 +190,12 @@ const MobileCaseDesignDisplay = ({ item, orderNumber }) => {
             <div key={view} className="text-sm space-y-1">
               <p><span className="text-gray-500">View:</span> <span className="capitalize font-medium">{view}</span></p>
               <p><span className="text-gray-500">Area:</span> <span className="font-medium">{area.area?.replace(/_/g, ' ')}</span></p>
+              {area.library_design && (
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                  <span className="font-bold text-amber-800">Library Design:</span> {area.library_design.name}
+                  <span className="text-[10px] text-gray-500 ml-2">({area.library_design.id})</span>
+                </div>
+              )}
               {area.model && (
                 <p><span className="text-gray-500">Model:</span> <span className="font-medium">{area.model}</span></p>
               )}
@@ -792,7 +798,20 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
               </div>
 
 
-              <div className="p-4 bg-gray-50">
+              <div className="p-4 bg-gray-50 text-indigo-900 border-b">
+                {areaData?.library_design && (
+                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">🎨</span>
+                      <span className="font-bold text-amber-800 text-[10px] uppercase tracking-wider">Library Design</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-semibold text-gray-900">{areaData.library_design.name}</p>
+                      <p className="text-[10px] text-gray-400 font-mono italic">ID: {areaData.library_design.id}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Show images if available */}
                 {sideUploadedImages.length > 0 ? (
                   <div className="space-y-4">
@@ -1196,6 +1215,19 @@ const TshirtDesignDisplay = ({ item, orderNumber }) => {
                 <h6 className="font-semibold capitalize mb-2 text-indigo-600">
                   {viewKey} – {area.area?.replace(/_/g, " ") || "Custom Area"}
                 </h6>
+
+                {area.library_design && (
+                  <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">🎨</span>
+                      <span className="font-bold text-amber-800 text-xs uppercase tracking-wider">Library Design</span>
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-semibold text-gray-900">{area.library_design.name}</p>
+                      <p className="text-[10px] text-gray-500 font-mono mt-0.5">ID: {area.library_design.id}</p>
+                    </div>
+                  </div>
+                )}
 
                 {area.image?.url && (
                   <div className="mb-3 relative group">

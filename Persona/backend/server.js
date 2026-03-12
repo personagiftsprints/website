@@ -14,6 +14,7 @@ import orderRoutes from "./src/routes/order.routes.js"
 import collectionRoutes from "./src/routes/collection.routes.js"
 import categoryRoutes from "./src/routes/category.routes.js"
 import eventRoutes from "./src/routes/event.routes.js"
+import designLibraryRoutes from "./src/routes/designLibrary.routes.js"
 import { connectDB } from "./src/config/db.js"
 
 const app = express()
@@ -60,6 +61,7 @@ app.use("/api/collections", collectionRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/categories", categoryRoutes)
 app.use("/api/events", eventRoutes)
+app.use("/api/design-library", designLibraryRoutes)
 
 /* ---------------- HEALTH ---------------- */
 app.get("/", (req, res) => {
