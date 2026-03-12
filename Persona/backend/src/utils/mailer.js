@@ -14,7 +14,7 @@ export const sendMail = async ({ to, subject, html, text }) => {
       text
     })
 
-    console.log("FULL RESPONSE:", response)
+    // console.log("FULL RESPONSE:", response)
 
     if (response.error) {
       console.error("Email failed:", response.error)
