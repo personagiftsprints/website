@@ -18,7 +18,7 @@ export default function CategoryBar({ categories, subcategoriesMap }) {
 
       <div className="max-w-7xl mx-auto px-4">
 
-       <ul className="flex lg:justify-center justify-start gap-6 lg:gap-10 text-sm font-medium text-gray-500 h-14 items-center overflow-x-auto no-scrollbar scroll-smooth px-4 lg:px-0">
+       <ul className="flex lg:justify-center justify-start gap-6 lg:gap-10 text-sm font-medium text-gray-500 h-14 items-center lg:overflow-visible overflow-x-auto no-scrollbar scroll-smooth px-4 lg:px-0">
 
           {categories.map(cat => {
             const subs = subcategoriesMap[cat._id] || []
@@ -47,26 +47,22 @@ export default function CategoryBar({ categories, subcategoriesMap }) {
                   )}
                 </Link>
 
-                {active === cat._id && subs.length > 0 && (
-                 <div className="absolute left-0 top-full mt-0 bg-white shadow-lg border border-gray-100 rounded-lg p-2 min-w-[250px] z-[99999]">
-
-                    <ul className="space-y-2">
-
-                      {subs.map(sub => (
-                        <li key={sub._id}>
-                          <Link
-                            href={`/category/${cat.slug}/${sub.slug}`}
-                            className="block text-sm text-gray-600 py-2 hover:text-orange-500"
-                          >
-                            {sub.name}
-                          </Link>
-                        </li>
-                      ))}
-
-                    </ul>
-
-                  </div>
-                )}
+              {active === cat._id && subs.length > 0 && (
+  <div className="absolute left-0 top-full bg-white shadow-lg border border-gray-100 rounded-lg p-3 min-w-[220px] z-50">
+    <ul className="space-y-1">
+      {subs.map(sub => (
+        <li key={sub._id}>
+          <Link
+            href={`/category/${cat.slug}/${sub.slug}`}
+            className="block px-3 py-2 text-sm text-gray-600 hover:text-orange-500 hover:bg-gray-50 rounded"
+          >
+            {sub.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
 
               </li>
             )
