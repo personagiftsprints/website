@@ -30,6 +30,7 @@ export default function MaintenanceOverlay() {
   if (!maintenance.isActive) return null
 
   const timeLeft = maintenance.expectedEndTime ? new Date(maintenance.expectedEndTime) : null
+  const isFuture = timeLeft && timeLeft > new Date()
 
   return (
     <div className="fixed inset-0 z-[100000] bg-white flex items-center justify-center p-6 text-center">
@@ -44,7 +45,7 @@ export default function MaintenanceOverlay() {
           {maintenance.message || "We're currently performing some scheduled maintenance to improve your experience. We'll be back shortly!"}
         </p>
 
-        {timeLeft && (
+        {isFuture && (
           <div className="inline-block bg-orange-50 border border-orange-200 rounded-2xl p-6 shadow-sm">
             <p className="text-sm font-bold text-orange-800 uppercase tracking-widest mb-2">Estimated Uptime</p>
             <p className="text-3xl font-black text-orange-900">
@@ -52,6 +53,7 @@ export default function MaintenanceOverlay() {
             </p>
           </div>
         )}
+
 
         <div className="pt-8 flex flex-col items-center gap-4">
           <div className="flex gap-2">

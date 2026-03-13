@@ -1,11 +1,8 @@
-import axios from 'axios'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
+import api from './axios'
 
 export const getSettings = async () => {
   try {
-    const res = await axios.get(`${API_URL}/settings`)
-    return res.data
+    return await api.get('/settings')
   } catch (err) {
     console.error('Fetch settings error:', err)
     throw err
@@ -14,8 +11,7 @@ export const getSettings = async () => {
 
 export const updateSettings = async (data) => {
   try {
-    const res = await axios.put(`${API_URL}/settings`, data)
-    return res.data
+    return await api.put('/settings', data)
   } catch (err) {
     console.error('Update settings error:', err)
     throw err
@@ -24,10 +20,10 @@ export const updateSettings = async (data) => {
 
 export const getMaintenanceStatus = async () => {
   try {
-    const res = await axios.get(`${API_URL}/settings/maintenance-status`)
-    return res.data
+    return await api.get('/settings/maintenance-status')
   } catch (err) {
     console.error('Fetch maintenance status error:', err)
     throw err
   }
 }
+
