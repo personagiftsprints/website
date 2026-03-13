@@ -222,7 +222,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-[10000] bg-white">
+      <header className="sticky top-0 z-[100000] bg-white">
         <OfferBanner />
 
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -314,7 +314,7 @@ export default function Navbar() {
 
       {/* ── Full-Screen Search Overlay (slides from top) ── */}
       <div
-        className={`fixed inset-0 z-[10005] transition-all duration-300 ease-in-out ${
+        className={`fixed inset-0 z-[100100] transition-all duration-300 ease-in-out ${
           searchOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -396,10 +396,10 @@ export default function Navbar() {
         <>
           <div
             onClick={() => setOpen(false)}
-            className="fixed inset-0 bg-black/40 z-[10001]"
+            className="fixed inset-0 bg-black/40 z-[100101]"
           />
 
-          <aside className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-white z-[10002] shadow-2xl">
+          <aside className="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-white z-[100102] shadow-2xl">
             <div className="h-full flex flex-col bg-white">
 
               {/* Profile Header */}

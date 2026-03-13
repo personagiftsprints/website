@@ -33,7 +33,7 @@ export default function MaintenanceOverlay() {
   const isFuture = timeLeft && timeLeft > new Date()
 
   return (
-    <div className="fixed inset-0 z-[100000] bg-white flex items-center justify-center p-6 text-center">
+    <div className="fixed inset-0 z-[110000] bg-white flex items-center justify-center p-6 text-center">
       <div className="max-w-2xl space-y-8 animate-in fade-in zoom-in duration-500">
         <div className="text-8xl animate-bounce">🚧</div>
         
