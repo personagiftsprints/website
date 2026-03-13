@@ -38,7 +38,8 @@ export default function AdminSettingsPage() {
     }
   }
 
-  if (loading) return <div className="p-10 text-center">Loading settings...</div>
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading settings...</div>
+  if (!settings) return <div className="p-10 text-center text-red-500">Failed to load settings. Please try again.</div>
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-8 pb-20">
