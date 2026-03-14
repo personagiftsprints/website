@@ -87,7 +87,7 @@ function UserMenuDesktop() {
           e.stopPropagation()
           setOpen(o => !o)
         }}
-        className="flex items-center gap-1.5 text-sm font-medium text-gray-700 px-3 py-2 rounded-md hover:bg-gray-100"
+        className="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-gray-700 px-3 py-2 rounded-md hover:bg-gray-100"
       >
         Hi, {user.firstName} <ChevronDown size={14} />
       </button>
@@ -133,6 +133,8 @@ function UserMenuDesktop() {
 export default function Navbar() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
+  const isAdmin = user?.role === "admin" || user?.isAdmin === true
+  
   const [cartCount, setCartCount] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -230,7 +232,7 @@ export default function Navbar() {
             <Link href="/" className="hover:text-black">Home</Link>
             
          
-            <Link href="/about" className="hover:text-black">About</Link>
+            {/* <Link href="/about" className="hover:text-black">About</Link> */}
             {/* <Link href="/collections" className="hover:text-black">Collection</Link>
             <Link href="/trending" className="hover:text-black">Trending</Link> */}
             
@@ -399,13 +401,22 @@ export default function Navbar() {
             <div className="h-full flex flex-col bg-white">
 
               {/* Profile Header */}
-              <div className="px-6 py-6 border-b bg-gradient-to-r from-gray-50 to-white">
+              <div className="px-6 cursor-pointer py-6 border-b bg-gradient-to-r from-gray-50 to-white">
                 <p className="text-xs uppercase tracking-wide text-gray-400">
                   {user ? "Welcome back" : "Welcome"}
                 </p>
                 <p className="text-xl font-semibold text-gray-900 mt-1">
                   {user ? user.firstName : "Guest"}
                 </p>
+                  {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 px-1 py-2.5 text-sm font-medium text-blue-600 hover:bg-gray-50"
+            >
+              <ShieldCheck size={16} />
+              Admin Panel
+            </Link>
+          )}
                 {!user && (
                   <button
                     onClick={() => {
@@ -491,6 +502,8 @@ export default function Navbar() {
                   Cart
                 </Link>
               </nav>
+
+            
 
               {/* Footer Area */}
               <div className="px-6 py-5 border-t bg-gray-50 space-y-4">
