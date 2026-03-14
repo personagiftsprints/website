@@ -231,8 +231,8 @@ export default function Navbar() {
             
          
             <Link href="/about" className="hover:text-black">About</Link>
-            <Link href="/collections" className="hover:text-black">Collection</Link>
-            <Link href="/trending" className="hover:text-black">Trending</Link>
+            {/* <Link href="/collections" className="hover:text-black">Collection</Link>
+            <Link href="/trending" className="hover:text-black">Trending</Link> */}
             
             {events.map(evt => (
               <Link 
@@ -429,14 +429,14 @@ export default function Navbar() {
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Home
                 </Link>
-                <Link href="/collections" onClick={() => setOpen(false)}
+                {/* <Link href="/collections" onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Collections
-                </Link>
-                <Link href="/trending" onClick={() => setOpen(false)}
+                </Link> */}
+                {/* <Link href="/trending" onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
                   Trending
-                </Link>
+                </Link> */}
                 {events.map(evt => (
                   <Link key={`mobile-${evt._id}`} href={`/event/${evt.slug}`} onClick={() => setOpen(false)}
                     className="flex items-center justify-between px-4 py-3 rounded-xl text-[#f9a51b] font-bold hover:bg-orange-50 transition">

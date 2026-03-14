@@ -75,7 +75,7 @@ export default function AuthDrawer({ open, onClose }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}>
+    <div className={`fixed inset-0 z-[100300] ${open ? "" : "pointer-events-none"}`}>
       {/* Backdrop */}
       <div
         onClick={onClose}
