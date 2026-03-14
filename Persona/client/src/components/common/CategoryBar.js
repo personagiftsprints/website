@@ -83,7 +83,7 @@ export default function CategoryBar({ categories = [], subcategoriesMap = {} }) 
               className="relative h-full flex items-center"
               onMouseEnter={() => setActive('view-all')}
             >
-              <button className={`flex items-center gap-2 transition-colors duration-200 whitespace-nowrap hover:text-orange-500 font-semibold ${
+              <button className={` cursor-pointer flex items-center gap-2 transition-colors duration-200 whitespace-nowrap hover:text-orange-500 font-semibold ${
                 active === 'view-all' ? 'text-orange-500' : ''
               }`}>
                 <LayoutGrid size={16} />
