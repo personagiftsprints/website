@@ -265,7 +265,7 @@ export default function Navbar() {
             {/* Search Icon */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 text-[14px] text-gray-700 hover:text-black transition"
+              className="flex items-center gap-1.5 text-[14px] text-gray-700 hover:text-black transition cursor-pointer"
               aria-label="Open search"
             >
               <Search size={18} />
