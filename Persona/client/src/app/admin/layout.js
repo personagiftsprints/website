@@ -37,7 +37,7 @@ function NavItem({ href, icon: Icon, label, onClick }) {
   )
 }
 
-function SidebarContent({ onItemClick }) {
+function  SidebarContent({ onItemClick }) {
   return (
     <>
       <div className="p-6 text-xl font-bold flex text-gray-600  items-center"><Image src={Logo} alt="logo" className="w-10"/> Persona Admin</div>
@@ -69,7 +69,7 @@ function SidebarContent({ onItemClick }) {
             Content
           </p>
           <NavItem href="/admin/banners" icon={ImageIcon} label="Homepage banners" onClick={onItemClick} />
-          <NavItem href="/admin/collections" icon={ChartBarDecreasing} label="Collections" onClick={onItemClick} />
+          <NavItem href="/admin/collections" icon={ChartBarDecreasing} label="Collections of product" onClick={onItemClick} />
           <NavItem href="/admin/events" icon={ChartBarDecreasing} label="Events" onClick={onItemClick} />
           <NavItem href="/admin/categories" icon={Package} label="Categories" onClick={onItemClick} />
         </div>

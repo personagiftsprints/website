@@ -120,39 +120,6 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        {/* Site Information Section */}
-        <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
-          <div className="bg-gray-50 p-4 border-b flex items-center gap-3">
-            <Info className="text-gray-600" size={24} />
-            <h2 className="text-lg font-bold text-gray-900">Site Information</h2>
-          </div>
-          <div className="p-6 grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Site Name</label>
-              <input
-                type="text"
-                value={settings.siteInfo.name}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  siteInfo: { ...settings.siteInfo, name: e.target.value }
-                })}
-                className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-black outline-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Contact Email</label>
-              <input
-                type="email"
-                value={settings.siteInfo.contactEmail}
-                onChange={(e) => setSettings({
-                  ...settings,
-                  siteInfo: { ...settings.siteInfo, contactEmail: e.target.value }
-                })}
-                className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-black outline-none"
-              />
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )
