@@ -169,6 +169,11 @@ customFields: [customFieldSchema],
     pricing: { type: pricingSchema, required: true },
     inventory: inventorySchema,
 
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+
     customization: {
       enabled: { type: Boolean, default: false },
       printConfig: {

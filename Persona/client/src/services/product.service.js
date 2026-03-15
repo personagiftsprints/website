@@ -1,21 +1,9 @@
-import axios from 'axios'
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
-})
+import api from './axios'
 
 export const createProductAPI = async payload => {
   try {
-    // console.log('Payload sent:', payload)
-
-    // console.log(
-    //   'Creating product with images count:',
-    //   payload.images?.length || 0
-    // )
-
     const res = await api.post('/products', payload)
-
-    return res.data
+    return res
   } catch (err) {
     console.error(
       'Create product error:',
@@ -42,16 +30,14 @@ export const getStockManagement = async ({
 
   const res = await api.get("/products/stock/manage", { params })
 
-
-
-  return res.data
+  return res
 }
 
 
 export const getProductBySku = async (sku) => {
   try {
     const res = await api.get(`/products/sku/${sku.toLowerCase()}`)
-    return res.data
+    return res
   } catch (error) {
     throw new Error(
       error.response?.data?.message || "Product not found"
@@ -63,7 +49,7 @@ export const getProductBySku = async (sku) => {
 export const getAllProducts = async (params = {}) => {
   try {
     const response = await api.get('/products', { params });
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Fetch products error:', error.response?.data || error.message);
     return {
@@ -79,7 +65,7 @@ export const getAllProducts = async (params = {}) => {
 export const getProductById = async (id) => {
   try {
     const response = await api.get(`/products/${id}`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Fetch product error:', error);
     throw error;
@@ -89,7 +75,7 @@ export const getProductById = async (id) => {
 export const getProductAttribute = async (type) => {
   try {
     const response = await api.get(`/products/product-attributes/${type}`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Fetch product error:', error);
     throw error;
@@ -101,7 +87,7 @@ export const getProductAttribute = async (type) => {
 export const getProductBySlug = async (slug) => {
   try {
     const response = await api.get(`/products/slug/${slug}`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Fetch by slug error:', error);
     throw error;
@@ -110,13 +96,13 @@ export const getProductBySlug = async (slug) => {
 
 export const updateProductAPI = async (id, updates) => {
   const res = await api.put(`/products/${id}`, updates)
-  return res.data
+  return res
 }
 
 
 export const getSimilarProducts = async (slug) => {
   const res = await api.get(`/products/similar/${slug}`)
-  return res.data
+  return res
 }
 
 
@@ -128,21 +114,21 @@ export const uploadImagesAPI = async files => {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 
-  return res.data.data
+  return res.data
 }
 
 
 export const TrendingProducts = async ()=>{
   const res = await api.get('/products/trending-products')
 
-  return res.data.data
+  return res.data
 }
 
 
 
 export const updateProductStatus = async (id, isActive) => {
   const res = await api.patch(`/products/${id}/status`, { isActive })
-  return res.data
+  return res
 }
 
 export const getProductsByType = async (type, params = {}) => {
@@ -152,7 +138,7 @@ export const getProductsByType = async (type, params = {}) => {
       limit: params.limit || 20
     }
   })
-  return res.data
+  return res
 }
 
 export const getProductsByCategory = async (categorySlug, subcategorySlug = null, params = {}) => {
@@ -166,14 +152,14 @@ export const getProductsByCategory = async (categorySlug, subcategorySlug = null
       limit: params.limit || 20
     }
   })
-  return res.data
+  return res
 }
 
 
 export const getProductCustomization = async (slug) => {
   try {
     const response = await api.get(`/products/customization/${slug}`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Error fetching product customization:', error);
     throw error;
@@ -186,7 +172,7 @@ export const searchProducts = async (query, type = '') => {
   if (type) params.append('type', type)
 
   const res = await api.get(`/products/search?${params.toString()}`)
-  return res.data
+  return res
 }
 
 export const prepareCustomFieldCartItem = (product, formData, uploadedUrls) => {

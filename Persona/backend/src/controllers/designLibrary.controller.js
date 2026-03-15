@@ -35,6 +35,24 @@ export const getDesigns = async (req, res) => {
   }
 };
 
+export const getDesignById = async (req, res) => {
+  try {
+    const design = await DesignLibrary.findById(req.params.id);
+    if (!design) {
+      return res.status(404).json({ success: false, message: 'Design not found' });
+    }
+    res.json({
+      success: true,
+      data: design
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 export const updateDesign = async (req, res) => {
   try {
     const design = await DesignLibrary.findByIdAndUpdate(

@@ -32,6 +32,26 @@ export const createDesign = async (data) => {
   }
 }
 
+export const getDesignById = async (id) => {
+  try {
+    const res = await axios.get(`${API_URL}/design-library/${id}`)
+    return res.data
+  } catch (err) {
+    console.error('Fetch design error:', err)
+    throw err
+  }
+}
+
+export const updateDesign = async (id, data) => {
+  try {
+    const res = await axios.put(`${API_URL}/design-library/${id}`, data)
+    return res.data
+  } catch (err) {
+    console.error('Update design error:', err)
+    throw err
+  }
+}
+
 export const deleteDesign = async (id) => {
   try {
     const res = await axios.delete(`${API_URL}/design-library/${id}`)
