@@ -67,7 +67,7 @@ export default function CardBlockSection({ heading, items }) {
   ))}
 </motion.div>
 
-<div className="flex justify-end mt-6">
+{/* <div className="flex justify-end mt-6">
   <Link
     href="/collections"
     className="text-sm font-medium justify-between items-center flex text-[#F9A51B] hover:underline transition animate-pulse"
@@ -75,7 +75,7 @@ export default function CardBlockSection({ heading, items }) {
     <Gift/>
     Explore Collections
   </Link>
-</div>
+</div> */}
       </div>
     </section>
   )

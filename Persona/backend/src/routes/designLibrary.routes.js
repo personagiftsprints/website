@@ -4,13 +4,15 @@ import {
   getDesigns,
   updateDesign,
   deleteDesign,
-  getDesignsByProductType
+  getDesignsByProductType,
+  getDesignById
 } from '../controllers/designLibrary.controller.js';
 
 const router = express.Router();
 
 router.post('/', createDesign);
 router.get('/', getDesigns);
+router.get('/:id', getDesignById);
 router.get('/type/:type', getDesignsByProductType);
 router.put('/:id', updateDesign);
 router.delete('/:id', deleteDesign);

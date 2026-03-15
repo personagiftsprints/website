@@ -1,41 +1,76 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { uploadImagesAPI } from "@/services/product.service"
-import { createDesign } from "@/services/design.service"
+import { getDesignById, updateDesign } from "@/services/design.service"
+import Image from "next/image"
 
-export default function AddDesignPage() {
+export default function EditDesignPage() {
+  const { id } = useParams()
+  const router = useRouter()
+  
   const [title, setTitle] = useState("")
   const [product, setProduct] = useState("")
   const [image, setImage] = useState(null)
+  const [existingImageUrl, setExistingImageUrl] = useState("")
   const [active, setActive] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [tags, setTags] = useState("")
+
+  useEffect(() => {
+    const fetchDesign = async () => {
+      try {
+        setIsLoading(true)
+        const res = await getDesignById(id)
+        if (res.success) {
+          const design = res.data
+          setTitle(design.name)
+          setProduct(design.productType)
+          setExistingImageUrl(design.imageUrl)
+          setActive(design.isActive)
+          setTags(design.metadata?.tags?.join(", ") || "")
+        }
+      } catch (err) {
+        console.error("Failed to fetch design:", err)
+        alert("Failed to load design data")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (id) fetchDesign()
+  }, [id])
 
   const handleSave = async () => {
     // Validation
-    if (!title || !product || !image) {
-      alert("Please fill in all fields and upload an image.")
+    if (!title || !product) {
+      alert("Please fill in all required fields.")
       return
     }
 
     try {
       setIsSubmitting(true)
 
-      // 1. Upload to Cloudinary
-      const uploadResults = await uploadImagesAPI([image])
-      if (!uploadResults || !uploadResults[0]?.url) {
-        throw new Error("Failed to upload image to Cloudinary")
+      let imageUrl = existingImageUrl
+      let publicId = undefined
+
+      // If a new image is selected, upload it
+      if (image) {
+        const uploadResults = await uploadImagesAPI([image])
+        if (!uploadResults || !uploadResults[0]?.url) {
+          throw new Error("Failed to upload image to Cloudinary")
+        }
+        imageUrl = uploadResults[0].url
+        publicId = uploadResults[0].publicId
       }
 
-      const { url: imageUrl, publicId } = uploadResults[0]
-
-      // 2. Save to Database
+      // 2. Update in Database
       const designData = {
         name: title,
         productType: product,
         imageUrl: imageUrl,
-        publicId: publicId, // ✅ Include required publicId
         isActive: active,
         metadata: {
           defaultScale: 0.5,
@@ -43,30 +78,38 @@ export default function AddDesignPage() {
         }
       }
 
-      await createDesign(designData)
+      if (publicId) {
+        designData.publicId = publicId
+      }
+
+      await updateDesign(id, designData)
       
-      alert("✅ Design saved successfully!")
-      
-      // Reset form
-      setTitle("")
-      setProduct("")
-      setImage(null)
-      setTags("")
+      alert("✅ Design updated successfully!")
+      router.push("/admin/design-library")
       
     } catch (err) {
-      console.error("Error saving design:", err)
-      alert("❌ Failed to save design: " + (err.response?.data?.message || err.message))
+      console.error("Error updating design:", err)
+      alert("❌ Failed to update design: " + (err.response?.data?.message || err.message))
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="p-20 flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-medium">Loading design details...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border">
-        <h1 className="text-2xl font-bold text-gray-800">Add New Design</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Edit Design</h1>
         <button 
-          onClick={() => window.history.back()}
+          onClick={() => router.back()}
           className="text-gray-500 hover:text-black transition-colors"
         >
           Back
@@ -152,6 +195,23 @@ export default function AddDesignPage() {
                     ×
                   </button>
                 </div>
+              ) : existingImageUrl ? (
+                <div className="relative w-full aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden border">
+                   <img 
+                    src={existingImageUrl} 
+                    alt="Current" 
+                    className="max-w-full max-h-full object-contain"
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <p className="text-white text-xs font-bold">Click to change</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImage(e.target.files[0])}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                </div>
               ) : (
                 <>
                   <span className="text-4xl mb-2">🖼️</span>
@@ -182,9 +242,9 @@ export default function AddDesignPage() {
             {isSubmitting ? (
               <div className="flex items-center justify-center gap-3">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving Design...
+                Updating Design...
               </div>
-            ) : "Save Design"}
+            ) : "Update Design"}
           </button>
         </div>
       </div>

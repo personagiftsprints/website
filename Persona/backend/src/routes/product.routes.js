@@ -1,4 +1,5 @@
 import express from 'express'
+import { authMiddleware, adminOnly } from '../middlewares/auth.middleware.js'
 import {
   createProduct,
   getAllProducts,
@@ -21,7 +22,7 @@ const router = express.Router()
 
 
 router.get('/sku/:sku', getProductBySku)
-router.post('/', createProduct)
+router.post('/', authMiddleware, adminOnly, createProduct)
 router.get('/stock/manage', getStockManagement)
 router.get('/', getAllProducts)
 router.get('/search', searchProducts)
@@ -36,9 +37,9 @@ router.get('/similar/:type', getSimilarProducts  )
 // Add this after your existing routes
 router.get('/customization/:slug', getProductCustomization);
 
-router.put('/:id', updateProduct)
-router.delete('/:id', deleteProduct)
-router.patch('/:id/status', toggleProductStatus)
+router.put('/:id', authMiddleware, adminOnly, updateProduct)
+router.delete('/:id', authMiddleware, adminOnly, deleteProduct)
+router.patch('/:id/status', authMiddleware, adminOnly, toggleProductStatus)
 
 
 export default router

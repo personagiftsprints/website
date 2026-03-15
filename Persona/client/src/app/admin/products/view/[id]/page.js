@@ -248,6 +248,20 @@ return (
             {product.material || "—"}
           </p>
         </div>
+
+        <div>
+           <p className="text-xs text-gray-500">Created By</p>
+           <p className="text-lg font-semibold mt-1">
+             {product.createdBy ? `${product.createdBy.firstName || ''} ${product.createdBy.lastName || ''} (${product.createdBy.email}) [ID: ${product.createdBy._id}]` : "—"}
+           </p>
+         </div>
+
+         <div>
+           <p className="text-xs text-gray-500">Created Date</p>
+           <p className="text-lg font-semibold mt-1">
+             {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : "—"}
+           </p>
+         </div>
       </div>
     </div>
   )}

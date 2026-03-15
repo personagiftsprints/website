@@ -246,7 +246,8 @@ const parentSku = await generateUniqueSku()
       customization,
          customizationType,  // Make sure this is included!
       customFields  ,
-      images
+      images,
+      createdBy: req.user?._id
     })
 
     res.status(201).json({
@@ -391,7 +392,7 @@ export const getAllProducts = async (req, res) => {
     const [products, total] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1 })
-        .populate('category subcategory')
+        .populate('category subcategory createdBy')
         .skip(skip)
         .limit(limit),
       Product.countDocuments(filter)
@@ -421,7 +422,7 @@ export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('customization.printConfig.configId')
-      .populate('category subcategory')
+      .populate('category subcategory createdBy')
 
     if (!product) {
       return res.status(404).json({

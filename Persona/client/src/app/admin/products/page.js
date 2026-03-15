@@ -141,6 +141,7 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-4">Category</th>
                 <th className="px-6 py-4">Price</th>
                 <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Added By</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -170,6 +171,12 @@ export default function AdminProductsPage() {
                     <span className={`px-3   py-1 rounded-full border text-xs ${statusClass(product.isActive)}`}>
                       {product.isActive ? "Active" : "Inactive"}
                     </span>
+                  </td>
+
+                  <td className="px-6 py-4 text-center text-xs">
+                    {product.createdBy?.firstName 
+                      ? `${product.createdBy.firstName} ${product.createdBy.lastName || ""}` 
+                      : "System"}
                   </td>
 
                   <td className="px-6 py-4 text-right">

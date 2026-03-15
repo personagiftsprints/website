@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation"
 import { toPng } from 'html-to-image'
 import { getProductBySlug, uploadImagesAPI } from "@/services/product.service"
 import { getPrintConfigBySlug } from "@/services/printArea.service"
+import DesignLibraryModal from "@/components/design/DesignLibraryModal"
 
 export default function MugDesigner() {
   const { slug } = useParams()
@@ -39,6 +40,8 @@ export default function MugDesigner() {
   const [showCloudinaryUrls, setShowCloudinaryUrls] = useState(false)
   const [cloudinaryUrls, setCloudinaryUrls] = useState({})
   const [isUploading, setIsUploading] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [libraryDesigns, setLibraryDesigns] = useState({}) 
 
   // Product data
   const [product, setProduct] = useState(null)
@@ -869,9 +872,56 @@ export default function MugDesigner() {
       delete newState[areaId]
       return newState
     })
+
+    setLibraryDesigns(prev => {
+      const newState = { ...prev }
+      delete newState[areaId]
+      return newState
+    })
     
     if (selectedArea?.id === areaId) {
       setSelectedArea(null)
+    }
+  }
+
+  const handleLibrarySelect = (design) => {
+    try {
+      let areaId = selectedArea?.id
+
+      if (!areaId) {
+        if (currentViewAreas.length > 0) {
+          areaId = currentViewAreas[0].id
+          setSelectedArea(currentViewAreas[0])
+        } else {
+          alert("Please select a print area first.")
+          return
+        }
+      }
+
+      setImagePreviews(prev => ({
+        ...prev,
+        [areaId]: design.imageUrl
+      }))
+
+      setLibraryDesigns(prev => ({
+        ...prev,
+        [areaId]: design
+      }))
+
+      setUploadedImages(prev => ({
+        ...prev,
+        [areaId]: "LIBRARY_DESIGN" 
+      }))
+
+      setImagePositions(prev => ({
+        ...prev,
+        [areaId]: { x: 0, y: 0, scale: design.metadata?.defaultScale || 0.5, rotate: 0 }
+      }))
+
+      setShowLibrary(false)
+    } catch (err) {
+      console.error("Error applying library design:", err)
+      alert("Failed to apply design")
     }
   }
 
@@ -1801,6 +1851,19 @@ export default function MugDesigner() {
                   />
                 </label>
 
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-[1px] bg-gray-200"></div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR</span>
+                  <div className="flex-1 h-[1px] bg-gray-200"></div>
+                </div>
+
+                <button
+                  onClick={() => setShowLibrary(true)}
+                  className="w-full py-3 border-2 border-[#F9A51B] text-[#F9A51B] rounded-xl font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>🖼️</span> Choose from Gallery
+                </button>
+
                 {/* Text Input Area */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-sm">Add Text</h4>
@@ -2034,6 +2097,15 @@ export default function MugDesigner() {
           </div>
         </aside>
       </div>
+
+      {showLibrary && (
+        <DesignLibraryModal 
+          productType="mug"
+          onSelect={handleLibrarySelect}
+          onClose={() => setShowLibrary(false)}
+          currentDesignUrl={imagePreviews[selectedArea?.id]}
+        />
+      )}
     </div>
   )
 }
