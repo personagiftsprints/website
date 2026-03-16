@@ -61,7 +61,7 @@ const customFieldSchema = new mongoose.Schema(
 const pricingSchema = new mongoose.Schema(
   {
     basePrice: { type: Number, required: true, min: 0 },
-    specialPrice: { type: Number, min: 0 },
+    specialPrice: { type: Number, required: true, min: 0 },
     currency: { type: String, default: 'GBP' },
     taxInclusive: { type: Boolean, default: true },
     discountPercentage: { type: Number, min: 0, max: 100, default: 0 }

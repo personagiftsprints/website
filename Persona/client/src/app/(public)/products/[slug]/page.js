@@ -193,7 +193,7 @@ useEffect(() => {
         productName: product.name,
         productType: product.type,
         name: product.name,
-        image: product.images?.[0]?.url || product.thumbnail,
+        image: product.thumbnail || product.images?.[0]?.url,
         price: product.pricing?.specialPrice || product.pricing?.basePrice,
         currency: product.pricing?.currency || "GBP",
         quantity: 1,
@@ -288,7 +288,7 @@ const isPrintConfig =
         productName: product.name,
         productType: product.type,
         name: product.name,
-        image: product.images?.[0]?.url || product.thumbnail,
+        image: product.thumbnail || product.images?.[0]?.url,
         price: price,
         currency: pricing.currency || "GBP",
         quantity: quantity,
@@ -327,7 +327,7 @@ const isPrintConfig =
         productName: product.name,
         productType: product.type,
         name: product.name,
-        image: product.images?.[0]?.url || product.thumbnail,
+        image: product.thumbnail || product.images?.[0]?.url,
         price: price,
         currency: pricing.currency || "GBP",
         quantity: quantity,
@@ -537,8 +537,9 @@ const renderCustomFields = () => {
       {/* LEFT IMAGES */}
       <div>
         <img
-          src={activeImage}
+          src={activeImage || product.thumbnail || product.images?.[0]?.url}
           className="w-full h-[460px] object-contain bg-gray-50 rounded-xl"
+          alt={product.name}
         />
 
         <div className="flex gap-3 mt-4">

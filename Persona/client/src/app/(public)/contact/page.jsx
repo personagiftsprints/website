@@ -25,7 +25,7 @@ const CONTACT_INFO = {
     line2: "27–31 Sankey Street, Warrington",
     line3: "WA1 1XG, United Kingdom",
   },
-  hours: "Mon – Sat: 9:00 AM – 7:00 PM (GMT)",
+ hours: "Monday – Saturday: 9:30 AM – 4:30 PM",
 }
 
 function ContactCard({ icon: Icon, title, children, href, color }) {
@@ -142,10 +142,10 @@ export default function ContactPage() {
             <p>{CONTACT_INFO.address.line3}</p>
           </ContactCard>
 
-          <ContactCard icon={Clock} title="Working Hours" color="bg-gray-800">
-            <p>{CONTACT_INFO.hours}</p>
-            <p className="text-gray-400 text-xs mt-1">Sunday: Closed</p>
-          </ContactCard>
+         <ContactCard icon={Clock} title="Working Hours" color="bg-gray-800">
+  <p>{CONTACT_INFO.hours}</p>
+  <p className="text-gray-400 text-xs mt-1">Sunday: 10:00 AM – 3:00 PM</p>
+</ContactCard>
         </div>
       </div>
 

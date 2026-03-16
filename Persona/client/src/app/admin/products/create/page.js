@@ -12,7 +12,24 @@ import {
   Upload,
   Percent,
   Package as PackageIcon,
+  GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 import {
   getAvailablePrintConfigs,
@@ -83,6 +100,23 @@ useEffect(() => {
 }, []);
 
   const fileInputRef = useRef(null);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setFormData((prev) => {
+        const oldIndex = prev.images.findIndex((img) => img.id === active.id);
+        const newIndex = prev.images.findIndex((img) => img.id === over.id);
+        const newImages = arrayMove(prev.images, oldIndex, newIndex);
+        return { ...prev, images: newImages };
+      });
+    }
+  };
 const generateCustomFields = () => {
   const fields = [];
   
@@ -413,7 +447,7 @@ const payload = {
     url: img.url,
     publicId: img.publicId,
     name: img.name,
-    isMain: i === 0,
+    isMain: formData.images[i].isMain,
     order: i + 1,
   })),
 };
@@ -756,7 +790,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Special Price ($)
+                            Special Price ($) *
                           </label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -770,6 +804,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               }
                               className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               placeholder="0.00"
+                              required
                             />
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
@@ -782,14 +817,16 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
 
                   {/* Product Images Section */}
                   <div className="pt-6 border-t">
-                    <ImageUploadSection
-                      formData={formData}
-                      uploading={uploading}
-                      fileInputRef={fileInputRef}
-                      handleImageUpload={handleImageUpload}
-                      removeImage={removeImage}
-                      setMainImage={setMainImage}
-                    />
+                      <ImageUploadSection
+                        formData={formData}
+                        uploading={uploading}
+                        fileInputRef={fileInputRef}
+                        handleImageUpload={handleImageUpload}
+                        removeImage={removeImage}
+                        setMainImage={setMainImage}
+                        sensors={sensors}
+                        handleDragEnd={handleDragEnd}
+                      />
                   </div>
 
                   {/* Customization Section */}
@@ -1013,6 +1050,8 @@ const ImageUploadSection = ({
   handleImageUpload,
   removeImage,
   setMainImage,
+  sensors,
+  handleDragEnd,
 }) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -1086,20 +1125,31 @@ const ImageUploadSection = ({
             Uploaded Images ({formData.images.length})
           </h4>
           <div className="text-xs text-gray-500">
-            Click star to set as main display image
+            Click star to set as main display image • Drag to reorder
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {formData.images.map((image) => (
-            <ImagePreview
-              key={image.id}
-              image={image}
-              setMainImage={setMainImage}
-              removeImage={removeImage}
-            />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={formData.images.map(img => img.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {formData.images.map((image) => (
+                <ImagePreview
+                  key={image.id}
+                  image={image}
+                  setMainImage={setMainImage}
+                  removeImage={removeImage}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {/* Image Order Note */}
         {formData.images.length > 1 && (
@@ -1112,61 +1162,74 @@ const ImageUploadSection = ({
   </div>
 );
 
-const ImagePreview = ({ image, setMainImage, removeImage }) => (
-  <div
-    className={`relative group rounded-lg overflow-hidden border-2 ${image.isMain ? "border-blue-500" : "border-gray-200"}`}
-  >
-    {/* Image */}
-    <div className="aspect-square bg-gray-100">
-      <img
-        src={image.url}
-        alt={image.name}
-        className="w-full h-full object-cover"
-      />
-    </div>
+const ImagePreview = ({ image, setMainImage, removeImage }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: image.id });
 
-    {/* Main Image Badge */}
-    {image.isMain && (
-      <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md">
-        Main
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group rounded-lg overflow-hidden border-2 ${image.isMain ? "border-blue-500" : "border-gray-200"} bg-white shadow-sm transition-all`}
+    >
+      {/* Drag Handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-1 rounded-md cursor-grab active:cursor-grabbing shadow-sm z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <GripVertical size={14} className="text-gray-600" />
       </div>
-    )}
 
-    {/* Actions Overlay */}
-    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMainImage(image.id)}
-          className={`p-2 rounded-full ${image.isMain ? "bg-yellow-500" : "bg-gray-800"} text-white hover:bg-opacity-90 transition-colors`}
-          title="Set as main image"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          onClick={() => removeImage(image.id)}
-          className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-          title="Remove image"
-        >
-          <X className="w-4 h-4" />
-        </button>
+      {/* Image */}
+      <div className="aspect-square bg-gray-100">
+        <img
+          src={image.url}
+          alt={image.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Main Image Badge */}
+      {image.isMain && (
+        <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-md z-10">
+          Main
+        </div>
+      )}
+
+      {/* Actions Overlay */}
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setMainImage(image.id)}
+            className={`p-2 rounded-full ${image.isMain ? "bg-yellow-500" : "bg-gray-800"} text-white hover:bg-opacity-90 transition-colors shadow-lg`}
+            title="Set as main image"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => removeImage(image.id)}
+            className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors shadow-lg"
+            title="Remove image"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
-
-    {/* Image Info */}
-    <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-2">
-      <p className="text-xs text-white truncate" title={image.name}>
-        {image.name}
-      </p>
-      <p className="text-xs text-gray-300">
-        {(image.size / 1024 / 1024).toFixed(2)} MB
-      </p>
-    </div>
-  </div>
-);
+  );
+};
 
 const ConfigSelectionTab = ({
   printConfigs,
@@ -1246,7 +1309,7 @@ const ProductSummary = ({
       <div className="relative aspect-square bg-gray-100">
         {formData.images.length > 0 ? (
           <img
-            src={formData.images[0].url}
+            src={formData.images.find(img => img.isMain)?.url || formData.images[0].url}
             alt={formData.name}
             className="w-full h-full object-cover"
           />

@@ -63,8 +63,8 @@ export default function CartClient() {
           const response = await getProductById(id)
           if (response?.data) {
             priceMap[id] = {
-              price: response.data.pricing?.price || 0,
-              specialPrice: response.data.pricing?.specialPrice || response.data.pricing?.price || 0,
+              price: response.data.pricing?.basePrice || 0,
+              specialPrice: response.data.pricing?.specialPrice || response.data.pricing?.basePrice || 0,
               currency: 'GBP' // Force GBP currency
             }
           }

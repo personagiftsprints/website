@@ -508,11 +508,7 @@ export const updateProduct = async (req, res) => {
       updatePayload.productConfig = updates.productConfig
     }
 
-    const product = await Product.findByIdAndUpdate(
-      id,
-      { $set: updatePayload },
-      { new: true, runValidators: true }
-    )
+    const product = await Product.findById(id)
 
     if (!product) {
       return res.status(404).json({
@@ -520,6 +516,9 @@ export const updateProduct = async (req, res) => {
         message: 'Product not found'
       })
     }
+
+    Object.assign(product, updatePayload)
+    await product.save()
 
     res.json({
       success: true,

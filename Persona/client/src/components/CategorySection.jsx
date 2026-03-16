@@ -13,17 +13,17 @@ export default function CategorySection({
     return null
   }
 
-  const roundedClass = rounded ? "rounded-lg" : "rounded-none"
+  const roundedClass = rounded ? "lg:rounded-lg rounded-sm" : "rounded-none"
 
   return (
-    <section className="lg:px-6 mt-12">
+    <section className="lg:px-6  mt-12">
       {title && (
         <h2 className="text-2xl text-[#F9A51B] font-semibold mb-6">
           {title}
         </h2>
       )}
 
-      <div className={`grid ${columns} gap-4`}>
+      <div className={`grid ${columns} gap-2 lg:gap-4`}>
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
               <SkeletonProductCard key={i} />

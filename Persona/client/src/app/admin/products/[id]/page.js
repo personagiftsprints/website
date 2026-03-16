@@ -236,13 +236,13 @@ export default function EditProductPage() {
           ? {
               url: uploaded[uploadIndex].url,
               publicId: uploaded[uploadIndex++].publicId,
-              isMain: i === 0,
+              isMain: img.isMain,
               order: i + 1
             }
           : {
               url: img.url,
               publicId: img.publicId,
-              isMain: i === 0,
+              isMain: img.isMain,
               order: i + 1
             }
       )
@@ -461,7 +461,7 @@ export default function EditProductPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Special Price <span className="text-gray-400 font-normal">(Optional)</span>
+                    Special Price *
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -471,6 +471,7 @@ export default function EditProductPage() {
                       onChange={e => setForm({ ...form, specialPrice: e.target.value })}
                       className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                       placeholder="0.00"
+                      required
                     />
                   </div>
                 </div>

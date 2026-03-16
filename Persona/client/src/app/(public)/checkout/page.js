@@ -349,8 +349,8 @@ const HAMPERS = [
           const response = await getProductById(id);
           if (response?.data) {
             priceMap[id] = {
-              price: response.data.pricing?.price || 0,
-              specialPrice: response.data.pricing?.specialPrice || response.data.pricing?.price || 0,
+              price: response.data.pricing?.basePrice || 0,
+              specialPrice: response.data.pricing?.specialPrice || response.data.pricing?.basePrice || 0,
               currency: 'GBP'
             };
           }
@@ -385,8 +385,8 @@ const HAMPERS = [
     () => items.reduce((sum, i) => {
       const price = productPrices[i.productId]?.specialPrice || 
                    productPrices[i.productId]?.price || 
-                   i.unitPrice || 
                    i.price || 
+                   i.unitPrice || 
                    0;
       return sum + (price * (i.quantity || 1));
     }, 0),
