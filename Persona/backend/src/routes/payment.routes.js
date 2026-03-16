@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Coupon from "../models/Coupon.js";
+import Settings from "../models/Settings.js";
 import { optionalAuth } from "../middlewares/optionalAuth.js";
 import { sendMail } from "../utils/mailer.js";
 import { orderPlacedTemplate } from "../utils/emailTemplates.js";
@@ -15,24 +16,15 @@ const HAMPERS = {
   luxury: 14,
 };
 
-const DELIVERY_THRESHOLD = 100;
-const DELIVERY_CHARGE = 5;
-
 router.post("/create-checkout-session", optionalAuth, async (req, res) => {
   try {
-   const { cart, address, email, couponCode, hamper, giftWrap } = req.body;
-
-   console.log("Gifts:",giftWrap)
-   console.log("Hamper:",hamper)
+    const { cart, address, email, couponCode, hamper, giftWrap } = req.body;
 
     if (!Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ message: "Invalid or empty cart" });
     }
 
-    // Log incoming cart for debugging (remove in production if you want)
-    // console.log("Received cart:", JSON.stringify(cart, null, 2));
-
-    // Calculate subtotal using safe price access
+    // Calculate subtotal
     const subtotal = cart.reduce((s, i) => {
       const price =
         i.price ||
@@ -42,7 +34,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       return s + price * (i.quantity || 1);
     }, 0);
 
-    // Coupon logic (unchanged)
+    // Coupon logic
     let discountPercent = 0;
     let appliedCoupon = null;
 
@@ -65,94 +57,59 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     const discountAmount = Math.round((subtotal * discountPercent) / 100);
     const discountedSubtotal = subtotal - discountAmount;
 
+    // Fetch dynamic shipping settings
+    const settings = await Settings.findOne();
+    const threshold = settings?.shipping?.threshold ?? 100;
+    const charge = settings?.shipping?.deliveryCharge ?? 5;
+
     const deliveryCharge =
       discountedSubtotal === 0
         ? 0
-        : discountedSubtotal >= DELIVERY_THRESHOLD
+        : discountedSubtotal >= threshold
           ? 0
-          : DELIVERY_CHARGE;
-    const hamperCharge = hamper && HAMPERS[hamper]
-  ? HAMPERS[hamper]
-  : 0;
+          : charge;
 
-const giftWrapCharge = giftWrap ? 5 : 0;
-    const totalAmount =
-  discountedSubtotal +
-  deliveryCharge +
-  hamperCharge +
-  giftWrapCharge;
+    const hamperCharge = hamper && HAMPERS[hamper] ? HAMPERS[hamper] : 0;
+    const giftWrapCharge = giftWrap ? 5 : 0;
+    
+    const totalAmount = discountedSubtotal + deliveryCharge + hamperCharge + giftWrapCharge;
 
+    const itemsPayload = cart.map((item) => {
+      const productType = item.productSnapshot?.type || item.type || "other";
+      const isPrintConfig = ["tshirt", "mug", "hoodie", "mobileCase"].includes(productType);
+      const isCustomFields = item.designData?.type === 'custom_fields';
+      const hasCustomization = !!(item.designData && (isPrintConfig || isCustomFields));
 
-  console.log("---- PACKAGING DEBUG ----");
-console.log("Hamper received:", hamper);
-console.log("Hamper charge:", hamperCharge);
-console.log("Gift wrap received:", giftWrap);
-console.log("Gift wrap charge:", giftWrapCharge);
-console.log("-------------------------");
-
-    // Inside router.post("/create-checkout-session")
-// Inside router.post("/create-checkout-session")
-// In your itemsPayload mapping, update the customization object:
-
-const itemsPayload = cart.map((item) => {
-  const productType = item.productSnapshot?.type || item.type || "other";
-
-  const isPrintConfig = ["tshirt", "mug", "hoodie", "mobileCase"].includes(productType);
-  const isCustomFields = item.designData?.type === 'custom_fields';
-  const hasCustomization = !!(item.designData && (isPrintConfig || isCustomFields));
-
-  const baseItem = {
-    productId: item.productId
-      ? new mongoose.Types.ObjectId(item.productId)
-      : null,
-
-    productSnapshot: {
-      name: item.name || item.productSnapshot?.name || "Custom Product",
-      slug: item.productSlug || item.productSnapshot?.slug || null,
-      productType: productType,
-      image: item.image || item.productSnapshot?.image || null,
-      finalPrice: Number(
-        item.price || item.productSnapshot?.specialPrice || 0,
-      ),
-    },
-
-    variant: item.variant || {},
-
-    quantity: Number(item.quantity) || 1,
-
-    // ✅ UPDATED: Added customizationType field
-    customization: {
-      enabled: hasCustomization,
-      // This is the PRODUCT TYPE (tshirt, mug, frame, etc.)
-      type: productType,
-      // This is the CUSTOMIZATION TYPE (print_config, custom_fields, none)
-      customizationType: isPrintConfig ? 'print_config' : (isCustomFields ? 'custom_fields' : 'none'),
-      data: hasCustomization
-        ? {
-            productType: productType,
-            // Handle different product types
+      return {
+        productId: item.productId ? new mongoose.Types.ObjectId(item.productId) : null,
+        productSnapshot: {
+          name: item.name || item.productSnapshot?.name || "Custom Product",
+          slug: item.productSlug || item.productSnapshot?.slug || null,
+          productType: productType,
+          image: item.image || item.productSnapshot?.image || null,
+          finalPrice: Number(item.price || item.productSnapshot?.specialPrice || 0),
+        },
+        variant: item.variant || {},
+        quantity: Number(item.quantity) || 1,
+        customization: {
+          enabled: hasCustomization,
+          type: productType,
+          customizationType: isPrintConfig ? 'print_config' : (isCustomFields ? 'custom_fields' : 'none'),
+          data: hasCustomization ? {
+            productType,
             ...(productType === "tshirt" && {
               tshirt: {
                 color: item.variant?.color,
                 size: item.variant?.size,
-                view_configuration:
-                  item.designData.metadata?.view_configuration || {},
+                view_configuration: item.designData.metadata?.view_configuration || {},
                 print_areas: item.designData.print_areas || {},
                 cloudinary_urls: item.designData.cloudinary_urls || {},
-                preview_image_url:
-                  item.designData.preview_url ||
-                  item.designData.previewImage ||
-                  null,
-                preview_urls: item.designData?.preview_urls || {
-                  front: item.designData?.preview_url || null,
-                  back: null,
-                },
+                preview_image_url: item.designData.preview_url || item.designData.previewImage || null,
+                preview_urls: item.designData?.preview_urls || { front: item.designData?.preview_url || null, back: null },
                 text_layers: item.designData.text_layers || {},
                 text_positions: item.designData.text_positions || {},
                 text_content: item.designData.text_content || {},
-                uploaded_images: Object.entries(
-                  item.designData.cloudinary_urls || {},
-                ).map(([areaId, url]) => ({
+                uploaded_images: Object.entries(item.designData.cloudinary_urls || {}).map(([areaId, url]) => ({
                   area_id: areaId,
                   area_name:
                     item.designData.print_areas?.front?.area === areaId
@@ -168,11 +125,8 @@ const itemsPayload = cart.map((item) => {
                   position: item.designData.positions?.[areaId] || {},
                 })),
                 metadata: {
-                  design_timestamp:
-                    item.designData.metadata?.design_timestamp ||
-                    new Date(),
-                  image_positions:
-                    item.designData.metadata?.image_positions || {},
+                  design_timestamp: item.designData.metadata?.design_timestamp || new Date(),
+                  image_positions: item.designData.metadata?.image_positions || {},
                   text_positions: item.designData.text_positions || {},
                   text_summary: item.designData.metadata?.text_summary || [],
                 },
@@ -183,10 +137,7 @@ const itemsPayload = cart.map((item) => {
                 print_areas: item.designData.print_areas || {},
                 cloudinary_urls: item.designData.cloudinary_urls || {},
                 preview_urls: item.designData.preview_urls || {},
-                preview_image_url:
-                  item.designData.preview_url ||
-                  item.designData.preview_urls?.front ||
-                  null,
+                preview_image_url: item.designData.preview_url || item.designData.preview_urls?.front || null,
                 positions: item.designData.positions || {},
               },
             }),
@@ -198,92 +149,65 @@ const itemsPayload = cart.map((item) => {
                 field_count: item.designData.field_count || {}
               }
             })
-          }
-        : null,
-    },
-
-    // Keep for backward compatibility
-    designData: item.designData || null,
-  };
-
-  return baseItem;
-});
-
-    // Create order
- const order = await Order.create({
-  user: req.user ? req.user._id : null,
-  userType: req.user ? "user" : "guest",
-  items: itemsPayload,
-  subtotal,
-
-  discount: {
-    code: appliedCoupon?.code || null,
-    percent: discountPercent,
-    amount: discountAmount,
-  },
-
-  deliveryCharge,
-
- packaging: {
-  hamper: hamper || null,
-  hamperCharge: hamperCharge,
-  giftWrap: giftWrap || false,
-  giftWrapCharge: giftWrapCharge,
-},
-  totalAmount,
-
-  deliveryAddress: {
-    fullName: address?.fullName || address?.name || "",
-    phone: address?.phone || "",
-    email: email || address?.email || "",
-    addressLine1: address?.addressLine1 || address?.line1 || "",
-    addressLine2: address?.addressLine2 || "",
-    town: address?.town || address?.city || "",
-    county: address?.county || address?.state || "",
-    postcode: address?.postcode || address?.postalCode || "",
-    countryCode: "GB",
-  },
- orderStatus: "created",  
-  payment: {
-    provider: "stripe",
-    status: "pending",
-  },
-});
-
-    // Stripe line items - use consistent price source
-    const lineItems = cart.map((item) => {
-      const itemPrice = Number(
-        item.price ||
-          item.productSnapshot?.specialPrice ||
-          item.productSnapshot?.basePrice ||
-          0,
-      );
-
-      const discountedPrice = itemPrice * (1 - discountPercent / 100);
-
-      const productData = {
-        name: item.name || item.productSnapshot?.name || "Custom Product",
-        images: [item.image || item.productSnapshot?.image || null].filter(
-          Boolean,
-        ),
-        metadata: {
-          productId: item.productId,
-          productSlug: item.productSlug || item.productSnapshot?.slug,
-          productType: item.productSnapshot?.type || "other",
+          } : null,
         },
+        designData: item.designData || null,
       };
+    });
 
-      if (item.designData?.preview_url || item.designData?.previewImage) {
-        productData.metadata.hasCustomization = "true";
-        productData.metadata.previewImage =
-          item.designData.preview_url || item.designData.previewImage;
-      }
+    const order = await Order.create({
+      user: req.user ? req.user._id : null,
+      userType: req.user ? "user" : "guest",
+      items: itemsPayload,
+      subtotal,
+      discount: {
+        code: appliedCoupon?.code || null,
+        percent: discountPercent,
+        amount: discountAmount,
+      },
+      deliveryCharge,
+      packaging: {
+        hamper: hamper || null,
+        hamperCharge: hamperCharge,
+        giftWrap: giftWrap || false,
+        giftWrapCharge: giftWrapCharge,
+      },
+      totalAmount,
+      deliveryAddress: {
+        fullName: address?.fullName || address?.name || "",
+        phone: address?.phone || "",
+        email: email || address?.email || "",
+        addressLine1: address?.addressLine1 || address?.line1 || "",
+        addressLine2: address?.addressLine2 || "",
+        town: address?.town || address?.city || "",
+        county: address?.county || address?.state || "",
+        postcode: address?.postcode || address?.postalCode || "",
+        countryCode: "GB",
+      },
+      orderStatus: "created",
+      payment: {
+        provider: "stripe",
+        status: "pending",
+      },
+    });
+
+    const lineItems = cart.map((item) => {
+      const itemPrice = Number(item.price || item.productSnapshot?.specialPrice || item.productSnapshot?.basePrice || 0);
+      const discountedPrice = itemPrice * (1 - discountPercent / 100);
 
       return {
         price_data: {
           currency: "gbp",
-          product_data: productData,
-          unit_amount: Math.round(discountedPrice * 100), // pence
+          product_data: {
+            name: item.name || item.productSnapshot?.name || "Custom Product",
+            images: [item.image || item.productSnapshot?.image || null].filter(Boolean),
+            metadata: {
+              productId: item.productId,
+              productSlug: item.productSlug || item.productSnapshot?.slug,
+              productType: item.productSnapshot?.type || "other",
+            },
+          },
+          unit_amount: Math.round(discountedPrice * 100),
         },
         quantity: item.quantity || 1,
       };
@@ -301,34 +225,28 @@ const itemsPayload = cart.map((item) => {
     }
 
     if (hamperCharge > 0) {
-  lineItems.push({
-    price_data: {
-      currency: "gbp",
-      product_data: {
-        name: `Hamper Packaging (${hamper})`
-      },
-      unit_amount: hamperCharge * 100,
-    },
-    quantity: 1,
-  });
-}
+      lineItems.push({
+        price_data: {
+          currency: "gbp",
+          product_data: { name: `Hamper Packaging (${hamper})` },
+          unit_amount: hamperCharge * 100,
+        },
+        quantity: 1,
+      });
+    }
 
-if (giftWrapCharge > 0) {
-  lineItems.push({
-    price_data: {
-      currency: "gbp",
-      product_data: {
-        name: "Gift Wrap"
-      },
-      unit_amount: giftWrapCharge * 100,
-    },
-    quantity: 1,
-  });
-}
+    if (giftWrapCharge > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "gbp",
+          product_data: { name: "Gift Wrap" },
+          unit_amount: giftWrapCharge * 100,
+        },
+        quantity: 1,
+      });
+    }
 
-    const clientUrl = (
-      process.env.CLIENT_BASE_URL || "http://localhost:5173"
-    ).replace(/\/$/, "");
+    const clientUrl = (process.env.CLIENT_BASE_URL || "http://localhost:5173").replace(/\/$/, "");
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -339,16 +257,14 @@ if (giftWrapCharge > 0) {
       customer_email: email || address?.email || req.user?.email,
       metadata: {
         orderId: order._id.toString(),
-        hasCustomItems: cart.some((item) => item.designData) ? "true" : "false",
       },
       shipping_address_collection: {
         allowed_countries: ["GB"],
       },
     });
 
-    order.checkoutSessionId = session.id
-await order.save()
-
+    order.checkoutSessionId = session.id;
+    await order.save();
 
     res.json({
       success: true,
@@ -358,23 +274,15 @@ await order.save()
     });
   } catch (err) {
     console.error("Checkout route error:", err);
-    res.status(500).json({
-      success: false,
-      message: err.message || "Internal server error",
-    });
+    res.status(500).json({ success: false, message: err.message || "Internal server error" });
   }
 });
 
 router.post("/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
-
   let event;
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET,
-    );
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch {
     return res.status(400).send("Webhook Error");
   }
@@ -382,54 +290,33 @@ router.post("/webhook", async (req, res) => {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const orderId = session.metadata?.orderId;
-    if (!orderId) return res.json({ received: true });
+    if (orderId) {
+      const order = await Order.findById(orderId);
+      if (order && order.payment.status !== "paid") {
+        order.orderStatus = "paid";
+        order.payment.status = "paid";
+        order.payment.paymentId = session.payment_intent;
+        order.payment.paidAt = new Date();
+        await order.save();
 
-    const order = await Order.findById(orderId);
-    if (!order || order.payment?.status === "paid") {
-      return res.json({ received: true });
-    }
+        if (order.discount?.code) {
+          await Coupon.updateOne({ code: order.discount.code }, { $inc: { usedCount: 1 } });
+        }
 
-    order.orderStatus = "paid";
-    order.payment.status = "paid";
-    order.payment = {
-      provider: "stripe",
-      paymentId: session.payment_intent,
-      status: "paid",
-      paidAt: new Date(),
-    };
-
-    await order.save();
-
-    if (order.discount?.code) {
-      await Coupon.updateOne(
-        { code: order.discount.code },
-        { $inc: { usedCount: 1 } },
-      );
-    }
-
-    const customerEmail =
-      session.customer_email || order.deliveryAddress?.email;
-
-    if (customerEmail) {
-      console.log("📧 Sending order email to:", customerEmail);
-
-      const orderLink = `${process.env.CLIENT_URL}/order/${order._id}`;
-      const emailData = orderPlacedTemplate({
-        name: order.deliveryAddress?.fullName || "Customer",
-        orderId: order.orderNumber,
-        total: order.totalAmount.toFixed(2),
-        orderLink,
-      });
-
-      await sendMail({
-        to: customerEmail,
-        subject: emailData.subject,
-        text: emailData.text,
-        html: emailData.html,
-      });
+        const customerEmail = session.customer_email || order.deliveryAddress?.email;
+        if (customerEmail) {
+          const orderLink = `${process.env.CLIENT_URL}/order/${order._id}`;
+          const emailData = orderPlacedTemplate({
+            name: order.deliveryAddress?.fullName || "Customer",
+            orderId: order.orderNumber,
+            total: order.totalAmount.toFixed(2),
+            orderLink,
+          });
+          await sendMail({ to: customerEmail, ...emailData });
+        }
+      }
     }
   }
-
   res.json({ received: true });
 });
 

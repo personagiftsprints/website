@@ -27,11 +27,26 @@ export const updateSettings = async (req, res) => {
   }
 };
 
-export const getMaintenanceStatus = async (req, res) => {
+export const getPublicSettings = async (req, res) => {
   try {
     const settings = await Settings.findOne();
-    const maintenance = settings?.maintenanceMode || { isActive: false };
-    res.json({ success: true, data: maintenance });
+    if (!settings) {
+      return res.json({ 
+        success: true, 
+        data: { 
+          shipping: { deliveryCharge: 5, threshold: 100 },
+          siteInfo: { name: "Persona Gifts" }
+        } 
+      });
+    }
+    res.json({ 
+      success: true, 
+      data: { 
+        shipping: settings.shipping,
+        siteInfo: settings.siteInfo,
+        maintenanceMode: settings.maintenanceMode
+      } 
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -10,8 +10,9 @@ import LottieAnimation from "@/components/ui/LottieAnimation";
 import appliedAnimation from "@/assets/applied.json";
 import { useAuth } from "@/context/AuthContext";
 import { getMyAccount } from "@/services/account.service";
-import { ShieldCheck, SquareRoundCorner } from "lucide-react";
+import { ShieldCheck, SquareRoundCorner, Truck } from "lucide-react";
 import HamperSelectionModal from "@/components/hamper/HamperSelectionModal"
+import { getPublicSettings } from "@/services/settings.service"
 
 
 function MugDesignPreview({ designData }) {
@@ -262,8 +263,7 @@ const HAMPERS = [
   const [loadingAddresses, setLoadingAddresses] = useState(false);
     const hasAddress = Boolean(address)
 
-  const DELIVERY_THRESHOLD = 100;
-  const DELIVERY_CHARGE = 5;
+  const [shippingConfig, setShippingConfig] = useState({ deliveryCharge: 5, threshold: 100 });
 
   /* ---------------- LOAD DATA ---------------- */
 
@@ -276,8 +276,20 @@ const HAMPERS = [
     } else {
       setLoadingPrices(false);
     }
-   
+    
+    fetchShippingSettings();
   }, []);
+
+  const fetchShippingSettings = async () => {
+    try {
+      const res = await getPublicSettings();
+      if (res.data?.shipping) {
+        setShippingConfig(res.data.shipping);
+      }
+    } catch (err) {
+      console.error("Failed to load shipping settings:", err);
+    }
+  };
 
 
   useEffect(() => {
@@ -366,34 +378,6 @@ const HAMPERS = [
     };
   };
 
-  useEffect(() => {
-    const loadAddress = async () => {
-      if (user) {
-        setLoadingAddresses(true);
-        try {
-          const res = await getMyAccount();
-          const addresses = res.user?.addresses || [];
-          setUserAddresses(addresses);
-          if (addresses.length > 0) {
-            setAddress(addresses[0]);
-          }
-        } catch (err) {
-          console.error("Failed to load user addresses", err);
-        } finally {
-          setLoadingAddresses(false);
-        }
-      } else {
-        const savedAddress = JSON.parse(localStorage.getItem("delivery_address") || "null");
-        setAddress(savedAddress);
-        // If there's a saved address, don't show the form
-        if (savedAddress) {
-          setShowAddressForm(false);
-        }
-      }
-    };
-
-    loadAddress();
-  }, [user]);
 
   /* ---------------- PRICE CALC ---------------- */
 
@@ -411,10 +395,9 @@ const HAMPERS = [
 
 
   
-  const deliveryCharge =
-    subtotal === 0 ? 0 : subtotal >= DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
-
   const discountAmount = (subtotal * discount) / 100;
+  const deliveryCharge =
+    (subtotal - discountAmount) <= 0 ? 0 : (subtotal - discountAmount) >= shippingConfig.threshold ? 0 : shippingConfig.deliveryCharge;
   const totalQuantity = items.reduce(
   (sum, i) => sum + (i.quantity || 1),
   0
@@ -904,7 +887,7 @@ const handlePlaceOrder = async () => {
 
         {deliveryCharge > 0 && (
           <p className="text-xs text-gray-500">
-            Add £{(DELIVERY_THRESHOLD - subtotal).toFixed(2)} more for FREE delivery
+            Add £{(shippingConfig.threshold - subtotal).toFixed(2)} more for FREE delivery
           </p>
         )}
       </div>

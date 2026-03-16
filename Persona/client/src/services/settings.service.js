@@ -18,9 +18,19 @@ export const updateSettings = async (data) => {
   }
 }
 
+export const getPublicSettings = async () => {
+  try {
+    return await api.get('/settings/public')
+  } catch (err) {
+    console.error('Fetch public settings error:', err)
+    throw err
+  }
+}
+
 export const getMaintenanceStatus = async () => {
   try {
-    return await api.get('/settings/maintenance-status')
+    const res = await api.get('/settings/public')
+    return { data: res.data?.data?.maintenanceMode || { isActive: false } }
   } catch (err) {
     console.error('Fetch maintenance status error:', err)
     throw err
