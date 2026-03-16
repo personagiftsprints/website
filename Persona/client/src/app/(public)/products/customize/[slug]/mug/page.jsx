@@ -89,6 +89,7 @@ export default function MugDesigner() {
         }
         
         localStorage.setItem('cart', JSON.stringify(cartItems))
+        window.dispatchEvent(new Event("cart-updated"))
         
         const designs = JSON.parse(localStorage.getItem('mugDesigns') || '[]')
         designs.push({
@@ -1101,7 +1102,7 @@ export default function MugDesigner() {
   }
 
   return (
-    <div className="bg-white overflow-x-hidden lg:px-32">
+    <div className="bg-white lg:h-[calc(100vh-148px)] overflow-hidden">
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -1295,10 +1296,10 @@ export default function MugDesigner() {
       )}
 
       {/* Main Layout */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,300px)_1fr_minmax(0,380px)] lg:gap-6 lg:p-6 p-4 space-y-6 lg:space-y-0 max-w-full">
+      <div className="lg:h-full lg:grid lg:grid-cols-[minmax(0,300px)_1fr_minmax(0,380px)] lg:gap-6 lg:p-6 p-4 space-y-6 lg:space-y-0 max-w-[1600px] mx-auto overflow-hidden">
         
         {/* Left Sidebar - Product Info */}
-        <aside className="hidden lg:block space-y-6 w-full border-r border-r-gray-200 p-4 mr-2">
+        <aside className="hidden lg:block h-full overflow-y-auto no-scrollbar space-y-6 w-full border-r border-r-gray-200 p-4 mr-2">
           <div className="w-full">
             <h1 className="text-2xl font-bold text-gray-900 truncate">{product?.name || "Custom Mug"}</h1>
             <p className="text-sm text-gray-500 mt-2 line-clamp-2">{product?.description || "Design your own ceramic mug"}</p>
@@ -1589,7 +1590,7 @@ export default function MugDesigner() {
         </aside>
 
         {/* Main Preview */}
-        <main className="bg-white p-4 lg:p-2 flex items-center justify-center relative w-full">
+        <main className="bg-white p-4 lg:p-2 flex items-center justify-center relative w-full h-full overflow-hidden">
           <div className="w-full max-w-2xl mx-auto">
             {renderMugWithOverlay()}
             
@@ -1743,7 +1744,7 @@ export default function MugDesigner() {
         </main>
 
         {/* Right Sidebar - Print Areas */}
-        <aside className="space-y-6 w-full">
+        <aside className="h-full overflow-y-auto no-scrollbar space-y-6 w-full">
           <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Areas</h2>

@@ -56,29 +56,29 @@ router.get("/users", authMiddleware, adminOnly, async (req, res) => {
 router.post("/grant-admin", authMiddleware, adminOnly, async (req, res) => {
   const { email, role } = req.body
 
-  const allowedRoles = ["admin", "super_admin", "manager"]
+  const allowedRoles = ["admin", "super_admin", "manager", "moderator"]
 
-  if (!email || !email.endsWith("@gmail.com")) {
+  if (!email) {
     return res.status(400).json({ status: "invalid_email" })
   }
 
-  if (!allowedRoles.includes(role)) {
+  const normalizedRole = role === "superadmin" ? "super_admin" : role;
+
+  if (!allowedRoles.includes(normalizedRole)) {
     return res.status(400).json({ status: "invalid_role" })
   }
 
   let user = await User.findOne({ email })
 
-  if (user) {
-    user.role = role
-    await user.save()
-  } else {
-    user = await User.create({
-      email,
-      provider: "google",
-      role,
-      isActive: true,
+  if (!user) {
+    return res.status(404).json({ 
+      status: "user_not_found", 
+      message: "No user account found with this email. The user must create an account first." 
     })
   }
+
+  user.role = normalizedRole
+  await user.save()
 
   res.json({
     status: "success",
@@ -92,7 +92,7 @@ router.post("/grant-admin", authMiddleware, adminOnly, async (req, res) => {
 
 router.get("/admins", authMiddleware, adminOnly, async (req, res) => {
   const admins = await User.find({
-    role: { $in: ["admin", "super_admin"] },
+    role: { $in: ["admin", "super_admin", "manager", "moderator"] },
   })
     .select("email role createdAt")
     .sort({ createdAt: -1 })

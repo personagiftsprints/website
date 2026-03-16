@@ -170,6 +170,7 @@ export default function TshirtColorPreview() {
 
         // Save back to localStorage
         localStorage.setItem('cart', JSON.stringify(cartItems))
+        window.dispatchEvent(new Event("cart-updated"))
 
         // Also save to a separate designs storage
         const designs = JSON.parse(localStorage.getItem('tshirtDesigns') || '[]')
@@ -1501,7 +1502,7 @@ const handlePreviewAndAddToCart = async () => {
   const sizes = ['S', 'M', 'L', 'XL']
 
   return (
-    <div className="bg-white overflow-x-hidden lg:px-32">
+    <div className="bg-white lg:h-[calc(100vh-148px)] overflow-hidden">
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -1692,16 +1693,16 @@ const handlePreviewAndAddToCart = async () => {
       )}
 
       {/* Mobile Responsive Layout */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,300px)_1fr_minmax(0,380px)] lg:gap-6 lg:p-1 p-4 space-y-6 lg:space-y-0 max-w-full">
+      <div className="lg:h-full lg:grid lg:grid-cols-[minmax(0,300px)_1fr_minmax(0,380px)] lg:gap-6 lg:p-2 p-4 space-y-6 lg:space-y-0 max-w-[1600px] mx-auto overflow-hidden">
 
         {/* Left Sidebar - Product Info & Colors (Hidden on mobile) */}
-        <aside className="hidden lg:block space-y-6 w-full border-r border-r-gray-200 p-4 mr-2">
+        <aside className="hidden lg:block h-full overflow-y-auto no-scrollbar space-y-6 w-full border-r border-r-gray-200 p-2 pr-6">
           <div className="w-full">
             <h1 className="text-2xl font-bold text-gray-900 truncate">{product?.name}</h1>
-            <p className="text-sm text-gray-500 mt-2 line-clamp-2">{product?.description}</p>
+            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product?.description}</p>
           </div>
 
-          <div className="space-y-3 p-4 bg-white rounded-xl border border-gray-200 w-full">
+          <div className="space-y-3 p-2 bg-white rounded-xl border border-gray-200 w-full">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Material:</span>
@@ -1872,7 +1873,7 @@ const handlePreviewAndAddToCart = async () => {
               onClick={handlePreviewAndAddToCart}
               disabled={isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)}
               
-              className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+              className={`w-full py-2 rounded-xl font-bold text-sm transition-all ${
                 isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg hover:shadow-xl'
@@ -1940,7 +1941,7 @@ const handlePreviewAndAddToCart = async () => {
         </aside>
 
         {/* Main T-shirt Preview */}
-        <main className="bg-white p-4 lg:p-2 flex items-center justify-center relative w-full">
+        <main className="bg-white p-4 lg:p-2 flex items-center justify-center relative w-full h-full overflow-hidden">
           <div className="w-full max-w-2xl mx-auto">
             {renderTshirtWithOverlay()}
 
@@ -2044,7 +2045,7 @@ const handlePreviewAndAddToCart = async () => {
           </div>
         </main>
 
-        <aside className="space-y-6 w-full ">
+        <aside className="h-full overflow-y-auto no-scrollbar space-y-6 w-full ">
           <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Areas</h2>

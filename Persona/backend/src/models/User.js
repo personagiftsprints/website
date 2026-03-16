@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     googleId: String,
     role: {
       type: String,
-      enum: ["customer", "admin"],
+      enum: ["customer", "admin", "super_admin", "manager", "moderator"],
       default: "customer",
     },
     addresses: [addressSchema],

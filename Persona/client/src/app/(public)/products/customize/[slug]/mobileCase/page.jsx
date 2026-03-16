@@ -146,6 +146,7 @@ export default function MobileCaseDesigner() {
 
       // Save back to localStorage
       localStorage.setItem("cart", JSON.stringify(cartItems));
+      window.dispatchEvent(new Event("cart-updated"));
 
       // Save to separate designs storage
       const designs = JSON.parse(localStorage.getItem("caseDesigns") || "[]");
