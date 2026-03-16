@@ -11,6 +11,10 @@ const settingsSchema = new mongoose.Schema(
       name: { type: String, default: "Persona Gifts" },
       contactEmail: { type: String },
       phone: { type: String }
+    },
+    shipping: {
+      deliveryCharge: { type: Number, default: 5 },
+      threshold: { type: Number, default: 100 }
     }
   },
   { timestamps: true }

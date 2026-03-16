@@ -1,5 +1,6 @@
 import express from "express"
 import Order from "../models/Order.js"
+import Product from "../models/Product.model.js"
 import { optionalAuth } from "../middlewares/optionalAuth.js"
 import { authMiddleware, adminOnly } from "../middlewares/auth.middleware.js"
 
@@ -11,7 +12,8 @@ const allowedTransitions = {
   processing: ["printing", "cancelled"],
   printing: ["out_for_delivery"],
   cancelled: [],
-  out_for_delivery: []
+  out_for_delivery: ["delivered"],
+  delivered: []
 }
 /* =====================================================
    CREATE ORDER (already handled in payment flow)
@@ -81,8 +83,10 @@ router.patch(
   adminOnly,
   async (req, res) => {
     try {
+      console.log("Updating order status...")
       const { orderId } = req.params
       const { status } = req.body
+      console.log("Updating order status:", orderId, status)
 
       const order = await Order.findById(orderId)
 
@@ -105,6 +109,74 @@ router.patch(
 
       order.orderStatus = status
       await order.save()
+
+      // 📦 Reduce stock if status is "out_for_delivery"
+      if (status === "out_for_delivery") {
+        console.log("Reducing stock for order:", order.orderNumber)
+        for (const item of order.items) {
+          try {
+            const product = await Product.findById(item.productId)
+            if (!product) {
+              console.log(`Product ${item.productId} not found for stock reduction`)
+              continue
+            }
+
+            // If product has variants, find the matching one
+            if (product.productConfig?.variants?.length > 0 && item.variant) {
+              console.log(`Matching variant for product ${product.name}`, item.variant)
+              
+              const variantIndex = product.productConfig.variants.findIndex(v => {
+                // Handle Mongoose Map or plain object
+                const attrs = v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes
+                
+                // Flexible matching for size and color - normalize to lowercase for comparison
+                const itemSize = item.variant?.size?.toString().toLowerCase()
+                const itemColor = (item.variant?.color_label || item.variant?.color)?.toString().toLowerCase()
+                
+                const variantSize = (attrs.size || attrs.Size || attrs.SIZE)?.toString().toLowerCase()
+                const variantColor = (attrs.color || attrs.Color || attrs.COLOR)?.toString().toLowerCase()
+                
+                console.log(`Comparing: Item(size:${itemSize}, color:${itemColor}) vs Variant(size:${variantSize}, color:${variantColor})`)
+                
+                return variantSize === itemSize && variantColor === itemColor
+              })
+
+              if (variantIndex !== -1) {
+                const variant = product.productConfig.variants[variantIndex]
+                console.log(`Matched variant at index ${variantIndex}. Current stock: ${variant.stockQuantity}`)
+                
+                if (variant.stockQuantity >= item.quantity) {
+                  variant.stockQuantity -= item.quantity
+                  variant.soldQuantity = (variant.soldQuantity || 0) + item.quantity
+                } else if (variant.stockQuantity > 0) {
+                  variant.soldQuantity = (variant.soldQuantity || 0) + variant.stockQuantity
+                  variant.stockQuantity = 0
+                }
+                
+                // Explicitly mark as modified for nested updates
+                product.markModified('productConfig.variants')
+              } else {
+                console.log(`No matching variant found for product ${product.name} with attributes:`, item.variant)
+              }
+            } else if (product.inventory) {
+              console.log(`Reducing simple inventory for product ${product.name}. Current stock: ${product.inventory.stockQuantity}`)
+              if (product.inventory.stockQuantity >= item.quantity) {
+                product.inventory.stockQuantity -= item.quantity
+                product.inventory.soldQuantity = (product.inventory.soldQuantity || 0) + item.quantity
+              } else if (product.inventory.stockQuantity > 0) {
+                product.inventory.soldQuantity = (product.inventory.soldQuantity || 0) + product.inventory.stockQuantity
+                product.inventory.stockQuantity = 0
+              }
+              product.markModified('inventory')
+            }
+
+            await product.save()
+            console.log(`Stock updated successfully for ${product.name}`)
+          } catch (error) {
+            console.error(`Failed to update stock for product ${item.productId}:`, error)
+          }
+        }
+      }
 
       res.json({
         success: true,

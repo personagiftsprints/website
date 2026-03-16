@@ -93,6 +93,7 @@ export default function DesignLibraryPage() {
                 <tr className="text-left">
                   <th className="px-6 py-4 font-bold text-gray-700">Preview</th>
                   <th className="px-6 py-4 font-bold text-gray-700">Design Name</th>
+                  <th className="px-6 py-4 font-bold text-gray-700">Category</th>
                   <th className="px-6 py-4 font-bold text-gray-700">Product Type</th>
                   <th className="px-6 py-4 font-bold text-gray-700">Tags</th>
                   <th className="px-6 py-4 font-bold text-gray-700">Status</th>
@@ -120,6 +121,19 @@ export default function DesignLibraryPage() {
                     <td className="px-6 py-4">
                       <p className="font-bold text-gray-900">{design.name}</p>
                       <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider font-mono">{design._id}</p>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold text-gray-700">
+                          {design.category?.name || "No Category"}
+                        </span>
+                        {design.subcategory && (
+                          <span className="text-[10px] text-gray-500">
+                            {design.subcategory.name}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="px-6 py-4">

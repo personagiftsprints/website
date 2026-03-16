@@ -25,7 +25,7 @@ export const getAdmins = async () => {
    GRANT ADMIN ACCESS (EMAIL + ROLE)
 ================================================= */
 export const grantAdminAccess = async ({ email, role }) => {
-  const { data } = await api.post("/admin/admins", {
+  const { data } = await api.post("/admin/grant-admin", {
     email,
     role
   })

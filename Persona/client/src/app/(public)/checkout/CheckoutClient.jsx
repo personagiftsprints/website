@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from "react"
 import Image from "next/image"
 import api from "@/services/axios"
 import { applyCoupon } from "@/services/checkout.service"
+import { getPublicSettings } from "@/services/settings.service"
 
 export default function CheckoutClient() {
   const searchParams = useSearchParams()
@@ -15,6 +16,22 @@ export default function CheckoutClient() {
   const [discount, setDiscount] = useState(0)
   const [applied, setApplied] = useState(false)
   const [error, setError] = useState("")
+  const [shippingConfig, setShippingConfig] = useState({ deliveryCharge: 5, threshold: 100 })
+
+  useEffect(() => {
+    fetchShippingSettings()
+  }, [])
+
+  const fetchShippingSettings = async () => {
+    try {
+      const res = await getPublicSettings()
+      if (res.data?.shipping) {
+        setShippingConfig(res.data.shipping)
+      }
+    } catch (err) {
+      console.error("Failed to load shipping settings:", err)
+    }
+  }
 
   useEffect(() => {
     if (mode === "direct") {
@@ -68,12 +85,9 @@ export default function CheckoutClient() {
     [items]
   )
 
-  const DELIVERY_THRESHOLD = 10
-  const DELIVERY_CHARGE = 2
-
   const deliveryCharge =
-    subtotal > 0 && subtotal < DELIVERY_THRESHOLD
-      ? DELIVERY_CHARGE
+    subtotal > 0 && subtotal < shippingConfig.threshold
+      ? shippingConfig.deliveryCharge
       : 0
 
   const discountAmount = (subtotal * discount) / 100

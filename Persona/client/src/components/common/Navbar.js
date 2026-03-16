@@ -78,7 +78,7 @@ function UserMenuDesktop() {
     )
   }
 
-  const isAdmin = user.role === "admin" || user.isAdmin === true
+  const isAdmin = ["admin", "super_admin", "manager", "moderator"].includes(user?.role) || user?.isAdmin === true
 
   return (
     <div className="relative hidden lg:block">
@@ -133,7 +133,7 @@ function UserMenuDesktop() {
 export default function Navbar() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true
+  const isAdmin = ["admin", "super_admin", "manager", "moderator"].includes(user?.role) || user?.isAdmin === true
   
   const [cartCount, setCartCount] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -145,6 +145,30 @@ export default function Navbar() {
   const searchInputRef = useRef(null)
   const router = useRouter()
   const [expandedCat, setExpandedCat] = useState(null)
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]")
+        const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0)
+        setCartCount(count)
+      } catch (e) {
+        setCartCount(0)
+      }
+    }
+
+    updateCartCount()
+    window.addEventListener("storage", updateCartCount)
+    window.addEventListener("cart-updated", updateCartCount)
+
+    const interval = setInterval(updateCartCount, 2000)
+
+    return () => {
+      window.removeEventListener("storage", updateCartCount)
+      window.removeEventListener("cart-updated", updateCartCount)
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -503,7 +527,12 @@ export default function Navbar() {
                 </Link>
                 <Link href="/cart" onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition">
-                  Cart
+                  <span>Cart</span>
+                  {cartCount > 0 && (
+                    <span className="bg-[#f9a51b] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {cartCount}
+                    </span>
+                  )}
                 </Link>
               </nav>
 

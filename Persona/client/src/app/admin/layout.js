@@ -139,9 +139,10 @@ export default function AdminLayout({ children }) {
   const [acknowledged, setAcknowledged] = useState(false)
 
   useEffect(() => {
+    const adminRoles = ["admin", "super_admin", "manager", "moderator"];
     if (!loading) {
       if (!user) router.replace("/")
-      else if (user.role !== "admin") router.replace("/")
+      else if (!adminRoles.includes(user.role)) router.replace("/")
     }
   }, [user, loading, router])
 
@@ -158,13 +159,14 @@ export default function AdminLayout({ children }) {
     return () => window.removeEventListener("resize", check)
   }, [])
 
- useEffect(() => {
-  if (!loading) {
-    if (!user || user.role !== "admin") {
-      router.replace("/")
+  useEffect(() => {
+    const adminRoles = ["admin", "super_admin", "manager", "moderator"];
+    if (!loading) {
+      if (!user || !adminRoles.includes(user.role)) {
+        router.replace("/")
+      }
     }
-  }
-}, [user, loading])
+  }, [user, loading])
 
   const allowAdmin = device === "desktop" || acknowledged
 

@@ -159,8 +159,6 @@ const removeItem = cartKey => {
   })
 }
 
-
-
 const toggleDesignExpanded = (cartKey) => {
   setExpandedDesigns(prev => ({
     ...prev,

@@ -25,7 +25,8 @@ export const authMiddleware = async (req, res, next) => {
 }
 
 export const adminOnly = (req, res, next) => {
-  if (req.user.role !== "admin") {
+  const adminRoles = ["admin", "super_admin", "manager", "moderator"]
+  if (!adminRoles.includes(req.user.role)) {
     return res.status(403).json({ status: "forbidden" })
   }
   next()

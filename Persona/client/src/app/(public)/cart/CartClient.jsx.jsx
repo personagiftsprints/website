@@ -3,15 +3,29 @@
 import { useEffect, useState, useMemo } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { getPublicSettings } from "@/services/settings.service"
 
 export default function CartClient() {
   const router = useRouter()
   const [items, setItems] = useState([])
+  const [shippingConfig, setShippingConfig] = useState({ deliveryCharge: 5, threshold: 100 })
 
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]")
     setItems(cart)
+    fetchShippingSettings()
   }, [])
+
+  const fetchShippingSettings = async () => {
+    try {
+      const res = await getPublicSettings()
+      if (res.data?.shipping) {
+        setShippingConfig(res.data.shipping)
+      }
+    } catch (err) {
+      console.error("Failed to load shipping settings:", err)
+    }
+  }
 
   const updateQty = (productId, qty) => {
     const updated = items.map(i =>
@@ -31,6 +45,13 @@ export default function CartClient() {
     () => items.reduce((s, i) => s + i.price * i.quantity, 0),
     [items]
   )
+
+  const deliveryCharge = useMemo(() => {
+    if (subtotal === 0) return 0
+    return subtotal >= shippingConfig.threshold ? 0 : shippingConfig.deliveryCharge
+  }, [subtotal, shippingConfig])
+
+  const total = subtotal + deliveryCharge
 
   if (!items.length) {
     return (
@@ -95,7 +116,27 @@ export default function CartClient() {
 
         <div className="flex justify-between">
           <span>Subtotal</span>
-          <span>£{subtotal}</span>
+          <span>£{subtotal.toFixed(2)}</span>
+        </div>
+
+        <div className="flex justify-between text-zinc-500">
+          <span>Shipping</span>
+          {deliveryCharge === 0 ? (
+            <span className="text-green-600 font-medium">FREE</span>
+          ) : (
+            <span>£{deliveryCharge.toFixed(2)}</span>
+          )}
+        </div>
+
+        {deliveryCharge > 0 && (
+          <p className="text-[10px] text-zinc-400 text-center">
+            Add £{(shippingConfig.threshold - subtotal).toFixed(2)} more for free shipping
+          </p>
+        )}
+
+        <div className="flex justify-between font-bold text-lg border-t pt-2">
+          <span>Total</span>
+          <span>£{total.toFixed(2)}</span>
         </div>
 
         <button

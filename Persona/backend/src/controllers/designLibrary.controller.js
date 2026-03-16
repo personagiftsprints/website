@@ -17,12 +17,17 @@ export const createDesign = async (req, res) => {
 
 export const getDesigns = async (req, res) => {
   try {
-    const { productType, isActive } = req.query;
+    const { productType, isActive, category, subcategory } = req.query;
     const filter = {};
     if (productType) filter.productType = productType;
+    if (category) filter.category = category;
+    if (subcategory) filter.subcategory = subcategory;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
 
-    const designs = await DesignLibrary.find(filter).sort({ createdAt: -1 });
+    const designs = await DesignLibrary.find(filter)
+      .populate('category', 'name')
+      .populate('subcategory', 'name')
+      .sort({ createdAt: -1 });
     res.json({
       success: true,
       data: designs
@@ -96,7 +101,9 @@ export const deleteDesign = async (req, res) => {
 export const getDesignsByProductType = async (req, res) => {
   try {
     const { type } = req.params;
-    const designs = await DesignLibrary.find({ productType: type, isActive: true });
+    const designs = await DesignLibrary.find({ productType: type, isActive: true })
+      .populate('category')
+      .populate('subcategory');
     res.json({
       success: true,
       data: designs

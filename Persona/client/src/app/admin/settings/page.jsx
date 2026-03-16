@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { getSettings, updateSettings } from "@/services/settings.service"
-import { Save, ShieldAlert, Clock, Info } from "lucide-react"
+import { Save, ShieldAlert, Clock, Info, Truck } from "lucide-react"
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState(null)
@@ -120,6 +120,64 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
+        {/* Shipping Configuration Section */}
+        <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-blue-50 p-4 border-b border-blue-100 flex items-center gap-3">
+            <Truck className="text-blue-600" size={24} />
+            <h2 className="text-lg font-bold text-blue-900">Shipping Configuration</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Delivery Charge (GBP)
+                  </label>
+                  <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium font-mono group-focus-within:text-blue-500 transition-colors">£</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={settings.shipping?.deliveryCharge ?? 0}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        shipping: { ...settings.shipping, deliveryCharge: Number(e.target.value) }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-3 text-gray-900 font-medium focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                      placeholder="5.00"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-2">Standard delivery fee applied to orders below the threshold.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 block mb-2">
+                    Free Shipping Threshold (GBP)
+                  </label>
+                  <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium font-mono group-focus-within:text-blue-500 transition-colors">£</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={settings.shipping?.threshold ?? 0}
+                      onChange={(e) => setSettings({
+                        ...settings,
+                        shipping: { ...settings.shipping, threshold: Number(e.target.value) }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-3 text-gray-900 font-medium focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none"
+                      placeholder="100.00"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-2">Orders equal to or above this amount will have free delivery.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

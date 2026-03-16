@@ -52,7 +52,8 @@ export default function AdminAccessPage() {
       setEmail("")
       await loadAdmins()
     } catch (error) {
-      setMessage({ text: error.message || "Failed to grant admin access", type: "error" })
+      const errMsg = error.response?.data?.message || error.message || "Failed to grant admin access"
+      setMessage({ text: errMsg, type: "error" })
     } finally {
       setLoading(false)
     }
@@ -60,16 +61,22 @@ export default function AdminAccessPage() {
 
   const getRoleIcon = useCallback((role) => {
     switch(role) {
-      case 'superadmin': return <Crown className="h-4 w-4" />
+      case 'superadmin': 
+      case 'super_admin': return <Crown className="h-4 w-4" />
       case 'admin': return <ShieldCheck className="h-4 w-4" />
+      case 'moderator':
+      case 'manager': return <ShieldPlus className="h-4 w-4" />
       default: return <UserCog className="h-4 w-4" />
     }
   }, [])
 
   const getRoleColor = useCallback((role) => {
     switch(role) {
-      case 'superadmin': return "bg-red-100 text-red-800 border-red-200"
+      case 'superadmin':
+      case 'super_admin': return "bg-red-100 text-red-800 border-red-200"
       case 'admin': return "bg-purple-100 text-purple-800 border-purple-200"
+      case 'moderator':
+      case 'manager': return "bg-orange-100 text-orange-800 border-orange-200"
       default: return "bg-blue-100 text-blue-800 border-blue-200"
     }
   }, [])
@@ -77,12 +84,12 @@ export default function AdminAccessPage() {
   // Memoized derived data
   const adminStats = useMemo(() => ({
     total: admins.length,
-    admins: admins.filter(a => a.role === 'admin').length,
-    superadmins: admins.filter(a => a.role === 'superadmin').length,
+    admins: admins.filter(a => a.role === 'admin' || a.role === 'manager' || a.role === 'moderator').length,
+    superadmins: admins.filter(a => a.role === 'superadmin' || a.role === 'super_admin').length,
   }), [admins])
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
       <div className="bg-white border rounded-xl p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -107,10 +114,40 @@ export default function AdminAccessPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      {/* Main Content Grid */}
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
+        {/* Stats Card - TOP on mobile, RIGHT on desktop */}
+        <div className="lg:order-2 space-y-6">
+          <div className="bg-white border rounded-xl p-4 sm:p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Admin Statistics
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-600">Total Admins</p>
+                  <p className="text-2xl font-bold">{adminStats.total}</p>
+                </div>
+                <Users className="h-8 w-8 text-gray-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <p className="text-xs text-purple-600 font-medium">Administrators</p>
+                  <p className="text-lg font-bold">{adminStats.admins}</p>
+                </div>
+                <div className="p-3 bg-red-50 rounded-lg">
+                  <p className="text-xs text-red-600 font-medium">Super Admins</p>
+                  <p className="text-lg font-bold">{adminStats.superadmins}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Grant Admin Card */}
-        <div className="lg:col-span-2">
-          <div className="bg-white border rounded-xl p-6 space-y-6">
+        <div className="lg:col-span-2 lg:order-1">
+          <div className="bg-white border rounded-xl p-4 sm:p-6 space-y-6">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-lg bg-black/10 flex items-center justify-center">
                 <ShieldPlus className="h-5 w-5 text-black" />
@@ -214,41 +251,11 @@ export default function AdminAccessPage() {
             </form>
           </div>
         </div>
-
-        {/* Stats Card */}
-        <div className="space-y-6">
-          <div className="bg-white border rounded-xl p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Admin Statistics
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-600">Total Admins</p>
-                  <p className="text-2xl font-bold">{adminStats.total}</p>
-                </div>
-                <Users className="h-8 w-8 text-gray-400" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <p className="text-xs text-purple-600 font-medium">Administrators</p>
-                  <p className="text-lg font-bold">{adminStats.admins}</p>
-                </div>
-                <div className="p-3 bg-red-50 rounded-lg">
-                  <p className="text-xs text-red-600 font-medium">Super Admins</p>
-                  <p className="text-lg font-bold">{adminStats.superadmins}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Important Notes remain the same */}
-        </div>
       </div>
 
       {/* Existing Admins Table */}
       <div className="bg-white border rounded-xl overflow-hidden">
-        <div className="p-6 border-b">
+        <div className="p-4 sm:p-6 border-b">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <ShieldCheck className="h-5 w-5" />
@@ -277,98 +284,161 @@ export default function AdminAccessPage() {
               <p className="text-gray-500 text-sm">Start by granting admin access to team members above</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Administrator</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role & Permissions</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Details</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+            <>
+              {/* Table for Desktop */}
+              <div className="hidden sm:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Administrator</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role & Permissions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Details</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {admins.map(admin => (
+                      <tr key={admin._id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">
+                              {admin.email[0].toUpperCase()}
+                            </div>
+                            <div className="ml-3">
+                              <div className="font-medium text-gray-900">{admin.email}</div>
+                              <div className="text-sm text-gray-500">ID: {admin._id.slice(-8)}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              {getRoleIcon(admin.role)}
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getRoleColor(admin.role)}`}>
+                                {admin.role}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">Provider: {admin.provider || 'credentials'}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              <span className="text-gray-600">Added {new Date(admin.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              {admin.isActive ? (
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              )}
+                              <span className={admin.isActive ? 'text-green-600' : 'text-red-600'}>
+                                {admin.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => copyAdminId(admin._id)}
+                              className="flex items-center gap-1 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 transition-colors"
+                              title="Copy Admin ID"
+                            >
+                              {copiedId === admin._id ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                              <span>ID</span>
+                            </button>
+                            <div className="relative">
+                              <button
+                                onClick={() => setSelectedAdmin(selectedAdmin === admin._id ? null : admin._id)}
+                                className="p-1.5 border rounded-lg hover:bg-gray-50"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                              {selectedAdmin === admin._id && (
+                                <div className="absolute right-0 mt-1 w-48 bg-white border rounded-lg shadow-lg z-10">
+                                  <button className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-50">
+                                    <Edit className="h-4 w-4" />
+                                    Edit Role
+                                  </button>
+                                  <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                    <Trash2 className="h-4 w-4" />
+                                    Revoke Access
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Card List for Mobile */}
+              <div className="block sm:hidden divide-y divide-gray-100">
                 {admins.map(admin => (
-                  <tr key={admin._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
+                  <div key={admin._id} className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">
                           {admin.email[0].toUpperCase()}
                         </div>
-                        <div className="ml-3">
-                          <div className="font-medium text-gray-900">{admin.email}</div>
-                          <div className="text-sm text-gray-500">ID: {admin._id.slice(-8)}</div>
+                        <div className="ml-3 min-w-0">
+                          <div className="font-medium text-gray-900 truncate max-w-[150px]">{admin.email}</div>
+                          <div className="text-xs text-gray-500">ID: {admin._id.slice(-8)}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          {getRoleIcon(admin.role)}
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getRoleColor(admin.role)}`}>
-                            {admin.role}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500">Provider: {admin.provider || 'credentials'}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-600">Added {new Date(admin.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          {admin.isActive ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-red-500" />
-                          )}
-                          <span className={admin.isActive ? 'text-green-600' : 'text-red-600'}>
-                            {admin.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => copyAdminId(admin._id)}
-                          className="flex items-center gap-1 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 transition-colors"
-                          title="Copy Admin ID"
+                          className="p-2 border rounded-lg hover:bg-gray-50"
                         >
-                          {copiedId === admin._id ? (
-                            <Check className="h-3.5 w-3.5 text-green-500" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                          <span>ID</span>
+                          {copiedId === admin._id ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                         </button>
                         <div className="relative">
                           <button
                             onClick={() => setSelectedAdmin(selectedAdmin === admin._id ? null : admin._id)}
-                            className="p-1.5 border rounded-lg hover:bg-gray-50"
+                            className="p-2 border rounded-lg hover:bg-gray-50"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </button>
                           {selectedAdmin === admin._id && (
-                            <div className="absolute right-0 mt-1 w-48 bg-white border rounded-lg shadow-lg z-10">
-                              <button className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-50">
-                                <Edit className="h-4 w-4" />
-                                Edit Role
+                            <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-xl z-20">
+                              <button className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-gray-50">
+                                <Edit className="h-4 w-4" /> Edit Role
                               </button>
-                              <button className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                <Trash2 className="h-4 w-4" />
-                                Revoke Access
+                              <button className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50">
+                                <Trash2 className="h-4 w-4" /> Revoke Access
                               </button>
                             </div>
                           )}
                         </div>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        {getRoleIcon(admin.role)}
+                        <span className={`px-2 py-0.5 rounded-full font-medium border ${getRoleColor(admin.role)}`}>
+                          {admin.role}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(admin.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       </div>

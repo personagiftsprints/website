@@ -19,7 +19,6 @@ import {
   getPrintConfigBySlug,
 } from "@/services/printArea.service";
 import TabButton from "@/components/TabButton";
-import GeneralRenderer from "@/components/GeneralRenderer";
 import ViewRenderer from "@/components/ViewRenderer";
 import ModelRenderer from "@/components/ModelRenderer";
 import Toggle from "@/components/Toggle";
@@ -151,7 +150,11 @@ const generateCustomFields = () => {
     }
 
     getAvailablePrintConfigs()
-      .then(setPrintConfigs)
+      .then((configs) => {
+        // Filter out 'general' type configurations as requested
+        const filtered = configs.filter((cfg) => cfg.type !== "general");
+        setPrintConfigs(filtered);
+      })
       .catch(() => setPrintConfigs([]));
   }, [customizationEnabled]);
 
@@ -466,7 +469,6 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
   };
 
   // Helper variables
-  const isGeneralConfig = selectedConfig?.type === "general";
   const isViewsConfig = !!selectedConfig?.views;
   const isModelsConfig = !!selectedConfig?.models;
 
@@ -977,7 +979,6 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
               {/* Preview Tab */}
               {activeTab === "preview" && selectedConfig && (
                 <PreviewTab
-                  isGeneralConfig={isGeneralConfig}
                   isViewsConfig={isViewsConfig}
                   isModelsConfig={isModelsConfig}
                   selectedConfig={selectedConfig}
@@ -1210,7 +1211,6 @@ const ConfigSelectionTab = ({
 );
 
 const PreviewTab = ({
-  isGeneralConfig,
   isViewsConfig,
   isModelsConfig,
   selectedConfig,
@@ -1224,8 +1224,6 @@ const PreviewTab = ({
     </div>
 
     <div className="space-y-6">
-      {isGeneralConfig && <GeneralRenderer area={selectedConfig.area} />}
-
       {isViewsConfig && <ViewRenderer views={selectedConfig.views} />}
 
       {isModelsConfig && <ModelRenderer models={selectedConfig.models} />}
