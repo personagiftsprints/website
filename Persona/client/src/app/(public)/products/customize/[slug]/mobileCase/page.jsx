@@ -565,14 +565,19 @@ export default function MobileCaseDesigner() {
     (e, areaId) => {
       if (!uploadedImages[areaId]) return;
 
+      const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+      const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+
+      if (clientX === undefined) return;
+
       isDraggingRef.current = true;
       currentAreaRef.current = areaId;
       dragStartRef.current = {
-        x: e.clientX - (imagePositions[areaId]?.x || 0),
-        y: e.clientY - (imagePositions[areaId]?.y || 0)
+        x: clientX - (imagePositions[areaId]?.x || 0),
+        y: clientY - (imagePositions[areaId]?.y || 0)
       };
 
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       setSelectedArea(currentViewAreas.find((a) => a.id === areaId) || null);
     },
     [uploadedImages, imagePositions, currentViewAreas]
@@ -582,6 +587,11 @@ export default function MobileCaseDesigner() {
     (e) => {
       if (!isDraggingRef.current || !currentAreaRef.current) return;
 
+      const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+      const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+
+      if (clientX === undefined) return;
+
       const areaId = currentAreaRef.current;
       const currentPos = imagePositions[areaId] || {
         x: 0,
@@ -590,8 +600,8 @@ export default function MobileCaseDesigner() {
         rotate: 0
       };
 
-      const newX = e.clientX - dragStartRef.current.x;
-      const newY = e.clientY - dragStartRef.current.y;
+      const newX = clientX - dragStartRef.current.x;
+      const newY = clientY - dragStartRef.current.y;
 
       const constrainedX = Math.max(-100, Math.min(100, newX));
       const constrainedY = Math.max(-100, Math.min(100, newY));
@@ -695,19 +705,25 @@ export default function MobileCaseDesigner() {
     }));
   };
 
-  // Global mouse listeners
+  // Global mouse and touch listeners
   useEffect(() => {
-    const handleGlobalMouseMove = (e) => handleDrag(e);
-    const handleGlobalMouseUp = () => handleDragEnd();
+    const handleGlobalMove = (e) => handleDrag(e);
+    const handleGlobalEnd = () => handleDragEnd();
 
     if (isDraggingRef.current) {
-      document.addEventListener("mousemove", handleGlobalMouseMove);
-      document.addEventListener("mouseup", handleGlobalMouseUp);
+      document.addEventListener("mousemove", handleGlobalMove);
+      document.addEventListener("mouseup", handleGlobalEnd);
+      document.addEventListener("touchmove", handleGlobalMove, { passive: false });
+      document.addEventListener("touchend", handleGlobalEnd);
+      document.addEventListener("touchcancel", handleGlobalEnd);
     }
 
     return () => {
-      document.removeEventListener("mousemove", handleGlobalMouseMove);
-      document.removeEventListener("mouseup", handleGlobalMouseUp);
+      document.removeEventListener("mousemove", handleGlobalMove);
+      document.removeEventListener("mouseup", handleGlobalEnd);
+      document.removeEventListener("touchmove", handleGlobalMove);
+      document.removeEventListener("touchend", handleGlobalEnd);
+      document.removeEventListener("touchcancel", handleGlobalEnd);
     };
   }, [handleDrag, handleDragEnd]);
 
@@ -788,6 +804,8 @@ export default function MobileCaseDesigner() {
           onMouseMove={handleDrag}
           onMouseUp={handleDragEnd}
           onMouseLeave={handleDragEnd}
+          onTouchMove={handleDrag}
+          onTouchEnd={handleDragEnd}
         >
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10 rounded-lg">
@@ -841,6 +859,7 @@ export default function MobileCaseDesigner() {
                     cursor: uploadedImages[area.id] ? "move" : "default"
                   }}
                   onMouseDown={(e) => handleDragStart(e, area.id)}
+                  onTouchStart={(e) => handleDragStart(e, area.id)}
                   onWheel={(e) => handleWheel(e, area.id)}
                 >
                   <img

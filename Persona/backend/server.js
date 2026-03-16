@@ -34,6 +34,8 @@ app.use(
       "http://localhost:5173",
       "http://localhost:3000",
       "https://persona-gift.vercel.app",
+      "http://192.168.56.1:3000",
+      "http://10.32.193.55:3000",
       "https://personagifts.co.uk"
     ],
     methods: ["GET", "POST", "PUT", "PATH", "DELETE", "OPTIONS","PATCH"],

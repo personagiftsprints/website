@@ -629,14 +629,19 @@ export default function MugDesigner() {
   const handleTextDragStart = useCallback((e, areaId) => {
     if (!textLayers[areaId]?.content) return
 
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY
+
+    if (clientX === undefined) return
+
     isDraggingTextRef.current = true
     currentTextAreaRef.current = areaId
     dragStartRef.current = {
-      x: e.clientX - (textPositions[areaId]?.x || 0),
-      y: e.clientY - (textPositions[areaId]?.y || 0)
+      x: clientX - (textPositions[areaId]?.x || 0),
+      y: clientY - (textPositions[areaId]?.y || 0)
     }
 
-    e.preventDefault()
+    if (e.cancelable) e.preventDefault()
     setSelectedArea(currentViewAreas.find(a => a.id === areaId) || null)
   }, [textLayers, textPositions, currentViewAreas])
 
@@ -644,24 +649,36 @@ export default function MugDesigner() {
   const handleDragStart = useCallback((e, areaId) => {
     if (!uploadedImages[areaId]) return
     
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY
+
+    if (clientX === undefined) return
+
     isDraggingRef.current = true
     currentAreaRef.current = areaId
     dragStartRef.current = {
-      x: e.clientX - (imagePositions[areaId]?.x || 0),
-      y: e.clientY - (imagePositions[areaId]?.y || 0)
+      x: clientX - (imagePositions[areaId]?.x || 0),
+      y: clientY - (imagePositions[areaId]?.y || 0)
     }
     
-    e.preventDefault()
+    if (e.cancelable) e.preventDefault()
     setSelectedArea(currentViewAreas.find(a => a.id === areaId) || null)
   }, [uploadedImages, imagePositions, currentViewAreas])
 
   const handleDrag = useCallback((e) => {
+    if (!isDraggingRef.current && !isDraggingTextRef.current) return
+
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY
+
+    if (clientX === undefined) return
+
     if (isDraggingRef.current && currentAreaRef.current) {
       const areaId = currentAreaRef.current
       const currentPos = imagePositions[areaId] || { x: 0, y: 0, scale: 1, rotate: 0 }
       
-      const newX = e.clientX - dragStartRef.current.x
-      const newY = e.clientY - dragStartRef.current.y
+      const newX = clientX - dragStartRef.current.x
+      const newY = clientY - dragStartRef.current.y
       
       const constrainedX = Math.max(-100, Math.min(100, newX))
       const constrainedY = Math.max(-100, Math.min(100, newY))
@@ -674,8 +691,8 @@ export default function MugDesigner() {
       const areaId = currentTextAreaRef.current
       const currentPos = textPositions[areaId] || { x: 0, y: 0, scale: 1, rotate: 0 }
       
-      const newX = e.clientX - dragStartRef.current.x
-      const newY = e.clientY - dragStartRef.current.y
+      const newX = clientX - dragStartRef.current.x
+      const newY = clientY - dragStartRef.current.y
       
       const constrainedX = Math.max(-100, Math.min(100, newX))
       const constrainedY = Math.max(-100, Math.min(100, newY))
@@ -803,19 +820,25 @@ export default function MugDesigner() {
     }))
   }
 
-  // Global mouse listeners
+  // Global mouse and touch move/up listeners
   useEffect(() => {
-    const handleGlobalMouseMove = (e) => handleDrag(e)
-    const handleGlobalMouseUp = () => handleDragEnd()
+    const handleGlobalMove = (e) => handleDrag(e)
+    const handleGlobalEnd = () => handleDragEnd()
     
     if (isDraggingRef.current || isDraggingTextRef.current) {
-      document.addEventListener('mousemove', handleGlobalMouseMove)
-      document.addEventListener('mouseup', handleGlobalMouseUp)
+      document.addEventListener('mousemove', handleGlobalMove)
+      document.addEventListener('mouseup', handleGlobalEnd)
+      document.addEventListener('touchmove', handleGlobalMove, { passive: false })
+      document.addEventListener('touchend', handleGlobalEnd)
+      document.addEventListener('touchcancel', handleGlobalEnd)
     }
     
     return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove)
-      document.removeEventListener('mouseup', handleGlobalMouseUp)
+      document.removeEventListener('mousemove', handleGlobalMove)
+      document.removeEventListener('mouseup', handleGlobalEnd)
+      document.removeEventListener('touchmove', handleGlobalMove)
+      document.removeEventListener('touchend', handleGlobalEnd)
+      document.removeEventListener('touchcancel', handleGlobalEnd)
     }
   }, [handleDrag, handleDragEnd])
 
@@ -959,6 +982,8 @@ export default function MugDesigner() {
           onMouseMove={handleDrag}
           onMouseUp={handleDragEnd}
           onMouseLeave={handleDragEnd}
+          onTouchMove={handleDrag}
+          onTouchEnd={handleDragEnd}
         >
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10 rounded-lg">
@@ -1015,6 +1040,7 @@ export default function MugDesigner() {
                       zIndex: 1
                     }}
                     onMouseDown={(e) => handleDragStart(e, area.id)}
+                    onTouchStart={(e) => handleDragStart(e, area.id)}
                     onWheel={(e) => handleWheel(e, area.id)}
                   >
                     <img
@@ -1043,6 +1069,7 @@ export default function MugDesigner() {
                       zIndex: 2
                     }}
                     onMouseDown={(e) => handleTextDragStart(e, area.id)}
+                    onTouchStart={(e) => handleTextDragStart(e, area.id)}
                   >
                     <div
                       style={{
