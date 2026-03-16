@@ -1878,7 +1878,7 @@ const handlePreviewAndAddToCart = async () => {
               <div className="flex justify-between pt-2 border-t">
                 <span className="text-gray-500">Price:</span>
                 <span className="font-bold text-2xl text-black">
-                  £{product?.pricing?.specialPrice || product?.pricing?.price || 15.99}
+                   £{product?.pricing?.specialPrice || product?.pricing?.basePrice }
                 </span>
               </div>
             </div>
