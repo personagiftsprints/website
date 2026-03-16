@@ -35,6 +35,7 @@ app.use(
       "http://localhost:3000",
       "https://persona-gift.vercel.app",
       "https://personagifts.co.uk",
+       "https://persona-git-feat-design-library-fix-personas-projects-6e65b53d.vercel.app",
        "https://persona-git-feat-design-library-fix-personas-projects-6e65b53d.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "PATH", "DELETE", "OPTIONS","PATCH"],
