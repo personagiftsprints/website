@@ -216,7 +216,7 @@ const toggleDesignExpanded = (cartKey) => {
           return (
             <div
               key={cartKey}
-              className="flex gap-4 border border-gray-200 rounded-lg p-4  transition"
+            className="flex flex-col sm:flex-row gap-4 border border-gray-200 rounded-lg p-4 transition"
             >
               {/* T-Shirt Preview Image with Design on Chest */}
               <div className="relative w-24 h-24 bg-zinc-100 rounded overflow-hidden flex-shrink-0">
