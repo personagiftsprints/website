@@ -26,6 +26,10 @@ const designLibrarySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category'
     },
+    subcategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subcategory'
+    },
     isActive: { type: Boolean, default: true },
     metadata: {
       defaultScale: { type: Number, default: 1 },

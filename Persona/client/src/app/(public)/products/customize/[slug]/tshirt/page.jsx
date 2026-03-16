@@ -1504,7 +1504,7 @@ const handlePreviewAndAddToCart = async () => {
   return (
     <div className="bg-white lg:h-[calc(100vh-148px)] overflow-hidden">
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
             <div className="p-4 border-b flex justify-between items-center bg-indigo-600 text-white">
               <h2 className="text-xl font-bold">Design Added Successfully!</h2>
@@ -1592,7 +1592,7 @@ const handlePreviewAndAddToCart = async () => {
 
       {/* Preview Modal */}
       {showPreviewModal && previewImageUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[85vh] overflow-hidden">
             <div className="p-3 border-b flex justify-between items-center">
               <h2 className="text-lg font-bold">Design Preview</h2>

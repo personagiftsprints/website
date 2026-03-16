@@ -1,63 +1,25 @@
-import axios from 'axios'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
+import api from './axios'
 
 export const getDesignsByProductType = async (type) => {
-  try {
-    const res = await axios.get(`${API_URL}/design-library/type/${type}`)
-    return res.data
-  } catch (err) {
-    console.error('Fetch designs error:', err)
-    throw err
-  }
+  return await api.get(`/design-library/type/${type}`)
 }
 
 export const getAllDesigns = async (params = {}) => {
-  try {
-    const res = await axios.get(`${API_URL}/design-library`, { params })
-    return res.data
-  } catch (err) {
-    console.error('Fetch all designs error:', err)
-    throw err
-  }
+  return await api.get('/design-library', { params })
 }
 
 export const createDesign = async (data) => {
-  try {
-    const res = await axios.post(`${API_URL}/design-library`, data)
-    return res.data
-  } catch (err) {
-    console.error('Create design error:', err)
-    throw err
-  }
+  return await api.post('/design-library', data)
 }
 
 export const getDesignById = async (id) => {
-  try {
-    const res = await axios.get(`${API_URL}/design-library/${id}`)
-    return res.data
-  } catch (err) {
-    console.error('Fetch design error:', err)
-    throw err
-  }
+  return await api.get(`/design-library/${id}`)
 }
 
 export const updateDesign = async (id, data) => {
-  try {
-    const res = await axios.put(`${API_URL}/design-library/${id}`, data)
-    return res.data
-  } catch (err) {
-    console.error('Update design error:', err)
-    throw err
-  }
+  return await api.put(`/design-library/${id}`, data)
 }
 
 export const deleteDesign = async (id) => {
-  try {
-    const res = await axios.delete(`${API_URL}/design-library/${id}`)
-    return res.data
-  } catch (err) {
-    console.error('Delete design error:', err)
-    throw err
-  }
+  return await api.delete(`/design-library/${id}`)
 }

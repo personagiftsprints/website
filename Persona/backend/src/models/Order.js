@@ -223,7 +223,8 @@ const orderSchema = new mongoose.Schema(
     "processing",
     "printing",
     "cancelled",
-    "out_for_delivery"
+    "out_for_delivery",
+    "delivered"
   ],
   default: "processing"
 },
