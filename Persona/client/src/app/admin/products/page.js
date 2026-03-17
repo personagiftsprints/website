@@ -15,9 +15,10 @@ import {
   ChevronUp,
   AlertTriangle,
   TrendingUp,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
-import { getAllProducts, updateProductStatus } from "@/services/product.service"
+import { getAllProducts, updateProductStatus, deleteProductAPI } from "@/services/product.service"
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([])
@@ -45,6 +46,18 @@ export default function AdminProductsPage() {
     await updateProductStatus(product._id, !product.isActive)
     setOpenMenuId(null)
     fetchProducts(page)
+  }
+
+  const handleDelete = async (id, name) => {
+    if (window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      try {
+        await deleteProductAPI(id)
+        alert("Product deleted successfully")
+        fetchProducts(page)
+      } catch (err) {
+        alert("Failed to delete product")
+      }
+    }
   }
 
   useEffect(() => {
@@ -202,6 +215,14 @@ export default function AdminProductsPage() {
                         title="Toggle status"
                       >
                         {product.isActive ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(product._id, product.name)}
+                        className="p-2 hover:bg-red-50 text-red-500 rounded cursor-pointer"
+                        title="Delete product"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>

@@ -790,7 +790,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Special Price ($) *
+                            Special Price ($)
                           </label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -804,7 +804,6 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               }
                               className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                               placeholder="0.00"
-                              required
                             />
                           </div>
                           <p className="text-xs text-gray-500 mt-1">

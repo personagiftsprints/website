@@ -61,7 +61,7 @@ const customFieldSchema = new mongoose.Schema(
 const pricingSchema = new mongoose.Schema(
   {
     basePrice: { type: Number, required: true, min: 0 },
-    specialPrice: { type: Number, required: true, min: 0 },
+    specialPrice: { type: Number, required: false, min: 0 },
     currency: { type: String, default: 'GBP' },
     taxInclusive: { type: Boolean, default: true },
     discountPercentage: { type: Number, min: 0, max: 100, default: 0 }
@@ -191,8 +191,10 @@ productSchema.pre('save', function () {
   const mainImage = this.images.find(i => i.isMain)
   this.thumbnail = mainImage?.url || this.images[0]?.url || null
 
+  // Fix: handle optional specialPrice and ensure it's lower than basePrice for discount
   if (
     this.pricing?.specialPrice &&
+    this.pricing.specialPrice > 0 &&
     this.pricing.basePrice > this.pricing.specialPrice
   ) {
     this.pricing.discountPercentage = Math.round(

@@ -100,6 +100,17 @@ export const updateProductAPI = async (id, updates) => {
 }
 
 
+export const deleteProductAPI = async id => {
+  try {
+    const res = await api.delete(`/products/${id}`)
+    return res
+  } catch (err) {
+    console.error('Delete product error:', err)
+    throw err
+  }
+}
+
+
 export const getSimilarProducts = async (slug) => {
   const res = await api.get(`/products/similar/${slug}`)
   return res

@@ -153,14 +153,14 @@ useEffect(() => {
 
   // NEW: Handle submit for custom fields product
   const handleCustomFieldsSubmit = async () => {
-    // Validate required fields
     const fields = customization.fields;
-    const missingRequired = fields.filter(f => 
-      f.required && !customFormData[f.name] && !customFiles[f.name]
+    // Validate: At least one field must be filled
+    const isAtLeastOneFilled = fields.some(f => 
+      f.type === 'image' ? !!customFiles[f.name] : !!customFormData[f.name]?.trim()
     );
     
-    if (missingRequired.length > 0) {
-      alert(`Please fill all required fields`);
+    if (!isAtLeastOneFilled) {
+      alert(`Please fill at least one field to customize your product.`);
       return;
     }
 
@@ -231,7 +231,8 @@ useEffect(() => {
   if (!product) return <div className="p-10 text-center">Not found</div>;
 
   const { pricing, customization: productCustomization, inventory, productConfig } = product;
-  const price = pricing.specialPrice ?? pricing.basePrice;
+  const price = (pricing.specialPrice && pricing.specialPrice > 0) ? pricing.specialPrice : pricing.basePrice;
+  const hasDiscount = pricing.specialPrice && pricing.specialPrice > 0 && pricing.specialPrice < pricing.basePrice;
 
 const isVariantProduct = productConfig?.attributes?.length > 0;
 
@@ -390,6 +391,10 @@ const renderCustomFields = () => {
     }
   };
 
+  const isAtLeastOneFilled = fields.some(f => 
+    f.type === 'image' ? !!customFiles[f.name] : !!customFormData[f.name]?.trim()
+  );
+
   return (
     <div className="space-y-6">
       {/* Progress Bar */}
@@ -479,25 +484,32 @@ const renderCustomFields = () => {
         )}
         
         {currentFieldIndex < fields.length - 1 ? (
-          <button
-            type="button"
-            onClick={handleNextField}
-            disabled={!isCurrentFieldCompleted()}
-            className={`flex-1 py-3 rounded-lg transition-colors ${
-              isCurrentFieldCompleted()
-                ? 'bg-black text-white hover:bg-gray-800' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            Next
-          </button>
+          <div className="flex-1 flex gap-3">
+            {!isCurrentFieldCompleted() ? (
+              <button
+                type="button"
+                onClick={handleNextField}
+                className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+              >
+                Skip this step
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNextField}
+                className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Next
+              </button>
+            )}
+          </div>
         ) : (
           <button
             type="button"
             onClick={handleCustomFieldsSubmit}
-            disabled={uploadingCustom || !isCurrentFieldCompleted()}
+            disabled={uploadingCustom || (!isAtLeastOneFilled && !isCurrentFieldCompleted())}
             className={`flex-1 py-3 rounded-lg transition-colors ${
-              uploadingCustom || !isCurrentFieldCompleted()
+              uploadingCustom || (!isAtLeastOneFilled && !isCurrentFieldCompleted())
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-green-600 text-white hover:bg-green-700'
             }`}
@@ -566,7 +578,7 @@ const renderCustomFields = () => {
         <div className="flex items-end gap-4">
           <span className="text-4xl font-bold">{formattedPrice}</span>
 
-          {pricing.specialPrice && (
+          {hasDiscount && (
             <span className="line-through text-gray-400">
               {formattedBasePrice}
             </span>
