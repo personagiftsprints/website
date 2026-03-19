@@ -2115,7 +2115,7 @@ const handlePreviewAndAddToCart = async () => {
                     }`}
                   >
                     <p className="font-semibold">{area.name}</p>
-                    <p className="text-xs text-gray-500">Max size: {area.max}</p>
+                    {/* <p className="text-xs text-gray-500">Max size:c {area.max}</p> */}
                     {(hasImage || hasText) && (
                       <div className="mt-1">
                         {hasImage && (
