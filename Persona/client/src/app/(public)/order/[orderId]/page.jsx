@@ -725,7 +725,7 @@ export default function OrderDetailsPage() {
         </div>
 
         <div className="flex gap-6 text-sm">
-          <Link href="/products" className="underline">
+          <Link href="/" className="underline">
             Continue shopping
           </Link>
 
