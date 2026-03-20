@@ -1502,7 +1502,7 @@ const handlePreviewAndAddToCart = async () => {
   const sizes = ['S', 'M', 'L', 'XL']
 
   return (
-    <div className="bg-white lg:h-[calc(100vh-148px)] overflow-hidden">
+    <div className="bg-gray-50 lg:bg-white lg:h-[calc(100vh-148px)] lg:overflow-hidden overflow-y-auto no-scrollbar pb-28 lg:pb-0">
       {showSuccessModal && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -1693,7 +1693,88 @@ const handlePreviewAndAddToCart = async () => {
       )}
 
       {/* Mobile Responsive Layout */}
-      <div className="lg:h-full lg:grid lg:grid-cols-[minmax(0,300px)_1fr_minmax(0,380px)] lg:gap-6 lg:p-2 p-4 space-y-6 lg:space-y-0 max-w-[1600px] mx-auto overflow-hidden">
+      <div className="lg:h-full flex flex-col lg:grid lg:grid-cols-[minmax(0,300px)_1fr_minmax(0,380px)] lg:gap-6 lg:p-2 p-0 space-y-0 max-w-[1600px] mx-auto lg:overflow-hidden relative">
+
+        {/* Mobile Header (Hidden on Desktop) */}
+        <div className="lg:hidden p-4 space-y-4 bg-white border-b order-0 w-full rounded-b-2xl shadow-sm z-10">
+          <div className="w-full">
+            <h1 className="text-2xl font-bold text-gray-900 truncate">{product?.name}</h1>
+            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product?.description}</p>
+          </div>
+          <div className="flex justify-between items-end">
+            <div className="space-y-1">
+              <span className="text-gray-500 text-sm">Price:</span>
+              <div className="font-bold text-2xl text-black">
+                £{product?.pricing?.specialPrice || product?.pricing?.basePrice}
+              </div>
+            </div>
+            <div className="text-right text-xs text-gray-500 max-w-[120px] truncate">
+               {product?.material?.split(",").map(m => m.trim()).join(" • ")}
+            </div>
+          </div>
+          
+          <div className="w-full pt-2">
+            <h4 className="font-semibold mb-2 text-sm text-gray-700">Select Color</h4>
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              {colors.map(([key, c]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedColor(key)}
+                  className="flex flex-col items-center gap-1 group flex-shrink-0"
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full border shadow-sm transition-all ${
+                      COLOR_STYLE[key]
+                    } ${
+                      selectedColor === key
+                        ? "ring-2 ring-gray-900 ring-offset-2 border-transparent scale-110"
+                        : "border-gray-200"
+                    }`}
+                  />
+                  <span className="text-[10px] text-gray-600 font-medium truncate max-w-[50px]">{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full">
+            <h4 className="font-semibold mb-2 text-sm text-gray-700">Select Size</h4>
+            <div className="flex flex-wrap gap-2">
+              {sizes.map(size => (
+                <button
+                  key={size}
+                  onClick={() => setSelectedSize(size)}
+                  className={`px-4 py-2 border rounded-lg transition-all text-sm font-medium ${
+                    selectedSize === size
+                      ? 'bg-black text-white border-black'
+                      : 'border-gray-200 hover:border-gray-300 bg-gray-50'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl flex items-center justify-between mt-2">
+            <div className="flex items-center gap-2">
+               <span className="text-2xl">🎨</span>
+               <div>
+                 <p className="text-sm font-bold text-orange-800">Need inspiration?</p>
+                 <p className="text-[10px] text-orange-600">Use our design library</p>
+               </div>
+            </div>
+            <button
+               onClick={() => {
+                 if (view === "front" && !showCenterChest) setShowCenterChest(true)
+                 setShowLibrary(true)
+               }}
+               className="px-4 py-2 bg-[#F9A51B] text-white rounded-lg font-bold text-xs shadow-sm shadow-orange-200/50"
+            >
+               Browse
+            </button>
+          </div>
+        </div>
 
         {/* Left Sidebar - Product Info & Colors (Hidden on mobile) */}
         <aside className="hidden lg:block h-full overflow-y-auto no-scrollbar space-y-6 w-full border-r border-r-gray-200 p-2 pr-6">
@@ -1941,7 +2022,7 @@ const handlePreviewAndAddToCart = async () => {
         </aside>
 
         {/* Main T-shirt Preview */}
-        <main className="bg-white p-4 lg:p-2 flex items-center justify-center relative w-full h-full overflow-hidden">
+        <main className="bg-transparent lg:bg-white p-0 lg:p-2 flex items-center justify-center relative w-full lg:h-full overflow-hidden order-1 my-4 lg:my-0 pb-16 lg:pb-0">
           <div className="w-full max-w-2xl mx-auto">
             {renderTshirtWithOverlay()}
 
@@ -2014,39 +2095,85 @@ const handlePreviewAndAddToCart = async () => {
                       ↺ Reset
                     </button>
                   </div>
+
+                  {/* Mobile X/Y Axis Controls */}
+                  <div className="flex lg:hidden gap-6 justify-center mt-3 border-t pt-3">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Move X</span>
+                      <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                        <button
+                          onClick={() => setImagePositions(prev => ({
+                            ...prev,
+                            [selectedArea.id]: {
+                              ...(prev[selectedArea.id] || { scale: 0.5, rotate: 0, x: 0, y: 0 }),
+                              x: (prev[selectedArea.id]?.x || 0) - 10
+                            }
+                          }))}
+                          className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold border-r text-gray-700 active:scale-95 transition-transform"
+                        >
+                          ←
+                        </button>
+                        <button
+                          onClick={() => setImagePositions(prev => ({
+                            ...prev,
+                            [selectedArea.id]: {
+                              ...(prev[selectedArea.id] || { scale: 0.5, rotate: 0, x: 0, y: 0 }),
+                              x: (prev[selectedArea.id]?.x || 0) + 10
+                            }
+                          }))}
+                          className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold text-gray-700 active:scale-95 transition-transform"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Move Y</span>
+                      <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                        <button
+                          onClick={() => setImagePositions(prev => ({
+                            ...prev,
+                            [selectedArea.id]: {
+                              ...(prev[selectedArea.id] || { scale: 0.5, rotate: 0, x: 0, y: 0 }),
+                              y: (prev[selectedArea.id]?.y || 0) - 10
+                            }
+                          }))}
+                          className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold border-r text-gray-700 active:scale-95 transition-transform"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => setImagePositions(prev => ({
+                            ...prev,
+                            [selectedArea.id]: {
+                              ...(prev[selectedArea.id] || { scale: 0.5, rotate: 0, x: 0, y: 0 }),
+                              y: (prev[selectedArea.id]?.y || 0) + 10
+                            }
+                          }))}
+                          className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold text-gray-700 active:scale-95 transition-transform"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
               <p className="text-xs text-gray-500 text-center mt-2">
                 {selectedArea && uploadedImages[selectedArea.id] 
-                  ? "Drag to move • Scroll or use slider to zoom"
+                  ? "Use buttons or drag to move • Use slider to zoom"
                   : "Click on an area with design to adjust size and position"}
               </p>
             </div>
           </div>
 
-          {/* Mobile Controls Overlay */}
-          <div className="lg:hidden fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border px-6 py-4 z-50 w-11/12 max-w-sm">
-            <div className="flex flex-wrap gap-2 justify-center">
-              {["front", "back"].map(v => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all shadow-md flex-1 min-w-[120px] ${
-                    view === v
-                      ? "bg-gradient-to-r from-black to-gray-900 text-white shadow-black/25"
-                      : "bg-white border-2 border-gray-200 hover:border-gray-400 hover:shadow-lg hover:-translate-y-0.5"
-                  }`}
-                >
-                  {v.charAt(0).toUpperCase() + v.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Action buttons on Shirt are removed as they are integrated in Right Sidebar and Mobile Bottom Bar */}
         </main>
 
-        <aside className="h-full overflow-y-auto no-scrollbar space-y-6 w-full ">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+        <aside className="lg:h-full lg:overflow-y-auto no-scrollbar space-y-6 w-full order-2 mb-20 lg:mb-0">
+          <div className="bg-white lg:rounded-2xl lg:border lg:border-gray-100 p-4 lg:p-6 space-y-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] lg:shadow-none">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Areas</h2>
               {totalUploadedAreas > 0 && (
@@ -2283,6 +2410,69 @@ const handlePreviewAndAddToCart = async () => {
                         </button>
                       </div>
 
+                      {/* Mobile Text X/Y Axis Controls */}
+                      <div className="flex lg:hidden gap-6 justify-center mt-3 border-t pt-3">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Move X</span>
+                          <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                            <button
+                              onClick={() => setTextPositions(prev => ({
+                                ...prev,
+                                [selectedArea.id]: {
+                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
+                                  x: (prev[selectedArea.id]?.x || 0) - 10
+                                }
+                              }))}
+                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold border-r text-gray-700 active:scale-95 transition-transform"
+                            >
+                              ←
+                            </button>
+                            <button
+                              onClick={() => setTextPositions(prev => ({
+                                ...prev,
+                                [selectedArea.id]: {
+                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
+                                  x: (prev[selectedArea.id]?.x || 0) + 10
+                                }
+                              }))}
+                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold text-gray-700 active:scale-95 transition-transform"
+                            >
+                              →
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Move Y</span>
+                          <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                            <button
+                              onClick={() => setTextPositions(prev => ({
+                                ...prev,
+                                [selectedArea.id]: {
+                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
+                                  y: (prev[selectedArea.id]?.y || 0) - 10
+                                }
+                              }))}
+                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold border-r text-gray-700 active:scale-95 transition-transform"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              onClick={() => setTextPositions(prev => ({
+                                ...prev,
+                                [selectedArea.id]: {
+                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
+                                  y: (prev[selectedArea.id]?.y || 0) + 10
+                                }
+                              }))}
+                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold text-gray-700 active:scale-95 transition-transform"
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
                       <button
                         onClick={() => {
                           setTextLayers(prev => {
@@ -2384,94 +2574,57 @@ const handlePreviewAndAddToCart = async () => {
               </div>
             )}
 
-            {/* Size Selector for Mobile */}
-            <div className="lg:hidden">
-              <h3 className="font-semibold mb-3">Size</h3>
-              <div className="flex flex-wrap gap-2">
-                {sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 border rounded-lg transition-all ${
-                      selectedSize === size
-                        ? 'bg-black text-white border-black'
-                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* ACTION BUTTONS */}
-            <div className="space-y-3 lg:hidden">
-              {/* Preview Button */}
-              <button
-                onClick={handlePreviewAndAddToCart}
-                disabled={isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                  isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg hover:shadow-xl'
-                }`}
-              >
-                {isUploading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Uploading Images...
+            {/* ACTION BUTTONS (Sticky Bottom Bar Mobile) */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-6 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+              <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+                {/* Price Display */}
+                <div className="flex-[0.8] pl-2">
+                  <span className="text-xs text-gray-500 block">Total Price</span>
+                  <div className="font-bold text-xl text-black">
+                    £{product?.pricing?.specialPrice || product?.pricing?.basePrice}
                   </div>
-                ) : totalUploadedAreas === 0 && Object.keys(textLayers).length === 0 ? (
-                  'Add a design to preview'
-                ) : (
-                  'Add to Cart'
-                )}
-              </button>
+                </div>
 
-              {/* Direct Add to Cart Button (when preview already generated) */}
-              {showCloudinaryUrls && previewImageUrl && (
-                <button
-                  onClick={() => addDesignToCart(cloudinaryUrls)}
-                  disabled={isAddingToCart}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                    isAddingToCart
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-black text-white hover:bg-gray-800 active:scale-[0.98] shadow-lg hover:shadow-xl'
-                  }`}
-                >
-                  {isAddingToCart ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Adding to Cart...
-                    </div>
+                <div className="flex-[1.2] flex flex-col gap-2">
+                  {/* Direct Add to Cart Button (when preview already generated) */}
+                  {showCloudinaryUrls && previewImageUrl ? (
+                    <button
+                      onClick={() => addDesignToCart(cloudinaryUrls)}
+                      disabled={isAddingToCart}
+                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
+                        isAddingToCart
+                          ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                          : 'bg-black text-white hover:bg-gray-800 shadow-[0_4px_12px_rgba(0,0,0,0.15)] active:scale-95'
+                      }`}
+                    >
+                      {isAddingToCart ? 'Adding...' : '🛒 Add to Cart'}
+                    </button>
                   ) : (
-                    '🛒 Add to Cart'
+                    /* Preview Button */
+                    <button
+                      onClick={handlePreviewAndAddToCart}
+                      disabled={isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)}
+                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
+                        isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-[0_4px_12px_rgba(79,70,229,0.25)] active:scale-95'
+                      }`}
+                    >
+                      {isUploading ? 'Uploading...' : totalUploadedAreas === 0 && Object.keys(textLayers).length === 0 ? 'Select a design' : 'Add to Cart'}
+                    </button>
                   )}
-                </button>
-              )}
-
+                </div>
+              </div>
+              
               {showCloudinaryUrls && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <p className="text-sm font-semibold text-blue-700">
-                      Images uploaded to Cloudinary successfully!
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowPreviewModal(true)}
-                      className="flex-1 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 text-sm"
-                    >
-                      View Preview
-                    </button>
-                    <button
-                      onClick={() => logStructuredProductData(cloudinaryUrls)}
-                      className="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                    >
-                      Log Data
-                    </button>
-                  </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => setShowPreviewModal(true)}
+                    className="flex-1 py-2 border border-blue-600 text-blue-600 rounded-lg bg-blue-50 text-xs font-semibold"
+                  >
+                    View Preview Images
+                  </button>
                 </div>
               )}
             </div>
