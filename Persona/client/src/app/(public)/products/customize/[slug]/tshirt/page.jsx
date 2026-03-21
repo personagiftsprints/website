@@ -1907,9 +1907,9 @@ const handlePreviewAndAddToCart = async () => {
                     <input
                       type="range"
                       min="0.1"
-                      max="5"
+                      max="2"
                       step="0.1"
-                      value={imagePositions[selectedArea.id]?.scale || 0.5}
+                      value={imagePositions[selectedArea.id]?.scale || 0.2}
                       onChange={(e) => handleZoomChange(selectedArea.id, parseFloat(e.target.value))}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />

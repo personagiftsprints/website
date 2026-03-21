@@ -135,6 +135,7 @@ const productSchema = new mongoose.Schema(
         'sticker',
         'hat',
         'normal',
+        '3Dcrystal',
         'other'
       ]
     },
