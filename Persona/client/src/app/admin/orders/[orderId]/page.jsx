@@ -16,6 +16,12 @@ const STATUS_FLOW = {
   out_for_delivery: [],
 };
 
+const HAMPER_NAMES = {
+  basic: "Silver Level",
+  premium: "Gold Level",
+  luxury: "Platinum Level",
+};
+
 // Reusable Download Button Component
 const DownloadButton = ({ url, filename = "image.png" }) => {
   const handleDownload = async () => {
@@ -1523,8 +1529,8 @@ export default function AdminOrderDetailPage() {
 
   {order.packaging?.hamperCharge > 0 && (
     <div className="flex justify-between">
-      <span className="text-gray-600 capitalize">
-        {order.packaging.hamper} Hamper
+      <span className="text-gray-600">
+        {HAMPER_NAMES[order.packaging.hamper] || order.packaging.hamper} Hamper
       </span>
       <span>£{order.packaging.hamperCharge.toFixed(2)}</span>
     </div>

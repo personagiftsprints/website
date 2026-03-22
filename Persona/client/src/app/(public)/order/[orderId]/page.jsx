@@ -16,6 +16,12 @@ const STATUS_STYLE = {
 
 const STATUS_FLOW = ["paid", "processing", "printing", "out_for_delivery"];
 
+const HAMPER_NAMES = {
+  basic: "Silver Level",
+  premium: "Gold Level",
+  luxury: "Platinum Level",
+};
+
 // Download Button Component
 const DownloadButton = ({ url, filename = "image.png" }) => {
   const handleDownload = async () => {
@@ -703,8 +709,10 @@ export default function OrderDetailsPage() {
             {order.packaging?.hamper && (
               <div className="flex justify-between">
                 <span className="text-slate-500">
-                  {order.packaging.hamper.charAt(0).toUpperCase() +
-                    order.packaging.hamper.slice(1)} Hamper
+                  {HAMPER_NAMES[order.packaging.hamper] ||
+                    order.packaging.hamper.charAt(0).toUpperCase() +
+                      order.packaging.hamper.slice(1)}{" "}
+                  Hamper
                 </span>
                 <span>£{order.packaging.hamperCharge.toFixed(2)}</span>
               </div>

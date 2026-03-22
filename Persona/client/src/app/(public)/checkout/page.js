@@ -236,9 +236,9 @@ const [selectedHamper, setSelectedHamper] = useState(null)
   const [giftWrap, setGiftWrap] = useState(false)
 
 const HAMPERS = [
-  { id: "basic", name: "Basic Hamper", price: 4 },
-  { id: "premium", name: "Premium Hamper", price: 9 },
-  { id: "luxury", name: "Luxury Hamper", price: 14 }
+  { id: "basic", name: "Silver Level", price: 4 },
+  { id: "premium", name: "Gold Level", price: 9 },
+  { id: "luxury", name: "Platinum Level", price: 14 }
 ]
   const [addressForm, setAddressForm] = useState({
     fullName: "",
@@ -960,11 +960,11 @@ const handlePlaceOrder = async () => {
   <div className="border rounded p-3 space-y-2">
     <p className="text-sm font-medium">Hamper Packaging</p>
             {selectedHamper ? (
-              <div className="flex justify-between bg-gray-100 p-3 rounded">
-                <span>{selectedHamper} Hamper</span>
+              <div className="flex justify-between items-center bg-gray-100 p-3 rounded">
+                <span className="text-sm font-medium">{selectedHamperData?.name} Hamper Packaging</span>
                 <button
                   onClick={() => setHamperModalOpen(true)}
-                  className="text-indigo-600 text-sm"
+                  className="text-indigo-600 text-sm hover:underline"
                 >
                   Change
                 </button>
@@ -1047,10 +1047,11 @@ const handlePlaceOrder = async () => {
       </div>
 
       <HamperSelectionModal
-  open={hamperModalOpen}
-  onClose={() => setHamperModalOpen(false)}
-  onSelect={(hamperId) => setSelectedHamper(hamperId)}
-/>
+        open={hamperModalOpen}
+        onClose={() => setHamperModalOpen(false)}
+        onSelect={(hamperId) => setSelectedHamper(hamperId)}
+        selectedHamper={selectedHamper}
+      />
 
   
     </div>

@@ -1,27 +1,46 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import hamper1 from "@/assets/hamper/1.webp"
-import hamper2 from "@/assets/hamper/2.webp"
-import hamper3 from "@/assets/hamper/3.webp"
+import hamper1 from "@/assets/hamper/1.jpeg"
+import hamper2 from "@/assets/hamper/2.jpeg"
+import hamper3 from "@/assets/hamper/3.jpeg"
 import Image from "next/image"
 
 const hamperOptions = [
-  { id: "basic", label: "Basic Hamper", media: hamper1 ,price: 4},
-  { id: "premium", label: "Premium Hamper", media: hamper2,price: 9 },
-  { id: "luxury", label: "Luxury Hamper", media: hamper3,price:14 },
+  {
+    id: "basic",
+    label: "Silver Level",
+    media: hamper1,
+    price: 4,
+    description: "Small-sized hamper, perfect for 1–2 personalised items",
+  },
+  {
+    id: "premium",
+    label: "Gold Level",
+    media: hamper2,
+    price: 9,
+    description: "Medium-sized hamper, perfect for 3–4 personalised items",
+  },
+  {
+    id: "luxury",
+    label: "Platinum Level",
+    media: hamper3,
+    price: 14,
+    description: "Large-sized hamper, perfect for 6–7 personalised items",
+  },
 ]
 
 export default function HamperSelectionModal({
   open,
   onClose,
   onSelect,
+  selectedHamper,
 }) {
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState(selectedHamper)
 
   useEffect(() => {
-    if (!open) setSelected(null)
-  }, [open])
+    if (open) setSelected(selectedHamper)
+  }, [open, selectedHamper])
 
   if (!open) return null
 
@@ -61,12 +80,17 @@ export default function HamperSelectionModal({
         />
       </div>
 
-      <div className="p-4 text-center font-medium">
-      {option.label}
-      </div>
-       <div className="p-4 text-center font-medium">
-      £{option.price}
-      </div>
+    <div className="p-4 text-center">
+  <div className="font-semibold">{option.label}</div>
+
+  <div className="text-sm text-gray-500 mt-1">
+    {option.description}
+  </div>
+
+  <div className="mt-2 font-medium text-indigo-600">
+    £{option.price}
+  </div>
+</div>
     </div>
   ))}
 </div>
