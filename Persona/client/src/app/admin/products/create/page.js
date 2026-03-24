@@ -640,6 +640,8 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           <option value="hoodie">Hoodie</option>
                           <option value="frame">Framed photo</option>
                           <option value="poster">Poster</option>
+                           <option value="keychain">Key Chain</option>
+                            <option value="photoslate">Photo Slate</option>
                           <option value="3Dcrystal">
                             3D Crystal photo cube
                           </option>
