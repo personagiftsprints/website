@@ -722,7 +722,7 @@ const renderCustomFields = () => {
                   )}&type=${product.type}`
                 )
               }
-              className={`w-full py-4 rounded-xl text-lg ${
+              className={`w-full py-4 rounded-xl cursor-pointer text-lg ${
                 isConfigSelected
                   ? "bg-black text-white"
                   : "bg-gray-300 cursor-not-allowed"

@@ -10,10 +10,12 @@ import Image from "next/image";
 
 const STATUS_FLOW = {
   paid: ["processing"],
-  processing: ["printing", "cancelled"],
-  printing: ["out_for_delivery"],
+  processing: ["printing", "cancelled", "collected"],
+  printing: ["out_for_delivery", "collected"],
   cancelled: [],
-  out_for_delivery: [],
+  out_for_delivery: ["delivered"],
+  delivered: [],
+  collected: [],
 };
 
 const HAMPER_NAMES = {
@@ -543,12 +545,12 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
             {slotOrder.map((slot) => {
               // Find image for this slot
               const slotImage = wrapImages.find(img => img.slot === slot) || 
-                               uploadedImages.find(img => img.area?.includes(slot));
+                               uploadedImages.find(img => img.area === slot || img.area?.startsWith(`${slot}_`));
               const imageUrl = slotImage?.url;
               const position = slotImage?.position || positions[`full_wrap_3panel_${slot}`] || {};
               
               // Get text for this slot
-              const slotText = Object.entries(textLayers).find(([key]) => key.includes(slot))?.[1];
+              const slotText = Object.entries(textLayers).find(([key]) => key === slot || key.startsWith(`${slot}_`))?.[1];
 
               if (!imageUrl && !slotText) return null;
 
@@ -742,45 +744,37 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
         
 
         
-      <div className="flex flex-row">
-
-         <div className="p-4 bg-gray-50 relative group">
+      <div className="flex flex-row overflow-x-auto gap-4">
+        {["front", "center", "back"].map((viewKey) => {
+          if (!previewUrls[viewKey]) return null;
+          return (
+            <div key={viewKey} className="p-4 bg-gray-50 relative group min-w-[300px] flex-1">
+              <div className="bg-purple-600 text-white px-3 py-1 font-medium capitalize text-center text-sm mb-2 rounded">
+                {viewKey} View
+              </div>
               <img
-                src={previewUrls.front}
-                alt="Full wrap preview"
+                src={previewUrls[viewKey]}
+                alt={`${viewKey} preview`}
                 className="w-full h-80 object-contain mx-auto"
               />
               <div className="absolute bottom-3 right-3 flex gap-2 z-10">
-                <ViewButton url={previewUrls.front} />
+                <ViewButton url={previewUrls[viewKey]} />
                 <DownloadButton
-                  url={previewUrls.front}
-                  filename={`order-${orderNumber}-full-wrap-preview.png`}
+                  url={previewUrls[viewKey]}
+                  filename={`order-${orderNumber}-${viewKey}-preview.png`}
                 />
               </div>
             </div>
-            <div className="p-4 bg-gray-50 relative group">
-              <img
-                src={previewUrls.back}
-                alt="Full wrap preview"
-                className="w-full h-80 object-contain mx-auto"
-              />
-              <div className="absolute bottom-3 right-3 flex gap-2 z-10">
-                <ViewButton url={previewUrls.back} />
-                <DownloadButton
-                  url={previewUrls.back}
-                  filename={`order-${orderNumber}-full-wrap-preview.png`}
-                />
-              </div>
-            </div>
-
+          );
+        })}
       </div>
       
-      {/* Front/Back Views */}
-      <div className="grid md:grid-cols-2 gap-8">
-        {["front", "back"].map((side) => {
+      {/* Front/Center/Back Views Details */}
+      <div className="grid md:grid-cols-3 gap-8">
+        {["front", "center", "back"].map((side) => {
           // Find all images for this side
           const sideUploadedImages = uploadedImages.filter(img => 
-            img.view === side || img.area?.includes(side) || img.area === `${side}_center`
+            img.view === side || img.area === side || img.area?.startsWith(`${side}_`)
           );
           
           const previewUrl = previewUrls[side];
@@ -790,7 +784,7 @@ const MugDesignDisplay = ({ item, orderNumber }) => {
           
           // Get text for this side
           const sideText = Object.entries(textLayers).find(([key]) => 
-            !key.includes('full_wrap') && (key === side || key.includes(side))
+            !key.includes('full_wrap') && (key === side || key.startsWith(`${side}_`))
           )?.[1];
 
           if (sideUploadedImages.length === 0 && !previewUrl && !mainImageUrl && !sideText) return null;
@@ -1334,9 +1328,18 @@ export default function AdminOrderDetailPage() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-start gap-6 border-b pb-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Order #{order.orderNumber}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Order #{order.orderNumber}
+            </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+              order.orderType === "collect" 
+                ? "bg-teal-100 text-teal-700 border border-teal-200" 
+                : "bg-blue-100 text-blue-700 border border-blue-200"
+            }`}>
+              {order.orderType === "collect" ? "🏪 Shop Collection" : "🚚 Delivery"}
+            </span>
+          </div>
           <p className="text-sm text-gray-600 mt-1">
             Placed on {new Date(order.createdAt).toLocaleString()}
           </p>
@@ -1548,7 +1551,7 @@ export default function AdminOrderDetailPage() {
           {/* Delivery Address */}
          <div className="bg-white border border-gray-300 rounded-lg p-4">
   <h2 className="text-base font-semibold text-gray-900 mb-4">
-    Delivery Address
+    {order.orderType === "collect" ? "🏪 Collection Information" : "🚚 Delivery Address"}
   </h2>
 
   <div className="text-sm text-gray-700 space-y-1 leading-relaxed">

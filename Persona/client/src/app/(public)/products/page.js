@@ -121,7 +121,7 @@ export default function ProductsPage() {
 
                 <Link
                   href={`/products/${product.id}`}
-                  className="block text-center rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition"
+                  className="block text-center rounded-full cursor-pointer bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition"
                 >
                   Customize Now
                 </Link>

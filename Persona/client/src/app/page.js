@@ -6,7 +6,7 @@ import Navbar from "@/components/common/Navbar"
 import CardBlockSection from "@/components/sections/CardBlockSection"
 import Footer from "@/components/common/Footer"
 import Link from "next/link"
-import { Gift,Instagram  } from "lucide-react"
+import { Gift, Instagram } from "lucide-react"
 import { getBanner } from "@/services/home-content.service"
 import { motion, useAnimation } from "framer-motion"
 import DefaultBanner from "@/assets/images/banner.jpg"
@@ -18,23 +18,23 @@ export default function Home() {
   const [banners, setBanners] = useState([])
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0)
   const controls = useAnimation()
-const [trendingProductsData, setTrendingProducts] = useState([])
-const [productsData, setProductsData] = useState(null)
-const isLoading = !productsData
+  const [trendingProductsData, setTrendingProducts] = useState([])
+  const [productsData, setProductsData] = useState(null)
+  const isLoading = !productsData
 
 
   useEffect(() => {
-  TrendingProducts()
-    .then(data => {
-      // console.log(data)
-      setProductsData(data)
+    TrendingProducts()
+      .then(data => {
+        // console.log(data)
+        setProductsData(data)
 
-     
-    })
-    .catch(err => {
-      console.error("Trending products error", err)
-    })
-}, [])
+
+      })
+      .catch(err => {
+        console.error("Trending products error", err)
+      })
+  }, [])
 
 
   useEffect(() => {
@@ -45,12 +45,12 @@ const isLoading = !productsData
         else if (data?.data?.homeBanners) items = data.data.homeBanners;
         else if (data?.homeBanner?.imageUrl) items = [data.homeBanner];
         else if (data?.data?.homeBanner?.imageUrl) items = [data.data.homeBanner];
-        
+
         if (items && items.length > 0) {
           setBanners(items);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   useEffect(() => {
@@ -82,9 +82,8 @@ const isLoading = !productsData
             {banners.map((banner, index) => (
               <div
                 key={banner._id || index}
-                className={`absolute inset-0 transition-opacity duration-1000 ${
-                  index === currentBannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentBannerIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  }`}
               >
                 <Image
                   src={banner.imageUrl}
@@ -95,7 +94,7 @@ const isLoading = !productsData
                 />
               </div>
             ))}
-            
+
             {/* Pagination Dots */}
             {banners.length > 1 && (
               <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 z-20">
@@ -103,9 +102,8 @@ const isLoading = !productsData
                   <button
                     key={index}
                     onClick={() => setCurrentBannerIndex(index)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all ${
-                      index === currentBannerIndex ? "bg-white w-8 " : "bg-white/50 hover:bg-white/80"
-                    }`}
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${index === currentBannerIndex ? "bg-white w-8 " : "bg-white/50 hover:bg-white/80"
+                      }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
                 ))}
@@ -113,7 +111,7 @@ const isLoading = !productsData
             )}
           </div>
         ) : (
-          
+
           <div className="relative w-full h-full overflow-hidden lg:rounded-3xl">
             <Image
               src={DefaultBanner}
@@ -126,7 +124,7 @@ const isLoading = !productsData
         )}
       </main>
 
-     
+
 
       <CardBlockSection
         heading="FEATURED COLLECTIONS"
@@ -143,41 +141,41 @@ const isLoading = !productsData
             type: "mug",
           },
           {
-            title: "Phone Cases",
-            image: "https://m.media-amazon.com/images/I/71z8bQorkML.jpg",
-            type: "mobileCase",
+            title: "Photo slate",
+            image: "https://www.pictureperfect.co.uk/cdn/shop/files/il_fullxfull.4347291441_ebo7_grande.jpg",
+            type: "photoslate",
           },
           {
-            title: "Gifts",
+            title: "Key chain",
             image:
-              "https://images.pexels.com/photos/264787/pexels-photo-264787.jpeg",
-            type: "normal",
+              "https://res.cloudinary.com/dx9rxauty/image/upload/v1773745664/products/f8smnkpsbyl6n6eazdbk.webp",
+            type: "keychain",
           },
         ]}
       />
 
 
-<div className="lg:px-32 pb-20 px-2">
-  <CategorySection
-    title="TRENDING PRODUCTS"
-    products={productsData?.trending || []}
-    loading={isLoading}
-  />
+      <div className="lg:px-32 pb-20 px-2">
+        <CategorySection
+          title="TRENDING PRODUCTS"
+          products={productsData?.trending || []}
+          loading={isLoading}
+        />
 
-  {productsData?.subcategories?.map((sub) => (
-    <CategorySection
-      key={sub._id}
-      title={sub.name.toUpperCase()}
-      products={sub.products || []}
-      loading={isLoading}
-      columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-    />
-  ))}
-</div>
+        {productsData?.subcategories?.map((sub) => (
+          <CategorySection
+            key={sub._id}
+            title={sub.name.toUpperCase()}
+            products={sub.products || []}
+            loading={isLoading}
+            columns="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+          />
+        ))}
+      </div>
 
       <Footer />
 
-  
+
     </div>
   )
 }

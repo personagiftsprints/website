@@ -26,12 +26,15 @@ export default function MugDesigner() {
   const [previewImageUrl, setPreviewImageUrl] = useState(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   
-  const [successPreviews, setSuccessPreviews] = useState({ front: null, back: null })
+  const [successPreviews, setSuccessPreviews] = useState({ front: null, center: null, back: null })
   const [confirmedPreviewUrls, setConfirmedPreviewUrls] = useState({
     front: null,
+    center: null,
     back: null
   })
   const [isConfirming, setIsConfirming] = useState(false)
+  const [proposedView, setProposedView] = useState(null)
+  const [showConfirmSwitchModal, setShowConfirmSwitchModal] = useState(false)
 
   // Image position controls
   const [imagePositions, setImagePositions] = useState({})
@@ -203,7 +206,7 @@ export default function MugDesigner() {
         product_type: "mug",
         view_configuration: { 
           current_view: view,
-          available_views: ["front", "back"]
+          available_views: ["front", "center", "back"]
         },
         image_positions: imagePositions,
         text_positions: textPositions,
@@ -244,7 +247,7 @@ export default function MugDesigner() {
       return
     }
 
-    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back) {
+    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.center && !confirmedPreviewUrls.back) {
       alert("Please confirm at least one view's design first.")
       return
     }
@@ -254,10 +257,11 @@ export default function MugDesigner() {
 
       const previewUrls = {
         front: confirmedPreviewUrls.front,
+        center: confirmedPreviewUrls.center,
         back: confirmedPreviewUrls.back
       }
 
-      const mainPreviewUrl = previewUrls.front || previewUrls.back || null
+      const mainPreviewUrl = previewUrls.front || previewUrls.center || previewUrls.back || null
       if (mainPreviewUrl) setPreviewImageUrl(mainPreviewUrl)
 
       const cartData = getStructuredProductDataForCart(cloudinaryUrlsData)
@@ -305,6 +309,7 @@ export default function MugDesigner() {
       if (result.success) {
         setSuccessPreviews({ 
           front: previewUrls.front, 
+          center: previewUrls.center,
           back: previewUrls.back
         })
         setShowSuccessModal(true)
@@ -479,13 +484,33 @@ export default function MugDesigner() {
       }))
       
       console.log(`${view.toUpperCase()} preview confirmed:`, cloudUrl)
+      return cloudUrl
     } catch (err) {
       console.error("Confirm failed:", err)
       alert("Failed to confirm design: " + err.message)
+      return null
     } finally {
       setIsConfirming(false)
     }
   }
+
+  const handleViewChange = (newView) => {
+    if (newView === view) return;
+
+    // Check if current view has unconfirmed changes
+    const hasDesignInCurrentView = currentViewAreas.some(area => 
+      uploadedImages[area.id] || textLayers[area.id]?.content
+    );
+
+    if (hasDesignInCurrentView && !confirmedPreviewUrls[view]) {
+      setProposedView(newView);
+      setShowConfirmSwitchModal(true);
+      return;
+    }
+
+    setView(newView);
+    setIsLoading(true);
+  };
 
   // Upload to Cloudinary
   const uploadPreviewImageToCloudinary = async (dataUrl) => {
@@ -515,26 +540,35 @@ export default function MugDesigner() {
     const uploadedUrls = {}
     
     try {
-      const imageFiles = Object.values(uploadedImages)
-      
-      if (imageFiles.length === 0) {
-        return uploadedUrls
-      }
+      const entries = Object.entries(uploadedImages)
+      const filesToUpload = []
+      const uploadAreaIds = []
 
-      const uploadResults = await uploadImagesAPI(imageFiles)
-      
-      if (!uploadResults || !Array.isArray(uploadResults)) {
-        throw new Error('Invalid response from upload API')
-      }
-
-      const areaIds = Object.keys(uploadedImages)
-      
-      uploadResults.forEach((imageData, index) => {
-        const areaId = areaIds[index]
-        if (areaId && imageData.url) {
-          uploadedUrls[areaId] = imageData.url
+      entries.forEach(([areaId, value]) => {
+        if (value === "LIBRARY_DESIGN") {
+          // Use the existing library design URL
+          uploadedUrls[areaId] = libraryDesigns[areaId]?.imageUrl || imagePreviews[areaId]
+        } else if (value && typeof value !== 'string') {
+          // It's a file
+          filesToUpload.push(value)
+          uploadAreaIds.push(areaId)
         }
       })
+      
+      if (filesToUpload.length > 0) {
+        const uploadResults = await uploadImagesAPI(filesToUpload)
+        
+        if (!uploadResults || !Array.isArray(uploadResults)) {
+          throw new Error('Invalid response from upload API')
+        }
+
+        uploadResults.forEach((imageData, index) => {
+          const areaId = uploadAreaIds[index]
+          if (areaId && imageData.url) {
+            uploadedUrls[areaId] = imageData.url
+          }
+        })
+      }
 
       return uploadedUrls
     } catch (error) {
@@ -556,7 +590,7 @@ export default function MugDesigner() {
       return
     }
 
-    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.back) {
+    if (!confirmedPreviewUrls.front && !confirmedPreviewUrls.center && !confirmedPreviewUrls.back) {
       alert("Please confirm your design first by clicking 'Confirm Design' on the selected area.")
       return
     }
@@ -842,6 +876,7 @@ export default function MugDesigner() {
     
     setImagePreviews(prev => ({ ...prev, [areaId]: previewUrl }))
     setUploadedImages(prev => ({ ...prev, [areaId]: file }))
+    setConfirmedPreviewUrls(prev => ({ ...prev, [view]: null }))
     setImagePositions(prev => ({
       ...prev,
       [areaId]: { x: 0, y: 0, scale: 0.5, rotate: 0 }
@@ -856,6 +891,7 @@ export default function MugDesigner() {
     const previewUrl = imagePreviews[areaId]
     if (previewUrl) URL.revokeObjectURL(previewUrl)
 
+    setConfirmedPreviewUrls(prev => ({ ...prev, [view]: null }))
     setUploadedImages(prev => {
       const newState = { ...prev }
       delete newState[areaId]
@@ -914,6 +950,8 @@ export default function MugDesigner() {
         [areaId]: "LIBRARY_DESIGN" 
       }))
 
+      setConfirmedPreviewUrls(prev => ({ ...prev, [view]: null }))
+
       setImagePositions(prev => ({
         ...prev,
         [areaId]: { x: 0, y: 0, scale: design.metadata?.defaultScale || 0.5, rotate: 0 }
@@ -933,6 +971,7 @@ export default function MugDesigner() {
       delete newState[areaId]
       return newState
     })
+    setConfirmedPreviewUrls(prev => ({ ...prev, [view]: null }))
     setTextPositions(prev => {
       const newState = { ...prev }
       delete newState[areaId]
@@ -1081,7 +1120,7 @@ export default function MugDesigner() {
   const isAddToCartEnabled = useMemo(() => {
     return (
       (totalUploadedAreas > 0 || totalTextAreas > 0) && 
-      (confirmedPreviewUrls.front || confirmedPreviewUrls.back)
+      (confirmedPreviewUrls.front || confirmedPreviewUrls.center || confirmedPreviewUrls.back)
     )
   }, [totalUploadedAreas, totalTextAreas, confirmedPreviewUrls])
 
@@ -1103,6 +1142,60 @@ export default function MugDesigner() {
 
   return (
     <div className="bg-white lg:h-[calc(100vh-148px)] overflow-hidden">
+      {/* Confirm View Switch Modal */}
+      {showConfirmSwitchModal && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+                ⚠️
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Unconfirmed Design</h3>
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                You have an unconfirmed design on the <strong className="text-black">{view.toUpperCase()}</strong> view. 
+                Would you like to confirm it before switching to <strong className="text-black">{proposedView.toUpperCase()}</strong>?
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={async () => {
+                    const result = await handleConfirmDesign();
+                    if (result) {
+                      setView(proposedView);
+                      setShowConfirmSwitchModal(false);
+                      setIsLoading(true);
+                    }
+                  }}
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-lg shadow-indigo-100"
+                >
+                  {isConfirming ? (
+                    <div className="flex items-center justify-center gap-2">
+                       <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                       Confirming...
+                    </div>
+                  ) : "Confirm & Switch View"}
+                </button>
+                <button
+                  onClick={() => {
+                    setView(proposedView);
+                    setShowConfirmSwitchModal(false);
+                    setIsLoading(true);
+                  }}
+                  className="w-full py-4 border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all"
+                >
+                  Switch Without Confirming
+                </button>
+                <button
+                  onClick={() => setShowConfirmSwitchModal(false)}
+                  className="w-full py-2 text-gray-500 font-medium hover:text-gray-900 transition-all"
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 p-4">
@@ -1121,7 +1214,7 @@ export default function MugDesigner() {
                 Your custom mug design has been added to cart.<br/>
                 Here are the previews:
               </p>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="border rounded-xl overflow-hidden shadow-md">
                   <div className="bg-indigo-600 text-white px-5 py-3 font-medium text-center">
                     Front View
@@ -1136,6 +1229,23 @@ export default function MugDesigner() {
                   ) : (
                     <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-100">
                       No front design
+                    </div>
+                  )}
+                </div>
+                <div className="border rounded-xl overflow-hidden shadow-md">
+                  <div className="bg-indigo-600 text-white px-5 py-3 font-medium text-center">
+                    Center View
+                  </div>
+                  {successPreviews.center ? (
+                    <img
+                      src={successPreviews.center}
+                      alt="Center preview"
+                      className="w-full h-64 object-contain p-4 bg-gray-50"
+                      onError={(e) => e.target.src = "/placeholder-mug.png"}
+                    />
+                  ) : (
+                    <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-100">
+                      No center design
                     </div>
                   )}
                 </div>
@@ -1320,10 +1430,10 @@ export default function MugDesigner() {
           {/* Controls Panel */}
           <div className="mt-4 p-4 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200">
             <div className="flex flex-wrap gap-2 justify-center mb-3">
-              {["front", "back"].map(v => (
+              {["front", "center", "back"].map(v => (
                 <button
                   key={v}
-                  onClick={() => setView(v)}
+                  onClick={() => handleViewChange(v)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
                     view === v 
                       ? "bg-black text-white" 
@@ -1598,10 +1708,10 @@ export default function MugDesigner() {
             {/* Mobile Controls */}
             <div className="mt-4 p-4 lg:hidden bg-white/90 backdrop-blur-sm rounded-xl border shadow-sm">
               <div className="flex flex-wrap gap-2 justify-center mb-3">
-                {["front", "back"].map(v => (
+                {["front", "center", "back"].map(v => (
                   <button
                     key={v}
-                    onClick={() => setView(v)}
+                    onClick={() => handleViewChange(v)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium ${
                       view === v 
                         ? "bg-black text-white" 
@@ -1758,10 +1868,10 @@ export default function MugDesigner() {
 
             {/* View toggle */}
             <div className="flex gap-2">
-              {["front", "back"].map(v => (
+              {["front", "center", "back"].map(v => (
                 <button
                   key={v}
-                  onClick={() => setView(v)}
+                  onClick={() => handleViewChange(v)}
                   className={`flex-1 py-2 rounded-lg font-semibold ${
                     view === v ? "bg-black text-white" : "border"
                   }`}
@@ -1893,6 +2003,7 @@ export default function MugDesigner() {
                           [selectedArea.id]: { x: 0, y: 0, scale: 1, rotate: 0 }
                         }))
                       }
+                      setConfirmedPreviewUrls(prev => ({ ...prev, [view]: null }))
                     }}
                     className="w-full border rounded-lg p-2"
                   />

@@ -261,7 +261,25 @@ const HAMPERS = [
   const [showCelebration, setShowCelebration] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
-    const hasAddress = Boolean(address)
+  const hasAddress = Boolean(address)
+
+  const [contactForm, setContactForm] = useState({
+    fullName: "",
+    email: "",
+    phone: ""
+  });
+
+  useEffect(() => {
+    if (user) {
+      setContactForm(prev => ({
+        fullName: user.name || prev.fullName,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone
+      }));
+    }
+  }, [user]);
+
+  const hasContactDetails = Boolean(contactForm.fullName && contactForm.email && contactForm.phone);
 
   const [shippingConfig, setShippingConfig] = useState({ deliveryCharge: 5, threshold: 100 });
 
@@ -426,10 +444,12 @@ const hamperCharge = selectedHamperData
 
 const giftWrapCharge = giftWrap ? 5 : 0
 
+  const [orderType, setOrderType] = useState("delivery"); // "delivery" or "collect"
+
   const total =
   subtotal -
   discountAmount +
-  deliveryCharge +
+  (orderType === "collect" ? 0 : deliveryCharge) +
   hamperCharge +
   giftWrapCharge;
 
@@ -488,8 +508,12 @@ const giftWrapCharge = giftWrap ? 5 : 0
   /* ---------------- PLACE ORDER ---------------- */
 
 const handlePlaceOrder = async () => {
-  if (!address) {
+  if (orderType === "delivery" && !address) {
     alert("Please add a delivery address before placing the order.")
+    return
+  }
+  if (orderType === "collect" && !hasContactDetails) {
+    alert("Please provide your contact details before placing the order.")
     return
   }
 
@@ -503,14 +527,27 @@ const handlePlaceOrder = async () => {
       price: getItemPrice(item).amount
     }))
 
+    const finalAddress = orderType === "collect"
+      ? {
+          fullName: contactForm.fullName,
+          phone: contactForm.phone,
+          email: contactForm.email,
+          addressLine1: "Shop Collection",
+          town: "Shop",
+          postcode: "000000",
+          countryCode: "GB"
+        }
+      : address;
+
     const data = await createCheckoutSession({
       mode: "cart",
       cart: cartWithPrices,
       couponCode: coupon || null,
-      address,
-      email: address?.email || user?.email || null,
+      address: finalAddress,
+      email: finalAddress?.email || user?.email || null,
       giftWrap,
-      hamper: selectedHamper
+      hamper: selectedHamper,
+      orderType
     })
 
     if (typeof data === "string") {
@@ -583,8 +620,64 @@ const handlePlaceOrder = async () => {
     <div className="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-[1fr_380px] gap-6">
       {/* LEFT SIDE */}
       <div className="space-y-4">
-        {/* DELIVERY ADDRESS */}
+        {/* ORDER TYPE SELECTION */}
+        <div className="bg-white border border-gray-100 p-4 space-y-4 rounded-lg shadow-sm">
+          <p className="text-sm font-semibold text-gray-900 mb-2">Order Type</p>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setOrderType("delivery")}
+              className={`flex-1 flex flex-col items-center p-3 border rounded-lg transition-all ${
+                orderType === "delivery"
+                  ? "bg-orange-50 border-orange-500 text-orange-700 shadow-sm"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              <Truck className={`w-5 h-5 mb-1 ${orderType === "delivery" ? "text-orange-500" : "text-gray-400"}`} />
+              <span className="text-sm font-medium">Delivery</span>
+              <span className="text-[10px] opacity-70">To your address</span>
+            </button>
+            <button
+              onClick={() => setOrderType("collect")}
+              className={`flex-1 flex flex-col items-center p-3 border rounded-lg transition-all ${
+                orderType === "collect"
+                  ? "bg-orange-50 border-orange-500 text-orange-700 shadow-sm"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              <div className="w-5 h-5 mb-1 flex items-center justify-center font-bold text-lg">🏪</div>
+              <span className="text-sm font-medium">Collect from Shop</span>
+              <span className="text-[10px] opacity-70">No delivery charge</span>
+            </button>
+          </div>
+        </div>
+
+        {orderType === "collect" ? (
+          <div className="bg-white border border-gray-100 p-4 space-y-4 rounded-lg shadow-sm">
+            <p className="text-sm font-semibold text-gray-900 mb-2">Contact Details</p>
+            <div className="grid gap-3">
+              <input
+                placeholder="Full Name"
+                value={contactForm.fullName}
+                onChange={e => setContactForm({ ...contactForm, fullName: e.target.value })}
+                className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+              />
+              <input
+                placeholder="Email Address"
+                value={contactForm.email}
+                onChange={e => setContactForm({ ...contactForm, email: e.target.value })}
+                className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+              />
+              <input
+                placeholder="Mobile Number"
+                value={contactForm.phone}
+                onChange={e => setContactForm({ ...contactForm, phone: e.target.value.replace(/[^0-9+ ]/g, "") })}
+                className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+              />
+            </div>
+          </div>
+        ) : (
         <div className="bg-white border border-gray-100 p-4 space-y-4">
+          {/* DELIVERY ADDRESS */}
           <div className="flex justify-between items-start">
             <div className="space-y-3 w-full">
               <p className="text-sm font-medium">Delivery Address</p>
@@ -769,6 +862,7 @@ const handlePlaceOrder = async () => {
             </div>
           )}
         </div>
+        )}
 
         {/* CART ITEMS */}
         {items.map((item) => {
@@ -885,7 +979,7 @@ const handlePlaceOrder = async () => {
           );
         })}
 
-        {deliveryCharge > 0 && (
+        {orderType !== "collect" && deliveryCharge > 0 && (
           <p className="text-xs text-gray-500">
             Add £{(shippingConfig.threshold - subtotal).toFixed(2)} more for FREE delivery
           </p>
@@ -923,7 +1017,7 @@ const handlePlaceOrder = async () => {
 
           <div className="flex justify-between text-gray-500">
             <span>Delivery Charges</span>
-            {deliveryCharge === 0 ? (
+            {orderType === "collect" || deliveryCharge === 0 ? (
               <span className="text-green-600">FREE</span>
             ) : (
               <span>£{deliveryCharge.toFixed(2)}</span>
@@ -1008,7 +1102,7 @@ const handlePlaceOrder = async () => {
 
       <button
   onClick={() => {
-    if (!hasAddress) {
+    if (orderType === "delivery" && !hasAddress) {
       if (user) {
         window.location.href = "/account/address"
       } else {
@@ -1016,12 +1110,16 @@ const handlePlaceOrder = async () => {
       }
       return
     }
+    if (orderType === "collect" && !hasContactDetails) {
+      alert("Please provide your contact details.");
+      return;
+    }
 
     handlePlaceOrder()
   }}
   disabled={loadingPayment || items.length === 0}
   className={`w-full py-3 cursor-pointer rounded font-semibold transition active:scale-[0.98] ${
-    hasAddress
+    (orderType === "collect" ? hasContactDetails : hasAddress)
       ? "bg-orange-500 hover:bg-orange-600 text-white"
       : "bg-gray-400 hover:bg-gray-500 text-white"
   } disabled:opacity-60`}
@@ -1031,10 +1129,10 @@ const handlePlaceOrder = async () => {
       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
       Processing...
     </span>
-  ) : hasAddress ? (
+  ) : (orderType === "collect" ? hasContactDetails : hasAddress) ? (
     "PLACE ORDER"
   ) : (
-    "ADD ADDRESS"
+    orderType === "collect" ? "ADD CONTACT DETAILS" : "ADD ADDRESS"
   )}
 </button>
 
