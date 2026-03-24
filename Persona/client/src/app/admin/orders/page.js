@@ -16,6 +16,8 @@ const STATUS_STYLES = {
   processing: "bg-blue-100 text-blue-700",
   printing: "bg-purple-100 text-purple-700",
   out_for_delivery: "bg-indigo-100 text-indigo-700",
+  delivered: "bg-green-100 text-green-700",
+  collected: "bg-teal-100 text-teal-700",
   cancelled: "bg-red-100 text-red-700"
 }
 
@@ -100,6 +102,8 @@ export default function AdminOrdersPage() {
             <option value="processing">Processing</option>
             <option value="printing">Printing</option>
             <option value="out_for_delivery">Out for Delivery</option>
+            <option value="delivered">Delivered</option>
+            <option value="collected">Collected</option>
             <option value="cancelled">Cancelled</option>
           </select>
         </div>

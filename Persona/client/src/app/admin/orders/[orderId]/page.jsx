@@ -10,10 +10,12 @@ import Image from "next/image";
 
 const STATUS_FLOW = {
   paid: ["processing"],
-  processing: ["printing", "cancelled"],
-  printing: ["out_for_delivery"],
+  processing: ["printing", "cancelled", "collected"],
+  printing: ["out_for_delivery", "collected"],
   cancelled: [],
-  out_for_delivery: [],
+  out_for_delivery: ["delivered"],
+  delivered: [],
+  collected: [],
 };
 
 const HAMPER_NAMES = {
@@ -1334,9 +1336,18 @@ export default function AdminOrderDetailPage() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-start gap-6 border-b pb-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Order #{order.orderNumber}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Order #{order.orderNumber}
+            </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+              order.orderType === "collect" 
+                ? "bg-teal-100 text-teal-700 border border-teal-200" 
+                : "bg-blue-100 text-blue-700 border border-blue-200"
+            }`}>
+              {order.orderType === "collect" ? "🏪 Shop Collection" : "🚚 Delivery"}
+            </span>
+          </div>
           <p className="text-sm text-gray-600 mt-1">
             Placed on {new Date(order.createdAt).toLocaleString()}
           </p>
@@ -1548,7 +1559,7 @@ export default function AdminOrderDetailPage() {
           {/* Delivery Address */}
          <div className="bg-white border border-gray-300 rounded-lg p-4">
   <h2 className="text-base font-semibold text-gray-900 mb-4">
-    Delivery Address
+    {order.orderType === "collect" ? "🏪 Collection Information" : "🚚 Delivery Address"}
   </h2>
 
   <div className="text-sm text-gray-700 space-y-1 leading-relaxed">

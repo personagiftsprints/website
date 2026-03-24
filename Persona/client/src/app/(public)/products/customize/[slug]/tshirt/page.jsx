@@ -24,7 +24,7 @@ export default function TshirtColorPreview() {
   const [previewImageUrl, setPreviewImageUrl] = useState(null)
   const [textLayers, setTextLayers] = useState({})
   const [savedDesignId, setSavedDesignId] = useState(null)
-  const [selectedSize, setSelectedSize] = useState('M')
+  // selectedSize moved lower
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successPreviews, setSuccessPreviews] = useState({ front: null, back: null })
   const [confirmedPreviewUrls, setConfirmedPreviewUrls] = useState({
@@ -903,8 +903,56 @@ const handlePreviewAndAddToCart = async () => {
     }
   }, [searchParams, data, availableColors])
 
+  const availableSizes = useMemo(() => {
+    if (!product) return []
+    const sizeAttr = product.productConfig?.attributes?.find(a => a.code === "size")
+    if (!sizeAttr) return []
+    return sizeAttr.values
+  }, [product])
+
+  const initialSize = useMemo(() => {
+    try {
+      const raw = searchParams.get("variant")
+      if (raw) {
+        const parsed = JSON.parse(decodeURIComponent(raw))
+        if (parsed?.size) return parsed.size
+      }
+      return ''
+    } catch {
+      return ''
+    }
+  }, [searchParams])
+
   const [selectedColor, setSelectedColor] = useState(initialColor)
   const [view, setView] = useState("front")
+  const [selectedSize, setSelectedSize] = useState(initialSize)
+
+  useEffect(() => {
+    if (availableSizes.length > 0 && (!selectedSize || !availableSizes.includes(selectedSize))) {
+      setSelectedSize(availableSizes[0])
+    }
+  }, [availableSizes, selectedSize])
+
+  const isValueAvailable = useCallback((attrCode, value) => {
+    if (!product?.productConfig?.variants) return true;
+    
+    return product.productConfig.variants.some(v => {
+      const vColor = v.attributes['color']?.toLowerCase();
+      const vSize = v.attributes['size'];
+
+      if (attrCode === 'color') {
+        const checkSize = selectedSize || availableSizes[0];
+        return vColor === value && vSize === checkSize && v.stockQuantity > 0;
+      }
+      
+      if (attrCode === 'size') {
+        return vSize === value && vColor === selectedColor && v.stockQuantity > 0;
+      }
+
+      return true;
+    });
+  }, [product, selectedSize, selectedColor, availableSizes]);
+
   const [isLoading, setIsLoading] = useState(true)
 
   const colors = availableColors.map(key => [key, data[key]])
@@ -1498,9 +1546,6 @@ const handlePreviewAndAddToCart = async () => {
 
   const totalUploadedAreas = Object.keys(uploadedImages).length
 
-  // Size options
-  const sizes = ['S', 'M', 'L', 'XL']
-
   return (
     <div className="bg-gray-50 lg:bg-white lg:h-[calc(100vh-148px)] lg:overflow-hidden overflow-y-auto no-scrollbar pb-28 lg:pb-0">
       {showSuccessModal && (
@@ -1716,11 +1761,14 @@ const handlePreviewAndAddToCart = async () => {
           <div className="w-full pt-2">
             <h4 className="font-semibold mb-2 text-sm text-gray-700">Select Color</h4>
             <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-              {colors.map(([key, c]) => (
+              {colors.map(([key, c]) => {
+                const available = isValueAvailable('color', key);
+                return (
                 <button
                   key={key}
+                  disabled={!available}
                   onClick={() => setSelectedColor(key)}
-                  className="flex flex-col items-center gap-1 group flex-shrink-0"
+                  className={`flex flex-col items-center gap-1 group flex-shrink-0 ${!available ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   <div
                     className={`w-10 h-10 rounded-full border shadow-sm transition-all ${
@@ -1733,26 +1781,33 @@ const handlePreviewAndAddToCart = async () => {
                   />
                   <span className="text-[10px] text-gray-600 font-medium truncate max-w-[50px]">{c.label}</span>
                 </button>
-              ))}
+                )
+              })}
             </div>
           </div>
 
           <div className="w-full">
             <h4 className="font-semibold mb-2 text-sm text-gray-700">Select Size</h4>
             <div className="flex flex-wrap gap-2">
-              {sizes.map(size => (
+              {availableSizes.map(size => {
+                const available = isValueAvailable('size', size);
+                return (
                 <button
                   key={size}
+                  disabled={!available}
                   onClick={() => setSelectedSize(size)}
                   className={`px-4 py-2 border rounded-lg transition-all text-sm font-medium ${
                     selectedSize === size
                       ? 'bg-black text-white border-black'
-                      : 'border-gray-200 hover:border-gray-300 bg-gray-50'
+                      : available
+                        ? 'border-gray-200 hover:border-gray-300 bg-gray-50'
+                        : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed opacity-60'
                   }`}
                 >
                   {size}
                 </button>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -1805,11 +1860,14 @@ const handlePreviewAndAddToCart = async () => {
             <div className="w-full">
               <h4 className="font-semibold mb-3 text-sm">Color</h4>
               <div className="flex gap-3 flex-wrap">
-                {colors.map(([key, c]) => (
+                {colors.map(([key, c]) => {
+                  const available = isValueAvailable('color', key);
+                  return (
                   <button
                     key={key}
+                    disabled={!available}
                     onClick={() => setSelectedColor(key)}
-                    className="flex flex-col items-center gap-1 p-2 -m-2 rounded-lg hover:bg-gray-100 transition-all group"
+                    className={`flex flex-col items-center gap-1 p-2 -m-2 rounded-lg transition-all group ${!available ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-100"}`}
                   >
                     <div
                       className={`w-12 h-12 rounded-full border-4 shadow-md transition-all ${
@@ -1822,7 +1880,8 @@ const handlePreviewAndAddToCart = async () => {
                     />
                     <span className="text-xs text-gray-600 group-hover:text-gray-900 truncate max-w-[60px]">{c.label}</span>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
@@ -1853,19 +1912,25 @@ const handlePreviewAndAddToCart = async () => {
             <div className="w-full mt-6">
               <h4 className="font-semibold mb-3 text-sm">Size</h4>
               <div className="flex flex-wrap gap-2">
-                {sizes.map(size => (
+                {availableSizes.map(size => {
+                  const available = isValueAvailable('size', size);
+                  return (
                   <button
                     key={size}
+                    disabled={!available}
                     onClick={() => setSelectedSize(size)}
                     className={`px-4 py-2 border rounded-lg transition-all ${
                       selectedSize === size
                         ? 'bg-black text-white border-black'
-                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                        : available
+                          ? 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                          : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed opacity-60'
                     }`}
                   >
                     {size}
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
