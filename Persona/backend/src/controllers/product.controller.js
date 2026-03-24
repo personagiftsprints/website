@@ -560,8 +560,10 @@ export const getLandingProducts = async (req, res) => {
       })
     );
 
-    // Filter out subcategories with no products
-    const filteredSubcategories = subcategoryProducts.filter(item => item.products.length > 0);
+    // Filter out subcategories with no products and limit to first 4
+    const filteredSubcategories = subcategoryProducts
+      .filter(item => item.products.length > 0)
+      .slice(0, 4);
 
     return res.status(200).json({
       success: true,
