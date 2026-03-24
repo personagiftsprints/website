@@ -87,7 +87,7 @@ export default function MyOrdersPage() {
             </button>
 
             <Link
-              href="/products"
+              href="/"
               className="px-8 py-3 border border-slate-300 rounded-lg font-medium hover:bg-slate-50 transition-colors"
             >
               Continue Shopping
@@ -112,7 +112,7 @@ export default function MyOrdersPage() {
             </p>
           </div>
           <Link
-            href="/products"
+            href="/"
             className="inline-block px-8 py-3 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors"
           >
             Start Shopping

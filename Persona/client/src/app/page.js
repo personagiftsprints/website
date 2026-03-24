@@ -177,15 +177,7 @@ const isLoading = !productsData
 
       <Footer />
 
-      {/* <motion.div animate={controls} className="fixed bottom-6 right-6">
-        <Link
-          href="/products"
-          aria-label="Browse products"
-          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-400 shadow-xl"
-        >
-          <Gift className="h-8 w-8 text-black" strokeWidth={2.5} />
-        </Link>
-      </motion.div> */}
+  
     </div>
   )
 }

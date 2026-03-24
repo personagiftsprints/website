@@ -10,12 +10,7 @@ export default async function sitemap() {
       changeFrequency: "weekly",
       priority: 1.0,
     },
-    {
-      url: `${BASE_URL}/products`,
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
+    
     {
       url: `${BASE_URL}/about`,
       lastModified: now,

@@ -411,7 +411,7 @@ const toggleDesignExpanded = (cartKey) => {
         </button>
 
         <button
-          onClick={() => router.push("/products")}
+          onClick={() => router.push("/")}
           className="w-full border border-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 transition"
         >
           Continue Shopping
