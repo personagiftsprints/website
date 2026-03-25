@@ -9,11 +9,12 @@ const router = express.Router()
 
 const allowedTransitions = {
   paid: ["processing"],
-  processing: ["printing", "cancelled"],
-  printing: ["out_for_delivery"],
+  processing: ["printing", "cancelled", "collected"],
+  printing: ["out_for_delivery", "collected"],
   cancelled: [],
   out_for_delivery: ["delivered"],
-  delivered: []
+  delivered: [],
+  collected: []
 }
 /* =====================================================
    CREATE ORDER (already handled in payment flow)

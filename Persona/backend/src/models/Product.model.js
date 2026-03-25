@@ -135,6 +135,8 @@ const productSchema = new mongoose.Schema(
         'sticker',
         'hat',
         'normal',
+        'photoslate',
+        'keychain',
         '3Dcrystal',
         'other'
       ]

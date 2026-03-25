@@ -131,7 +131,7 @@ export default function Home() {
         items={[
           {
             title: "T-Shirts",
-            image: "https://thebridgestore.in/cdn/shop/files/JColeFront.jpg",
+            image: "https://printo.in/blog/wp-content/uploads/2021/11/Custom-T-Shirt-Printing.jpg",
             type: "tshirt",
           },
           {

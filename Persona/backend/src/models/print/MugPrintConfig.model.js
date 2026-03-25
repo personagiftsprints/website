@@ -30,7 +30,7 @@ const MugPrintConfigSchema = new mongoose.Schema({
   views: {
     front: { type: MugViewSchema, required: true },
     back: { type: MugViewSchema, required: true },
-    full_wrap: { type: MugViewSchema, required: true }
+    center: { type: MugViewSchema, required: true }
   },
   recommendations: {
     fileFormats: { type: [String], default: [] },
@@ -88,17 +88,17 @@ export const DEFAULT_MUG_PRINT_CONFIG = {
         }
       ]
     },
-    full_wrap: {
+    center: {
       baseImage: "https://cdn.example.com/mug/wrap.png",
       areas: [
         {
-          id: "wrap_3panel",
-          name: "3-Panel Wrap",
+          id: "center",
+          name: "Center Panel",
           max: "8 × 8 cm per panel",
-          type: "multi",
-          slots: ["front", "center", "back"],
+          type: "single",
+          slots: [],
           references: [],
-          description: "Continuous wrap design"
+          description: "Center panel design"
         }
       ]
     }

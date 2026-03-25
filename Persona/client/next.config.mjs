@@ -18,7 +18,8 @@ const nextConfig = {
         { protocol: "https", hostname: "i.ibb.co" },
         { protocol: "https", hostname: " www.svgrepo.com" },
          { protocol: "https", hostname: " m.media-amazon.com" },
-         { protocol: "https", hostname: "www.pictureperfect.co.uk" }
+         { protocol: "https", hostname: "www.pictureperfect.co.uk" },
+         { protocol: "https", hostname: "printo.in" }
        
 
         

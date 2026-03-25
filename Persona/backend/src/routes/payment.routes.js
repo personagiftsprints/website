@@ -18,7 +18,7 @@ const HAMPERS = {
 
 router.post("/create-checkout-session", optionalAuth, async (req, res) => {
   try {
-    const { cart, address, email, couponCode, hamper, giftWrap } = req.body;
+    const { cart, address, email, couponCode, hamper, giftWrap, orderType = "delivery" } = req.body;
 
     if (!Array.isArray(cart) || cart.length === 0) {
       return res.status(400).json({ message: "Invalid or empty cart" });
@@ -62,12 +62,16 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     const threshold = settings?.shipping?.threshold ?? 100;
     const charge = settings?.shipping?.deliveryCharge ?? 5;
 
-    const deliveryCharge =
+    let deliveryCharge =
       discountedSubtotal === 0
         ? 0
         : discountedSubtotal >= threshold
           ? 0
           : charge;
+
+    if (orderType === "collect") {
+      deliveryCharge = 0;
+    }
 
     const hamperCharge = hamper && HAMPERS[hamper] ? HAMPERS[hamper] : 0;
     const giftWrapCharge = giftWrap ? 5 : 0;
@@ -158,6 +162,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     const order = await Order.create({
       user: req.user ? req.user._id : null,
       userType: req.user ? "user" : "guest",
+      orderType: orderType,
       items: itemsPayload,
       subtotal,
       discount: {
@@ -248,7 +253,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
 
     const clientUrl = (process.env.CLIENT_BASE_URL || "http://localhost:5173").replace(/\/$/, "");
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig = {
       payment_method_types: ["card"],
       mode: "payment",
       line_items: lineItems,
@@ -258,10 +263,15 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       metadata: {
         orderId: order._id.toString(),
       },
-      shipping_address_collection: {
+    };
+
+    if (orderType !== "collect") {
+      sessionConfig.shipping_address_collection = {
         allowed_countries: ["GB"],
-      },
-    });
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     order.checkoutSessionId = session.id;
     await order.save();

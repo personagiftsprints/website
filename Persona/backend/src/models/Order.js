@@ -6,13 +6,13 @@ const addressSchema = new mongoose.Schema(
     email: { type: String },
     phone: { type: String, required: true },
 
-    addressLine1: { type: String, required: true },
+    addressLine1: { type: String },
     addressLine2: { type: String },
 
-    town: { type: String, required: true },
+    town: { type: String },
     county: { type: String },
 
-    postcode: { type: String, required: true },
+    postcode: { type: String },
 
     countryCode: {
       type: String,
@@ -191,6 +191,12 @@ const orderSchema = new mongoose.Schema(
       required: true
     },
 
+    orderType: {
+      type: String,
+      enum: ["delivery", "collect"],
+      default: "delivery"
+    },
+
     items: {
       type: [orderItemSchema],
       validate: v => Array.isArray(v) && v.length > 0
@@ -224,7 +230,8 @@ const orderSchema = new mongoose.Schema(
     "printing",
     "cancelled",
     "out_for_delivery",
-    "delivered"
+    "delivered",
+    "collected"
   ],
   default: "processing"
 },
