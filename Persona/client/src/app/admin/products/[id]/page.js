@@ -111,6 +111,7 @@ export default function EditProductPage() {
     isActive: true,
     type: "",
     isTrending: false,
+    isKids: false,
     category: "",
     subcategory: ""
   })
@@ -160,6 +161,7 @@ export default function EditProductPage() {
           isActive: p.isActive,
           type: p.type || "normal",
           isTrending: p.isTrending || false,
+          isKids: p.isKids || false,
           category: p.category?._id || p.category || "",
           subcategory: p.subcategory?._id || p.subcategory || ""
         })
@@ -258,6 +260,7 @@ export default function EditProductPage() {
         material: form.material,
         isActive: form.isActive,
         isTrending: form.isTrending,
+        isKids: form.isKids,
         type: form.type,
         category: form.category || undefined,
         subcategory: form.subcategory || undefined,
@@ -434,6 +437,22 @@ export default function EditProductPage() {
                     <option value="other">Other</option>
                   </select>
                 </div>
+
+                {form.type === "tshirt" && (
+                  <div className="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                    <input
+                      type="checkbox"
+                      id="isKids"
+                      checked={form.isKids}
+                      onChange={(e) => setForm({ ...form, isKids: e.target.checked })}
+                      className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <label htmlFor="isKids" className="cursor-pointer">
+                      <p className="font-bold text-indigo-900">Kids T-Shirt</p>
+                      <p className="text-xs text-indigo-700">Check this if the t-shirt is specifically for children</p>
+                    </label>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>

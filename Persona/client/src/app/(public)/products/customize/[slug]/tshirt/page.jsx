@@ -886,7 +886,16 @@ const handlePreviewAndAddToCart = async () => {
     if (!product) return []
     const colorAttr = product.productConfig?.attributes?.find(a => a.code === "color")
     if (!colorAttr) return []
-    return colorAttr.values.map(c => c.toLowerCase()).filter(c => data[c])
+    
+    let values = colorAttr.values.map(c => c.toLowerCase())
+    
+    // If it IS a kids tshirt, show only Black, White, Red
+    if (product.isKids === true) {
+      const allowed = ["black", "white", "red"]
+      values = values.filter(v => allowed.includes(v))
+    }
+    
+    return values.filter(c => data[c])
   }, [product, data])
 
   const initialColor = useMemo(() => {

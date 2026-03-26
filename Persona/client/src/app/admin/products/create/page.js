@@ -60,6 +60,7 @@ export default function CreateProductPage() {
     manageStock: false,
     isActive: true,
     isTrending: false,
+    isKids: false,
     images: [],
     category: "",
     subcategory: "",
@@ -79,6 +80,7 @@ const [customizationType, setCustomizationType] = useState('none');
   const [customFields, setCustomFields] = useState([]);
 const [imageFieldCount, setImageFieldCount] = useState(0);
 const [textFieldCount, setTextFieldCount] = useState(0);
+const [activeVariantGroup, setActiveVariantGroup] = useState(null);
 
 const [categoriesList, setCategoriesList] = useState([]);
 const [subcategoriesMap, setSubcategoriesMap] = useState({});
@@ -86,14 +88,14 @@ const [subcategoriesMap, setSubcategoriesMap] = useState({});
 useEffect(() => {
   import("@/services/category.service").then((module) => {
     module.getCategories().then((res) => {
-      if (res && res.success) {
-        setCategoriesList(res.data);
+      if (res ) {
+        setCategoriesList(res);
       }
     });
     module.getSubcategories().then((res) => {
-      if (res && res.success) {
+      if (res ) {
         const map = {};
-        res.data.forEach((sub) => {
+        res.forEach((sub) => {
           const catId = sub.category._id || sub.category;
           if (!map[catId]) map[catId] = [];
           map[catId].push(sub);
@@ -399,6 +401,7 @@ const payload = {
     material: formData.material,
     isActive: formData.isActive,
     isTrending: formData.isTrending,
+    isKids: formData.isKids,
     category: formData.category || undefined,
     subcategory: formData.subcategory || undefined,
   },
@@ -513,22 +516,22 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
   const isModelsConfig = !!selectedConfig?.models;
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-[#fafafa] p-10 md:p-10 font-sans">
       {/* Header */}
       <div className="mb-6">
         <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2">
           <ChevronLeft className="w-5 h-5" />
           <span className="text-sm">Back to Products</span>
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Create New Product</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-extrabold text-black tracking-tight">Create Product</h1>
+        <p className="text-gray-500 mt-2 text-sm">
           Configure your product details and customization settings
         </p>
       </div>
 
       {/* Success Alert */}
       {success && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+        <div className="bg-[#f0fbf4] border border-[#d1f4e0] rounded-3xl shadow-sm p-4 mb-6 flex items-start gap-3">
           <Check className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
           <div>
             <p className="font-medium text-green-800">
@@ -542,9 +545,9 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
         {/* Left Column - Product Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-8 space-y-8">
           {/* Error Alert */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -557,8 +560,8 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
           )}
 
           {/* Tabs Navigation */}
-          <div className="bg-white rounded-xl border overflow-hidden">
-            <div className="flex border-b">
+          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex border-b border-gray-100 px-2 pt-2 gap-2">
               <TabButton
                 active={activeTab === "product-info"}
                 onClick={() => setActiveTab("product-info")}
@@ -597,21 +600,21 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                     <div className="space-y-4">
                       {/* Product Name */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
                           Product Name *
                         </label>
                         <input
                           type="text"
                           value={formData.name}
                           onChange={(e) => handleNameChange(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                           placeholder="Enter product name"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
                           Slug *
                         </label>
                         <input
@@ -620,14 +623,14 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           onChange={(e) =>
                             handleInputChange("slug", e.target.value)
                           }
-                          className="w-full px-4 py-3 font-mono text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-5 py-4 font-mono bg-gray-50/50 text-sm border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all"
                           placeholder="product-slug"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
                           Product Type *
                         </label>
                         <select
@@ -635,7 +638,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           onChange={(e) =>
                             handleInputChange("type", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                           required
                         >
                           <option value="">Select product type</option>
@@ -654,10 +657,23 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           <option value="other">Other</option>
                         </select>
                       </div>
+                      
+                      {formData.type === "tshirt" && (
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 border rounded-xl">
+                          <input
+                            type="checkbox"
+                            variant="primary"
+                            checked={formData.isKids}
+                            onChange={(e) => handleInputChange("isKids", e.target.checked)}
+                            className="w-5 h-5"
+                          />
+                          <p className="text-sm font-semibold text-gray-700">Kids Specific Product</p>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-semibold text-gray-900 mb-2">
                             Category *
                           </label>
                           <select
@@ -666,7 +682,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               handleInputChange("category", e.target.value);
                               handleInputChange("subcategory", "");
                             }}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                             required
                           >
                             <option value="">Select category</option>
@@ -677,13 +693,13 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-semibold text-gray-900 mb-2">
                             Subcategory
                           </label>
                           <select
                             value={formData.subcategory}
                             onChange={(e) => handleInputChange("subcategory", e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                           >
                             <option value="">Select subcategory</option>
                             {(subcategoriesMap[formData.category] || []).map((sub) => (
@@ -693,49 +709,46 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                         </div>
                       </div>
 
-                      {productConfig?.variants?.length > 0 && (
-                        <div className="mt-6 rounded-xl border bg-white shadow-sm">
-                          <div className="border-b px-5 py-3">
-                            <h4 className="text-sm font-semibold text-gray-800">
-                              Variant Stock Management
-                            </h4>
-                          </div>
+                      {productConfig?.variants?.length > 0 && (() => {
+                        const hasSizeAttr = productConfig.attributes.find(a => a.code.toLowerCase().includes('size'));
+                        const primaryAttributeCode = hasSizeAttr ? hasSizeAttr.code : (productConfig.attributes[0]?.code || 'size');
+                        const groupedVariants = {};
+                        productConfig.variants.forEach((v) => {
+                          const val = v.attributes[primaryAttributeCode] || 'Default';
+                          if (!groupedVariants[val]) groupedVariants[val] = 0;
+                          groupedVariants[val] += Number(v.stockQuantity) || 0;
+                        });
 
-                          <div className="divide-y">
-                            {productConfig.variants.map((variant, i) => (
-                              <div
-                                key={i}
-                                className="grid grid-cols-[1fr_120px] items-center gap-4 px-5 py-3"
-                              >
-                                <div className="text-sm text-gray-700 font-medium">
-                                  {Object.values(variant.attributes).join(
-                                    " / ",
-                                  )}
-                                </div>
+                        return (
+                          <div className="mt-6 rounded-[1.5rem] border border-gray-100 bg-white shadow-sm overflow-hidden">
+                            <div className="border-b px-5 py-3">
+                              <h4 className="text-sm font-semibold text-gray-800">
+                                Variant Stock Management
+                              </h4>
+                            </div>
 
-                                <input
-                                  type="number"
-                                  min="0"
-                                  className="h-9 w-full rounded-md border px-2 text-sm focus:border-black focus:outline-none"
-                                  value={variant.stockQuantity}
-                                  onChange={(e) => {
-                                    const qty = Number(e.target.value);
-                                    setProductConfig((prev) => {
-                                      const copy = structuredClone(prev);
-                                      copy.variants[i].stockQuantity = qty;
-                                      return copy;
-                                    });
-                                  }}
-                                />
-                              </div>
-                            ))}
+                            <div className="p-5 flex flex-wrap gap-3">
+                              {Object.entries(groupedVariants).map(([groupVal, totalStock]) => (
+                                <button
+                                  type="button"
+                                  key={groupVal}
+                                  onClick={() => setActiveVariantGroup(groupVal)}
+                                  className="relative px-5 py-3 border border-gray-200 rounded-2xl hover:border-black text-sm font-bold transition-all group flex items-center gap-3 bg-gray-50/50 hover:bg-white cursor-pointer uppercase"
+                                >
+                                  {groupVal}
+                                  <span className="px-2 py-0.5 bg-gray-200 text-gray-800 rounded-full text-xs font-semibold normal-case">
+                                    {totalStock} in stock
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* Product Description */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
                           Product Description
                         </label>
                         <textarea
@@ -743,7 +756,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           onChange={(e) =>
                             handleInputChange("description", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                           placeholder="Describe your product features, benefits, and details..."
                           rows={4}
                         />
@@ -755,7 +768,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
 
                       {/* Material */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
                           Material
                         </label>
                         <input
@@ -764,7 +777,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           onChange={(e) =>
                             handleInputChange("material", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                           placeholder="e.g., 100% Cotton, Ceramic, Polyester"
                         />
                         <p className="text-xs text-gray-500 mt-1">
@@ -775,7 +788,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                       {/* Price and Special Price */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-semibold text-gray-900 mb-2">
                             Price ($)
                           </label>
                           <div className="relative">
@@ -788,7 +801,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               onChange={(e) =>
                                 handlePriceInput("price", e.target.value)
                               }
-                              className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full pl-10 pr-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                               placeholder="0.00"
                             />
                           </div>
@@ -798,7 +811,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-semibold text-gray-900 mb-2">
                             Special Price ($)
                           </label>
                           <div className="relative">
@@ -811,7 +824,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               onChange={(e) =>
                                 handlePriceInput("specialPrice", e.target.value)
                               }
-                              className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              className="w-full pl-10 pr-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
                               placeholder="0.00"
                             />
                           </div>
@@ -822,7 +835,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                       </div>
 
                       <div className="pt-6 border-t space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-blue-50/30 rounded-xl border border-blue-100">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
                           <div>
                             <p className="font-bold text-gray-900 flex items-center gap-2">
                               Active Status
@@ -836,11 +849,11 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               checked={formData.isActive}
                               onChange={(e) => handleInputChange("isActive", e.target.checked)}
                             />
-                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
                           </label>
                         </div>
 
-                        <div className="flex items-center justify-between p-4 bg-purple-50/30 rounded-xl border border-purple-100">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
                           <div>
                             <p className="font-bold text-gray-900 flex items-center gap-2">
                               Trending Product
@@ -854,7 +867,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               checked={formData.isTrending}
                               onChange={(e) => handleInputChange("isTrending", e.target.checked)}
                             />
-                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
                           </label>
                         </div>
                       </div>
@@ -940,7 +953,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
         <p className="text-sm text-gray-600 mb-3">Select print configuration for complex products</p>
         <select
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+          className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl text-sm"
           onChange={(e) => handleConfigSelect(e.target.value)}
           value={selectedConfig?.type || ""}
         >
@@ -961,7 +974,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
         
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
               Number of Image Uploads
             </label>
             <input
@@ -970,7 +983,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
               max="10"
               value={imageFieldCount}
               onChange={(e) => setImageFieldCount(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all"
               placeholder="0"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -979,7 +992,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
               Number of Text Inputs
             </label>
             <input
@@ -988,7 +1001,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
               max="10"
               value={textFieldCount}
               onChange={(e) => setTextFieldCount(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all"
               placeholder="0"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -1000,7 +1013,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
         <button
           type="button"
           onClick={generateCustomFields}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="bg-black text-white px-6 py-3 rounded-2xl hover:bg-gray-900 shadow-sm transition-colors"
         >
           Generate Fields
         </button>
@@ -1033,7 +1046,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
 
                   {showBaseStock && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
                         Stock Quantity
                       </label>
                       <input
@@ -1043,7 +1056,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                         onChange={(e) =>
                           handleStockQuantityChange(e.target.value)
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl text-sm"
                       />
                     </div>
                   )}
@@ -1072,7 +1085,7 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
         </div>
 
         {/* Right Column - Summary & Action */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-4">
           <ProductSummary
             formData={formData}
             customizationEnabled={customizationEnabled}
@@ -1083,6 +1096,75 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
           />
         </div>
       </div>
+
+      {/* Variant Modal */}
+      {activeVariantGroup && (() => {
+        const hasSizeAttr = productConfig.attributes.find(a => a.code.toLowerCase().includes('size'));
+        const primaryAttributeCode = hasSizeAttr ? hasSizeAttr.code : (productConfig.attributes[0]?.code || 'size');
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 uppercase">
+                  Size {activeVariantGroup} Stock
+                </h3>
+                <button 
+                  onClick={() => setActiveVariantGroup(null)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                {productConfig.variants
+                  .map((variant, i) => ({ variant, originalIndex: i }))
+                  .filter(item => (item.variant.attributes[primaryAttributeCode] || 'Default') === activeVariantGroup)
+                  .map(item => {
+                    const otherAttrValue = Object.entries(item.variant.attributes).find(([k, v]) => k !== primaryAttributeCode)?.[1] || 'Default';
+                    return (
+                      <div key={item.originalIndex} className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <span className="text-sm font-bold text-gray-900 line-clamp-1 capitalize flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: otherAttrValue.toLowerCase() }}></div>
+                          {otherAttrValue}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <label className="text-xs text-gray-500 font-medium">Stock</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="h-11 w-24 rounded-xl border border-gray-200 px-4 text-sm font-semibold focus:border-black focus:ring-1 focus:ring-black focus:outline-none bg-white transition-all text-center"
+                            value={item.variant.stockQuantity}
+                            onChange={(e) => {
+                              const qty = Number(e.target.value);
+                              setProductConfig(prev => {
+                                const copy = structuredClone(prev);
+                                copy.variants[item.originalIndex].stockQuantity = qty;
+                                return copy;
+                              });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+              
+              <div className="p-6 border-t border-gray-100 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setActiveVariantGroup(null)}
+                  className="w-full h-14 bg-black text-white rounded-2xl font-semibold hover:bg-gray-900 transition-all shadow-sm cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1107,11 +1189,11 @@ const ImageUploadSection = ({
     {/* Upload Area */}
     <div className="mb-6 space-y-3">
       <div
-        className={`relative w-full max-w-sm rounded-2xl border-2 border-dashed transition-all
+        className={`relative w-full max-w-sm rounded-[2rem] border-2 border-dashed transition-all
           ${
             uploading || formData.images.length >= 5
               ? "border-gray-200 bg-gray-100 cursor-not-allowed"
-              : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 cursor-pointer"
+              : "border-gray-300 bg-gray-50 hover:border-black hover:bg-gray-50 cursor-pointer"
           }
         `}
         onClick={() =>
@@ -1131,8 +1213,8 @@ const ImageUploadSection = ({
         />
 
         <div className="flex flex-col items-center justify-center h-40 px-6 text-center">
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-3">
-            <Upload className="w-6 h-6 text-blue-600" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-200 mb-3">
+            <Upload className="w-6 h-6 text-black" />
           </div>
 
           <p className="text-base font-semibold text-gray-800">
@@ -1291,11 +1373,11 @@ const ConfigSelectionTab = ({
     </p>
 
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-semibold text-gray-900 mb-2">
         Available Configurations
       </label>
       <select
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-black focus:border-black transition-all text-sm"
         onChange={(e) => handleConfigSelect(e.target.value)}
         value={selectedConfig?.type || ""}
       >
@@ -1351,7 +1433,7 @@ const ProductSummary = ({
   handleSubmit,
 }) => (
   <div className="sticky top-6 space-y-4">
-    <div className="bg-white rounded-2xl border overflow-hidden shadow-sm">
+    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
       <div className="relative aspect-square bg-gray-100">
         {formData.images.length > 0 ? (
           <img
@@ -1483,7 +1565,7 @@ const ProductSummary = ({
           <button
             onClick={handleSubmit}
             disabled={loading || uploading}
-            className="w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-2xl bg-black hover:bg-gray-900 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {uploading ? (
               <>
