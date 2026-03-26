@@ -110,6 +110,7 @@ export default function EditProductPage() {
     stockQuantity: "",
     isActive: true,
     type: "",
+    isTrending: false,
     category: "",
     subcategory: ""
   })
@@ -158,6 +159,7 @@ export default function EditProductPage() {
           stockQuantity: String(p.inventory.stockQuantity || 0),
           isActive: p.isActive,
           type: p.type || "normal",
+          isTrending: p.isTrending || false,
           category: p.category?._id || p.category || "",
           subcategory: p.subcategory?._id || p.subcategory || ""
         })
@@ -255,6 +257,7 @@ export default function EditProductPage() {
         description: form.description,
         material: form.material,
         isActive: form.isActive,
+        isTrending: form.isTrending,
         type: form.type,
         category: form.category || undefined,
         subcategory: form.subcategory || undefined,
@@ -553,19 +556,34 @@ export default function EditProductPage() {
 
             {/* Status */}
             <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Status</h2>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={e => setForm({ ...form, isActive: e.target.checked })}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                />
-                <div>
-                  <p className="font-medium text-gray-900">Active Product</p>
-                  <p className="text-sm text-gray-500">Product will be visible to customers</p>
-                </div>
-              </label>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Status & Visibility</h2>
+              <div className="space-y-4">
+                <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={e => setForm({ ...form, isActive: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900">Active Product</p>
+                    <p className="text-sm text-gray-500">Product will be visible to customers</p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.isTrending}
+                    onChange={e => setForm({ ...form, isTrending: e.target.checked })}
+                    className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-900">Trending Product</p>
+                    <p className="text-sm text-gray-500">Manually highlight this product in Trending sections</p>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 

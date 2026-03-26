@@ -164,6 +164,7 @@ customFields: [customFieldSchema],
     description: String,
     material: String,
     isActive: { type: Boolean, default: true },
+    isTrending: { type: Boolean, default: false },
    
 
     images: [imageSchema],

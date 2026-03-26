@@ -21,6 +21,7 @@ import {
   Printer,
   ShoppingBasket,
   ChartBarDecreasing,
+  Star,
 } from "lucide-react"
 import Logo from "@/assets/icons/logo.png"
 
@@ -72,6 +73,7 @@ function  SidebarContent({ onItemClick }) {
           <NavItem href="/admin/collections" icon={ChartBarDecreasing} label="Collections of product" onClick={onItemClick} />
           <NavItem href="/admin/events" icon={ChartBarDecreasing} label="Events" onClick={onItemClick} />
           <NavItem href="/admin/categories" icon={Package} label="Categories" onClick={onItemClick} />
+          <NavItem href="/admin/trending" icon={Star} label="Trending Products" onClick={onItemClick} />
         </div>
 
         <div>

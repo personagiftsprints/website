@@ -47,16 +47,16 @@ useEffect(() => {
       setProduct(productData);
 
       // 🔍 CONSOLE LOG THE FULL PRODUCT DATA
-      console.log('📦 PRODUCT DATA:', {
-        id: productData._id,
-        name: productData.name,
-        type: productData.type,
-        customizationType: productData.customizationType,
-        customFields: productData.customFields,
-        customization: productData.customization,
-        hasPrintConfig: productData.customization?.enabled,
-        isPrintConfigType: ['tshirt', 'mug', 'mobileCase', 'hoodie'].includes(productData.type)
-      });
+      // console.log('📦 PRODUCT DATA:', {
+      //   id: productData._id,
+      //   name: productData.name,
+      //   type: productData.type,
+      //   customizationType: productData.customizationType,
+      //   customFields: productData.customFields,
+      //   customization: productData.customization,
+      //   hasPrintConfig: productData.customization?.enabled,
+      //   isPrintConfigType: ['tshirt', 'mug', 'mobileCase', 'hoodie'].includes(productData.type)
+      // });
 
       // Fetch customization info using service
       const customizationRes = await getProductCustomization(slug);
@@ -64,7 +64,7 @@ useEffect(() => {
         setCustomization(customizationRes.data);
         
         // 🔍 CONSOLE LOG THE CUSTOMIZATION DATA
-        console.log('🎨 CUSTOMIZATION DATA:', customizationRes.data);
+        // console.log('🎨 CUSTOMIZATION DATA:', customizationRes.data);
         
         // Initialize form data for custom fields
         if (customizationRes.data.type === 'custom_fields') {

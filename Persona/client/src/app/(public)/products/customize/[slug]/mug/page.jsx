@@ -71,7 +71,7 @@ export default function MugDesigner() {
   const cartManager = {
     addItem: async (item) => {
       try {
-        console.log('🛒 Adding to cart:', item)
+        // console.log('🛒 Adding to cart:', item)
         const cartItems = JSON.parse(localStorage.getItem('cart') || '[]')
         
         const uniqueId = `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${item.productId}`
@@ -483,7 +483,7 @@ export default function MugDesigner() {
         [view]: cloudUrl
       }))
       
-      console.log(`${view.toUpperCase()} preview confirmed:`, cloudUrl)
+      // console.log(`${view.toUpperCase()} preview confirmed:`, cloudUrl)
       return cloudUrl
     } catch (err) {
       console.error("Confirm failed:", err)

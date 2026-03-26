@@ -15,7 +15,8 @@ import {
   getStockManagement,
   getProductBySku,
   getProductCustomization,
-  getProductsByCategory
+  getProductsByCategory,
+  toggleTrendingStatus
 } from '../controllers/product.controller.js'
 import { searchProducts } from '../controllers/product.controller.js'
 const router = express.Router()
@@ -40,6 +41,7 @@ router.get('/customization/:slug', getProductCustomization);
 router.put('/:id', authMiddleware, adminOnly, updateProduct)
 router.delete('/:id', authMiddleware, adminOnly, deleteProduct)
 router.patch('/:id/status', authMiddleware, adminOnly, toggleProductStatus)
+router.patch('/:id/trending', authMiddleware, adminOnly, toggleTrendingStatus)
 
 
 export default router

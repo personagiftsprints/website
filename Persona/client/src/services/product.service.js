@@ -142,6 +142,11 @@ export const updateProductStatus = async (id, isActive) => {
   return res
 }
 
+export const toggleTrendingAPI = async (id) => {
+  const res = await api.patch(`/products/${id}/trending`)
+  return res
+}
+
 export const getProductsByType = async (type, params = {}) => {
   const res = await api.get(`/products/type/${type}`, {
     params: {

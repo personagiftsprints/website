@@ -376,11 +376,11 @@ const addDesignToCart = async (cloudinaryUrlsData) => {
       productSnapshot: cartData.productSnapshot
     }
 
-    console.log("📦 Final cart item with URLs:", {
-      previewUrls: cartItem.designData.preview_urls,
-      slotImages: cartItem.designData.slot_images,
-      mainPreview: cartItem.designData.preview_url
-    })
+    // console.log("📦 Final cart item with URLs:", {
+    //   previewUrls: cartItem.designData.preview_urls,
+    //   slotImages: cartItem.designData.slot_images,
+    //   mainPreview: cartItem.designData.preview_url
+    // })
 
     const result = await cartManager.addItem(cartItem)
     

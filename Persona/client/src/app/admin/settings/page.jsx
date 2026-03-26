@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { getSettings, updateSettings } from "@/services/settings.service"
-import { Save, ShieldAlert, Clock, Info, Truck } from "lucide-react"
+import { Save, ShieldAlert, Clock, Info, Truck, ExternalLink } from "lucide-react"
+import Link from "next/link"
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState(null)
@@ -75,7 +76,7 @@ export default function AdminSettingsPage() {
                 <input
                   type="checkbox"
                   className="sr-only peer"
-                  checked={settings.maintenanceMode.isActive}
+                  checked={settings.maintenanceMode?.isActive}
                   onChange={(e) => setSettings({
                     ...settings,
                     maintenanceMode: { ...settings.maintenanceMode, isActive: e.target.checked }
@@ -91,7 +92,7 @@ export default function AdminSettingsPage() {
                   <Info size={16} /> Maintenance Message
                 </label>
                 <textarea
-                  value={settings.maintenanceMode.message}
+                  value={settings.maintenanceMode?.message}
                   onChange={(e) => setSettings({
                     ...settings,
                     maintenanceMode: { ...settings.maintenanceMode, message: e.target.value }
@@ -107,7 +108,7 @@ export default function AdminSettingsPage() {
                 </label>
                 <input
                   type="datetime-local"
-                  value={settings.maintenanceMode.expectedEndTime ? new Date(settings.maintenanceMode.expectedEndTime).toISOString().slice(0, 16) : ""}
+                  value={settings.maintenanceMode?.expectedEndTime ? new Date(settings.maintenanceMode.expectedEndTime).toISOString().slice(0, 16) : ""}
                   onChange={(e) => setSettings({
                     ...settings,
                     maintenanceMode: { ...settings.maintenanceMode, expectedEndTime: e.target.value }
@@ -173,6 +174,70 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                   <p className="text-[10px] text-gray-400 mt-2">Orders equal to or above this amount will have free delivery.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trending Products Configuration Section */}
+        <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-purple-50 p-4 border-b border-purple-100 flex items-center gap-3">
+            <Info className="text-purple-600" size={24} />
+            <h2 className="text-lg font-bold text-purple-900">Trending Products Configuration</h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-2">
+                  Trending Selection Mode
+                </label>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setSettings({
+                      ...settings,
+                      trendingSettings: { ...settings.trendingSettings, mode: 'automatic' }
+                    })}
+                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-bold ${
+                      settings.trendingSettings?.mode === 'automatic'
+                        ? "border-purple-600 bg-purple-50 text-purple-700"
+                        : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+                    }`}
+                  >
+                    Automatic (By Sales)
+                  </button>
+                  <button
+                    onClick={() => setSettings({
+                      ...settings,
+                      trendingSettings: { ...settings.trendingSettings, mode: 'manual' }
+                    })}
+                    className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-bold ${
+                      settings.trendingSettings?.mode === 'manual'
+                        ? "border-purple-600 bg-purple-50 text-purple-700"
+                        : "border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200"
+                    }`}
+                  >
+                    Manual Selection
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  {settings.trendingSettings?.mode === 'manual'
+                    ? "In manual mode, only products specifically marked as 'Trending' will be shown."
+                    : "In automatic mode, products with the highest number of sales (orders) will be shown."}
+                </p>
+
+                <div className="mt-6 pt-6 border-t flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">Curate Trending List</p>
+                      <p className="text-xs text-gray-500">Add or remove products from the trending section manually.</p>
+                    </div>
+                    <Link 
+                      href="/admin/trending"
+                      className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-100"
+                    >
+                      <ExternalLink size={16} />
+                      Manage Trending
+                    </Link>
                 </div>
               </div>
             </div>

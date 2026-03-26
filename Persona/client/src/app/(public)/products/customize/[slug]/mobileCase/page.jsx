@@ -76,7 +76,7 @@ export default function MobileCaseDesigner() {
           setSelectedModel(configRes.models[0]);
         }
 
-        console.log("Print Config:", configRes);
+        // console.log("Print Config:", configRes);
       } finally {
         setIsStudioLoading(false);
       }
@@ -111,7 +111,7 @@ export default function MobileCaseDesigner() {
   // Cart manager
   const addToCart = (item) => {
     try {
-      console.log("🛒 Adding to cart:", item);
+      // console.log("🛒 Adding to cart:", item);
 
       // Get existing cart from localStorage
       const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -159,7 +159,7 @@ export default function MobileCaseDesigner() {
       });
       localStorage.setItem("caseDesigns", JSON.stringify(designs));
 
-      console.log("✅ Cart saved:", cartItems);
+      // console.log("✅ Cart saved:", cartItems);
 
       return {
         success: true,
@@ -296,7 +296,7 @@ export default function MobileCaseDesigner() {
         productSnapshot: cartData.productSnapshot
       };
 
-      console.log("Final cartItem:", JSON.stringify(cartItem, null, 2));
+      // console.log("Final cartItem:", JSON.stringify(cartItem, null, 2));
 
       const result = addToCart(cartItem);
 
@@ -452,7 +452,7 @@ export default function MobileCaseDesigner() {
         back: cloudUrl
       }));
 
-      console.log("Preview confirmed:", cloudUrl);
+      // console.log("Preview confirmed:", cloudUrl);
     } catch (err) {
       console.error("Confirm failed:", err);
       alert("Failed to confirm design: " + err.message);

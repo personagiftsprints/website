@@ -2,6 +2,7 @@ import Product from '../models/Product.model.js'
 import { PRODUCT_TYPE_ATTRIBUTES } from '../constants/productAttributes.js'
 import Category from '../models/Category.js'
 import Subcategory from '../models/Subcategory.js'
+import Settings from '../models/Settings.js'
 const generateSku = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let sku = ''
@@ -533,54 +534,69 @@ export const updateProduct = async (req, res) => {
 }
 
 
-export const getLandingProducts = async (req, res) => {
-  try {
-    const trending = await Product.find({ isActive: true })
-      .sort({ 'inventory.soldQuantity': -1 })
-      .limit(10)
-      .select('name slug thumbnail pricing type');
-
-    // Fetch all active subcategories
-    const subcategories = await Subcategory.find({ isActive: true }).sort({ name: 1 });
-
-    // Fetch products for each subcategory (limit to 10 for landing page)
-    const subcategoryProducts = await Promise.all(
-      subcategories.map(async (sub) => {
-        const products = await Product.find({ subcategory: sub._id, isActive: true })
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .select('name slug thumbnail pricing');
-        
-        return {
-          _id: sub._id,
-          name: sub.name,
-          slug: sub.slug,
-          products
-        };
-      })
-    );
-
-    // Filter out subcategories with no products and limit to first 4
-    const filteredSubcategories = subcategoryProducts
-      .filter(item => item.products.length > 0)
-      .slice(0, 4);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        trending,
-        subcategories: filteredSubcategories
+  export const getLandingProducts = async (req, res) => {
+    try {
+      let settings = await Settings.findOne();
+      if (!settings) {
+        settings = await Settings.create({});
       }
-    });
-  } catch (error) {
-    console.error('getLandingProducts error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch landing products',
-      error: error.message
-    })
+
+      const { mode } = settings.trendingSettings || { mode: 'automatic' };
+
+      let trendingQuery = { isActive: true };
+      let trendingSort = { 'inventory.soldQuantity': -1 };
+
+      if (mode === 'manual') {
+        trendingQuery.isTrending = true;
+        trendingSort = { updatedAt: -1 }; // Or any other preferred sort for manual
+      }
+
+      const trending = await Product.find(trendingQuery)
+        .sort(trendingSort)
+        .limit(9)
+        .select('name slug thumbnail pricing type');
+
+      // Fetch all active subcategories
+      const subcategories = await Subcategory.find({ isActive: true }).sort({ name: 1 });
+
+      // Fetch products for each subcategory (limit to 10 for landing page)
+      const subcategoryProducts = await Promise.all(
+        subcategories.map(async (sub) => {
+          const products = await Product.find({ subcategory: sub._id, isActive: true })
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .select('name slug thumbnail pricing');
+          
+          return {
+            _id: sub._id,
+            name: sub.name,
+            slug: sub.slug,
+            products
+          };
+        })
+      );
+
+      // Filter out subcategories with no products and limit to first 4
+      const filteredSubcategories = subcategoryProducts
+        .filter(item => item.products.length > 0)
+        .slice(0, 4);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          trending,
+          subcategories: filteredSubcategories
+        }
+      });
+    } catch (error) {
+      console.error('getLandingProducts error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch landing products',
+        error: error.message
+      })
+    }
   }
-}
 
 
 // 6. Delete product
@@ -634,6 +650,36 @@ export const toggleProductStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to toggle status',
+      error: error.message
+    })
+  }
+}
+
+
+export const toggleTrendingStatus = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      })
+    }
+
+    product.isTrending = !product.isTrending
+    await product.save()
+
+    res.json({
+      success: true,
+      message: `Product ${product.isTrending ? 'added to' : 'removed from'} trending`,
+      data: product
+    })
+  } catch (error) {
+    console.error('Toggle trending error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to toggle trending status',
       error: error.message
     })
   }

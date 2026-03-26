@@ -26,7 +26,7 @@ export default function CategoriesPage() {
     try {
       const catRes = await getCategories();
       const subRes = await getSubcategories();
-      console.log("CatRes", catRes);
+      // console.log("CatRes", catRes);
       if (catRes) setCategories(catRes);
       if (subRes) setSubcategories(subRes);
     } catch (error) {

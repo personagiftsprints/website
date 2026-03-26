@@ -59,6 +59,7 @@ export default function CreateProductPage() {
     stockQuantity: "0",
     manageStock: false,
     isActive: true,
+    isTrending: false,
     images: [],
     category: "",
     subcategory: "",
@@ -397,6 +398,7 @@ const payload = {
     description: formData.description,
     material: formData.material,
     isActive: formData.isActive,
+    isTrending: formData.isTrending,
     category: formData.category || undefined,
     subcategory: formData.subcategory || undefined,
   },
@@ -816,6 +818,44 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           <p className="text-xs text-gray-500 mt-1">
                             Discounted or sale price
                           </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-blue-50/30 rounded-xl border border-blue-100">
+                          <div>
+                            <p className="font-bold text-gray-900 flex items-center gap-2">
+                              Active Status
+                            </p>
+                            <p className="text-xs text-gray-500">Enable this to make the product visible to customers.</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={formData.isActive}
+                              onChange={(e) => handleInputChange("isActive", e.target.checked)}
+                            />
+                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-purple-50/30 rounded-xl border border-purple-100">
+                          <div>
+                            <p className="font-bold text-gray-900 flex items-center gap-2">
+                              Trending Product
+                            </p>
+                            <p className="text-xs text-gray-500">When manual mode is enabled in settings, this product will appear in Trending.</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={formData.isTrending}
+                              onChange={(e) => handleInputChange("isTrending", e.target.checked)}
+                            />
+                            <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                          </label>
                         </div>
                       </div>
                     </div>
