@@ -109,6 +109,7 @@ export default function EditProductPage() {
     specialPrice: "",
     stockQuantity: "",
     isActive: true,
+    type: "",
     category: "",
     subcategory: ""
   })
@@ -128,11 +129,12 @@ export default function EditProductPage() {
 
   useEffect(() => {
     import("@/services/category.service").then(module => {
-      module.getCategories().then(res => res.success && setCategoriesList(res.data))
+      module.getCategories().then(res => res && setCategoriesList(res))
+      console.log(categoriesList)
       module.getSubcategories().then(res => {
-        if (res.success) {
+        if (res) {
           const map = {}
-          res.data.forEach(sub => {
+          res.forEach(sub => {
             const catId = sub.category._id || sub.category
             if (!map[catId]) map[catId] = []
             map[catId].push(sub)
@@ -155,6 +157,7 @@ export default function EditProductPage() {
           specialPrice: p.pricing.specialPrice?.toString() || "",
           stockQuantity: String(p.inventory.stockQuantity || 0),
           isActive: p.isActive,
+          type: p.type || "normal",
           category: p.category?._id || p.category || "",
           subcategory: p.subcategory?._id || p.subcategory || ""
         })
@@ -252,6 +255,7 @@ export default function EditProductPage() {
         description: form.description,
         material: form.material,
         isActive: form.isActive,
+        type: form.type,
         category: form.category || undefined,
         subcategory: form.subcategory || undefined,
         pricing: {
@@ -400,6 +404,32 @@ export default function EditProductPage() {
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     placeholder="e.g., 100% Cotton"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Type *
+                  </label>
+                  <select
+                    value={form.type}
+                    onChange={e => setForm({ ...form, type: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    required
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="tshirt">T-Shirt</option>
+                    <option value="mug">Mug</option>
+                    <option value="mobileCase">Mobile Case</option>
+                    <option value="hoodie">Hoodie</option>
+                    <option value="hat">Hat</option>
+                    <option value="frame">Framed photo</option>
+                    <option value="poster">Poster</option>
+                    <option value="sticker">Sticker</option>
+                    <option value="keychain">Key Chain</option>
+                    <option value="photoslate">Photo Slate</option>
+                    <option value="3Dcrystal">3D Crystal photo cube</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

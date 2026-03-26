@@ -84,11 +84,15 @@ const [subcategoriesMap, setSubcategoriesMap] = useState({});
 
 useEffect(() => {
   import("@/services/category.service").then((module) => {
-    module.getCategories().then(res => res && setCategoriesList(res));
-    module.getSubcategories().then(res => {
-      if (res) {
+    module.getCategories().then((res) => {
+      if (res && res.success) {
+        setCategoriesList(res.data);
+      }
+    });
+    module.getSubcategories().then((res) => {
+      if (res && res.success) {
         const map = {};
-        res.forEach(sub => {
+        res.data.forEach((sub) => {
           const catId = sub.category._id || sub.category;
           if (!map[catId]) map[catId] = [];
           map[catId].push(sub);
@@ -638,13 +642,14 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                           <option value="mug">Mug</option>
                           <option value="mobileCase">Mobile Case</option>
                           <option value="hoodie">Hoodie</option>
+                          <option value="hat">Hat</option>
                           <option value="frame">Framed photo</option>
                           <option value="poster">Poster</option>
-                           <option value="keychain">Key Chain</option>
-                            <option value="photoslate">Photo Slate</option>
-                          <option value="3Dcrystal">
-                            3D Crystal photo cube
-                          </option>
+                          <option value="sticker">Sticker</option>
+                          <option value="keychain">Key Chain</option>
+                          <option value="photoslate">Photo Slate</option>
+                          <option value="3Dcrystal">3D Crystal photo cube</option>
+                          <option value="other">Other</option>
                         </select>
                       </div>
 
