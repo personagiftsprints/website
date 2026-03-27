@@ -710,8 +710,8 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                       </div>
 
                       {productConfig?.variants?.length > 0 && (() => {
-                        const hasSizeAttr = productConfig.attributes.find(a => a.code.toLowerCase().includes('size'));
-                        const primaryAttributeCode = hasSizeAttr ? hasSizeAttr.code : (productConfig.attributes[0]?.code || 'size');
+                        const hasColorAttr = productConfig.attributes.find(a => a.code.toLowerCase().includes('color'));
+                        const primaryAttributeCode = hasColorAttr ? hasColorAttr.code : (productConfig.attributes[0]?.code || 'color');
                         const groupedVariants = {};
                         productConfig.variants.forEach((v) => {
                           const val = v.attributes[primaryAttributeCode] || 'Default';
@@ -720,23 +720,28 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                         });
 
                         return (
-                          <div className="mt-6 rounded-[1.5rem] border border-gray-100 bg-white shadow-sm overflow-hidden">
-                            <div className="border-b px-5 py-3">
-                              <h4 className="text-sm font-semibold text-gray-800">
+                          <div className="mt-8 rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden overflow-hidden">
+                            <div className="border-b px-6 py-4 bg-gray-50/30">
+                              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-tight">
                                 Variant Stock Management
                               </h4>
+                              <p className="text-xs text-gray-500 mt-1">Select a color to manage sizes and stock levels</p>
                             </div>
 
-                            <div className="p-5 flex flex-wrap gap-3">
+                            <div className="p-6 flex flex-wrap gap-4">
                               {Object.entries(groupedVariants).map(([groupVal, totalStock]) => (
                                 <button
                                   type="button"
                                   key={groupVal}
                                   onClick={() => setActiveVariantGroup(groupVal)}
-                                  className="relative px-5 py-3 border border-gray-200 rounded-2xl hover:border-black text-sm font-bold transition-all group flex items-center gap-3 bg-gray-50/50 hover:bg-white cursor-pointer uppercase"
+                                  className={`relative px-6 py-4 border-2 rounded-2xl hover:border-black transition-all group flex flex-col items-center gap-2 bg-white cursor-pointer min-w-[120px] ${activeVariantGroup === groupVal ? 'border-black ring-4 ring-black/5' : 'border-gray-100'}`}
                                 >
-                                  {groupVal}
-                                  <span className="px-2 py-0.5 bg-gray-200 text-gray-800 rounded-full text-xs font-semibold normal-case">
+                                  <div 
+                                    className="w-8 h-8 rounded-full border border-gray-200 shadow-inner" 
+                                    style={{ backgroundColor: groupVal.toLowerCase() === 'white' ? '#ffffff' : groupVal.toLowerCase() }}
+                                  ></div>
+                                  <span className="text-sm font-bold text-gray-900 uppercase">{groupVal}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${totalStock > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                     {totalStock} in stock
                                   </span>
                                 </button>
@@ -1099,46 +1104,73 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
 
       {/* Variant Modal */}
       {activeVariantGroup && (() => {
-        const hasSizeAttr = productConfig.attributes.find(a => a.code.toLowerCase().includes('size'));
-        const primaryAttributeCode = hasSizeAttr ? hasSizeAttr.code : (productConfig.attributes[0]?.code || 'size');
+        const hasColorAttr = productConfig.attributes.find(a => a.code.toLowerCase().includes('color'));
+        const primaryAttributeCode = hasColorAttr ? hasColorAttr.code : (productConfig.attributes[0]?.code || 'color');
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h3 className="text-xl font-bold text-gray-900 uppercase">
-                  Size {activeVariantGroup} Stock
-                </h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-all">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center justify-between p-8 border-b border-gray-50">
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-10 h-10 rounded-full border-2 border-white shadow-lg" 
+                    style={{ backgroundColor: activeVariantGroup.toLowerCase() === 'white' ? '#ffffff' : activeVariantGroup.toLowerCase() }}
+                  ></div>
+                  <div>
+                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                      {activeVariantGroup}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Manage sizes and stock levels</p>
+                  </div>
+                </div>
                 <button 
                   onClick={() => setActiveVariantGroup(null)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                  className="p-3 hover:bg-gray-100 rounded-full transition-all cursor-pointer active:scale-95"
                   type="button"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-6 h-6 text-gray-400" />
                 </button>
               </div>
               
-              <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="p-8 overflow-y-auto space-y-4 flex-1 no-scrollbar">
                 {productConfig.variants
                   .map((variant, i) => ({ variant, originalIndex: i }))
                   .filter(item => (item.variant.attributes[primaryAttributeCode] || 'Default') === activeVariantGroup)
                   .map(item => {
                     const otherAttrValue = Object.entries(item.variant.attributes).find(([k, v]) => k !== primaryAttributeCode)?.[1] || 'Default';
                     return (
-                      <div key={item.originalIndex} className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                        <span className="text-sm font-bold text-gray-900 line-clamp-1 capitalize flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: otherAttrValue.toLowerCase() }}></div>
-                          {otherAttrValue}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <label className="text-xs text-gray-500 font-medium">Stock</label>
+                      <div key={item.originalIndex} className="flex items-center justify-between gap-6 p-5 rounded-3xl bg-gray-50/50 border border-gray-100 hover:bg-white hover:shadow-md transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center font-black text-lg text-black border border-gray-100 group-hover:bg-black group-hover:text-white transition-colors">
+                            {otherAttrValue}
+                          </div>
+                          <div>
+                            <span className="text-sm font-bold text-gray-900 uppercase tracking-tight">Size {otherAttrValue}</span>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Quantity available</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center bg-white rounded-2xl border border-gray-200 p-1 shadow-inner">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const qty = Math.max(0, (item.variant.stockQuantity || 0) - 1);
+                              setProductConfig(prev => {
+                                const copy = structuredClone(prev);
+                                copy.variants[item.originalIndex].stockQuantity = qty;
+                                return copy;
+                              });
+                            }}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-50 font-bold text-lg active:scale-90 transition-all"
+                          >
+                            -
+                          </button>
                           <input
                             type="number"
                             min="0"
-                            className="h-11 w-24 rounded-xl border border-gray-200 px-4 text-sm font-semibold focus:border-black focus:ring-1 focus:ring-black focus:outline-none bg-white transition-all text-center"
+                            className="h-10 w-20 text-center font-black text-lg focus:outline-none bg-transparent"
                             value={item.variant.stockQuantity}
                             onChange={(e) => {
-                              const qty = Number(e.target.value);
+                              const qty = Math.max(0, parseInt(e.target.value) || 0);
                               setProductConfig(prev => {
                                 const copy = structuredClone(prev);
                                 copy.variants[item.originalIndex].stockQuantity = qty;
@@ -1146,19 +1178,33 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                               });
                             }}
                           />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const qty = (item.variant.stockQuantity || 0) + 1;
+                              setProductConfig(prev => {
+                                const copy = structuredClone(prev);
+                                copy.variants[item.originalIndex].stockQuantity = qty;
+                                return copy;
+                              });
+                            }}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-50 font-bold text-lg active:scale-90 transition-all"
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
                     );
                   })}
               </div>
               
-              <div className="p-6 border-t border-gray-100 bg-white">
+              <div className="p-8 border-t border-gray-50 bg-gray-50/30">
                 <button
                   type="button"
                   onClick={() => setActiveVariantGroup(null)}
-                  className="w-full h-14 bg-black text-white rounded-2xl font-semibold hover:bg-gray-900 transition-all shadow-sm cursor-pointer"
+                  className="w-full h-16 bg-black text-white rounded-3xl font-black text-lg hover:bg-gray-800 transition-all shadow-xl active:scale-[0.98]"
                 >
-                  Done
+                  SAVE CHANGES
                 </button>
               </div>
             </div>

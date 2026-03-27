@@ -36,8 +36,8 @@ export default function TshirtColorPreview() {
   const [libraryDesigns, setLibraryDesigns] = useState({}) // Stores design objects from library
 
   // New state for controlling area visibility
-  const [showCenterChest, setShowCenterChest] = useState(false)
-  const [showLeftChest, setShowLeftChest] = useState(false)
+  const [showCenterChest, setShowCenterChest] = useState(true)
+  const [showLeftChest, setShowLeftChest] = useState(true)
 
   // Image position controls
   const [imagePositions, setImagePositions] = useState({})
@@ -2246,8 +2246,8 @@ const handlePreviewAndAddToCart = async () => {
           {/* Action buttons on Shirt are removed as they are integrated in Right Sidebar and Mobile Bottom Bar */}
         </main>
 
-        <aside className="lg:h-full lg:overflow-y-auto no-scrollbar space-y-6 w-full order-2 mb-20 lg:mb-0">
-          <div className="bg-white lg:rounded-2xl lg:border lg:border-gray-100 p-4 lg:p-6 space-y-6 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] lg:shadow-none">
+        <aside className="lg:h-full lg:overflow-y-auto no-scrollbar space-y-3 w-full order-2 mb-20 lg:mb-0">
+          <div className="bg-white lg:rounded-2xl lg:border lg:border-gray-100 p-4 space-y-4 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] lg:shadow-none">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold">Print Areas</h2>
               {totalUploadedAreas > 0 && (
@@ -2272,18 +2272,6 @@ const handlePreviewAndAddToCart = async () => {
               ))}
             </div>
 
-            {/* Front visibility */}
-            {view === "front" && (
-              <div className="grid grid-cols-2 gap-2">
-                <button 
-                  onClick={() => setShowCenterChest(v => !v)} 
-                  className={`border p-3 rounded-xl ${showCenterChest ? 'bg-black text-white' : ''}`}
-                >
-                  Center Chest
-                </button>
-              </div>
-            )}
-
             {/* Rules */}
             {view === "front" && hasUploadInFrontView && (
               <div className="p-2 rounded-xl text-sm">
@@ -2298,7 +2286,7 @@ const handlePreviewAndAddToCart = async () => {
             )}
 
             {/* AREA SELECTOR */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {currentViewAreas.map(area => {
                 const active = selectedArea?.id === area.id
                 const hasImage = !!uploadedImages[area.id]
@@ -2307,7 +2295,7 @@ const handlePreviewAndAddToCart = async () => {
                   <button
                     key={area.id}
                     onClick={() => setSelectedArea(area)}
-                    className={`p-4 rounded-xl border-2 border-gray-200 text-left transition ${
+                    className={`p-3 rounded-xl border-2 border-gray-200 text-left transition ${
                       active 
                         ? "border-black bg-gray-100" 
                         : hasImage || hasText
@@ -2316,19 +2304,10 @@ const handlePreviewAndAddToCart = async () => {
                     }`}
                   >
                     <p className="font-semibold">{area.name}</p>
-                    {/* <p className="text-xs text-gray-500">Max size:c {area.max}</p> */}
                     {(hasImage || hasText) && (
                       <div className="mt-1">
-                        {hasImage && (
-                          <span className="text-xs text-green-600 font-medium inline-block mr-2">
-                            ✓ Image
-                          </span>
-                        )}
-                        {hasText && (
-                          <span className="text-xs text-blue-600 font-medium inline-block">
-                            ✓ Text
-                          </span>
-                        )}
+                        {hasImage && <span className="text-xs text-green-600 font-medium inline-block mr-2">✓ Image</span>}
+                        {hasText && <span className="text-xs text-blue-600 font-medium inline-block">✓ Text</span>}
                       </div>
                     )}
                   </button>
@@ -2337,370 +2316,222 @@ const handlePreviewAndAddToCart = async () => {
             </div>
 
             {selectedArea && canUploadToArea(selectedArea.id) && (
-              <div className="border rounded-2xl border-gray-200 p-4 space-y-6 bg-gray-50">
+              <div className="border rounded-2xl border-gray-200 p-3 space-y-3 bg-gray-50">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-bold text-lg">{selectedArea.name}</h3>
-                    <p className="text-sm text-gray-600">Max size: {selectedArea.max}</p>
+                    <h3 className="font-bold text-sm tracking-tight">{selectedArea.name}</h3>
+                    <p className="text-[10px] text-gray-500 text-left uppercase">Max size: {selectedArea.max}</p>
                   </div>
                   {uploadedImages[selectedArea.id] && (
                     <button
                       onClick={() => removeImage(selectedArea.id)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      className="text-red-600 hover:text-red-800 text-xs font-bold"
                     >
-                      Remove Image
+                      Remove
                     </button>
                   )}
                 </div>
 
-                {/* Upload area */}
-                <label className="h-40 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:border-indigo-400 transition-colors relative overflow-hidden bg-white">
-                  {uploadedImages[selectedArea.id] ? (
-                    <img
-                      src={imagePreviews[selectedArea.id]}
-                      alt="Design preview"
-                      className="object-contain p-4 max-h-full"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <span className="text-gray-500 block mb-2">Click to upload design</span>
-                      <span className="text-xs text-gray-400">PNG, JPG, WebP • Max 5MB</span>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, selectedArea.id)}
-                  />
-                </label>
-                
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-[1px] bg-gray-200"></div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR</span>
-                  <div className="flex-1 h-[1px] bg-gray-200"></div>
-                </div>
+                {/* Upload area - Only show if NO text */}
+                {!textLayers[selectedArea.id]?.content && (
+                  <div className="space-y-3">
+                    <label className="h-20 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer hover:border-indigo-400 transition-colors relative overflow-hidden bg-white">
+                      {uploadedImages[selectedArea.id] ? (
+                        <img
+                          src={imagePreviews[selectedArea.id]}
+                          alt="Design preview"
+                          className="object-contain p-4 max-h-full"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <span className="text-gray-500 block mb-1 text-sm">Click to upload design</span>
+                          <span className="text-[10px] text-gray-400">PNG, JPG, WebP • Max 5MB</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, selectedArea.id)}
+                      />
+                    </label>
 
-                <button
-                  onClick={() => setShowLibrary(true)}
-                  className="w-full py-3 border-2 border-[#F9A51B] text-[#F9A51B] rounded-xl font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
-                >
-                  <span>🖼️</span> Choose from Gallery
-                </button>
-
-                {/* Text Controls */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-sm">Add Text</h4>
-
-                  <input
-                    type="text"
-                    placeholder="Enter text"
-                    value={textLayers[selectedArea.id]?.content || ""}
-                    onChange={(e) => {
-                      setTextLayers(prev => ({
-                        ...prev,
-                        [selectedArea.id]: {
-                          ...prev[selectedArea.id],
-                          content: e.target.value,
-                          fontSize: prev[selectedArea.id]?.fontSize || 40,
-                          color: prev[selectedArea.id]?.color || "#000000",
-                          fontFamily: prev[selectedArea.id]?.fontFamily || "Arial",
-                          fontWeight: prev[selectedArea.id]?.fontWeight || "normal",
-                          textShadow: prev[selectedArea.id]?.textShadow || "none"
-                        }
-                      }))
-                      // Initialize text position if not exists
-                      if (!textPositions[selectedArea.id]) {
-                        setTextPositions(prev => ({
-                          ...prev,
-                          [selectedArea.id]: { x: 0, y: 0, scale: 1, rotate: 0 }
-                        }))
-                      }
-                    }}
-                    className="w-full border rounded-lg p-2"
-                  />
-
-                  {textLayers[selectedArea.id]?.content && (
-                    <div className="space-y-3">
+                    {!uploadedImages[selectedArea.id] && (
                       <div className="flex items-center gap-2">
-                        <label className="text-sm text-gray-600">Color:</label>
-                        <input
-                          type="color"
-                          value={textLayers[selectedArea.id]?.color || "#000000"}
-                          onChange={(e) =>
-                            setTextLayers(prev => ({
-                              ...prev,
-                              [selectedArea.id]: {
-                                ...prev[selectedArea.id],
-                                color: e.target.value
-                              }
-                            }))
-                          }
-                          className="w-10 h-10 border rounded"
-                        />
+                        <div className="flex-1 h-[1px] bg-gray-200"></div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">OR</span>
+                        <div className="flex-1 h-[1px] bg-gray-200"></div>
                       </div>
+                    )}
 
-                      <div>
-                        <label className="text-sm text-gray-600 block mb-1">
-                          Font Size: {textLayers[selectedArea.id]?.fontSize || 40}px
-                        </label>
-                        <input
-                          type="range"
-                          min="10"
-                          max="120"
-                          value={textLayers[selectedArea.id]?.fontSize || 40}
-                          onChange={(e) => handleTextSizeChange(selectedArea.id, Number(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm text-gray-600 block mb-1">
-                          Scale: {(textPositions[selectedArea.id]?.scale || 1).toFixed(1)}x
-                        </label>
-                        <input
-                          type="range"
-                          min="0.5"
-                          max="3"
-                          step="0.1"
-                          value={textPositions[selectedArea.id]?.scale || 1}
-                          onChange={(e) => handleTextScaleChange(selectedArea.id, Number(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div className="flex gap-2 justify-center mt-2">
-                        <button
-                          onClick={() => handleTextRotate(selectedArea.id)}
-                          className="px-3 py-1 border rounded text-sm hover:bg-gray-50"
-                        >
-                          ↻ Rotate Text 45°
-                        </button>
-                        <button
-                          onClick={() => resetTextPosition(selectedArea.id)}
-                          className="px-3 py-1 border rounded text-sm hover:bg-gray-50"
-                        >
-                          ↺ Reset Text
-                        </button>
-                      </div>
-
-                      {/* Mobile Text X/Y Axis Controls */}
-                      <div className="flex lg:hidden gap-6 justify-center mt-3 border-t pt-3">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Move X</span>
-                          <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                            <button
-                              onClick={() => setTextPositions(prev => ({
-                                ...prev,
-                                [selectedArea.id]: {
-                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
-                                  x: (prev[selectedArea.id]?.x || 0) - 10
-                                }
-                              }))}
-                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold border-r text-gray-700 active:scale-95 transition-transform"
-                            >
-                              ←
-                            </button>
-                            <button
-                              onClick={() => setTextPositions(prev => ({
-                                ...prev,
-                                [selectedArea.id]: {
-                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
-                                  x: (prev[selectedArea.id]?.x || 0) + 10
-                                }
-                              }))}
-                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold text-gray-700 active:scale-95 transition-transform"
-                            >
-                              →
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-col items-center">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-wider">Move Y</span>
-                          <div className="flex bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                            <button
-                              onClick={() => setTextPositions(prev => ({
-                                ...prev,
-                                [selectedArea.id]: {
-                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
-                                  y: (prev[selectedArea.id]?.y || 0) - 10
-                                }
-                              }))}
-                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold border-r text-gray-700 active:scale-95 transition-transform"
-                            >
-                              ↑
-                            </button>
-                            <button
-                              onClick={() => setTextPositions(prev => ({
-                                ...prev,
-                                [selectedArea.id]: {
-                                  ...(prev[selectedArea.id] || { scale: 1, rotate: 0, x: 0, y: 0 }),
-                                  y: (prev[selectedArea.id]?.y || 0) + 10
-                                }
-                              }))}
-                              className="px-4 py-2 hover:bg-gray-200 active:bg-gray-300 font-bold text-gray-700 active:scale-95 transition-transform"
-                            >
-                              ↓
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
+                    {!uploadedImages[selectedArea.id] && (
                       <button
-                        onClick={() => {
-                          setTextLayers(prev => {
-                            const newState = { ...prev }
-                            delete newState[selectedArea.id]
-                            return newState
-                          })
-                          setTextPositions(prev => {
-                            const newState = { ...prev }
-                            delete newState[selectedArea.id]
-                            return newState
-                          })
-                        }}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        onClick={() => setShowLibrary(true)}
+                        className="w-full py-2 border-2 text-sm border-[#F9A51B] text-[#F9A51B] rounded-xl font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
                       >
-                        Remove Text
+                        <span>🖼️</span> Choose from Gallery
                       </button>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
-                   <div>
-      <label className="text-sm text-gray-600 block mb-1">Font Family:</label>
-      <select
-        value={textLayers[selectedArea.id]?.fontFamily || "Arial"}
-        onChange={(e) =>
-          setTextLayers(prev => ({
-            ...prev,
-            [selectedArea.id]: {
-              ...prev[selectedArea.id],
-              fontFamily: e.target.value
-            }
-          }))
-        }
-        className="w-full border rounded-lg p-2"
-      >
-        <option value="Arial">Arial (Classic)</option>
-        <option value="Helvetica">Helvetica (Clean)</option>
-        <option value="Times New Roman">Times New Roman (Elegant)</option>
-        <option value="Georgia">Georgia (Formal)</option>
-        <option value="Courier New">Courier New (Typewriter)</option>
-        <option value="Verdana">Verdana (Readable)</option>
-        <option value="Impact">Impact (Bold)</option>
-        <option value="Comic Sans MS">Comic Sans MS (Casual)</option>
-      </select>
-    </div>
-    
-    {/* ✅ NEW: Font Weight Selector */}
-    <div>
-      <label className="text-sm text-gray-600 block mb-1">Font Weight:</label>
-      <select
-        value={textLayers[selectedArea.id]?.fontWeight || "normal"}
-        onChange={(e) =>
-          setTextLayers(prev => ({
-            ...prev,
-            [selectedArea.id]: {
-              ...prev[selectedArea.id],
-              fontWeight: e.target.value
-            }
-          }))
-        }
-        className="w-full border rounded-lg p-2"
-      >
-        <option value="normal">Normal</option>
-        <option value="bold">Bold</option>
-        <option value="lighter">Light</option>
-      </select>
-    </div>
+                {/* Text Controls - Only show if NO image */}
+                {!uploadedImages[selectedArea.id] && (
+                  <div className="space-y-3 border-t pt-3">
+                    <h4 className="font-semibold text-xs uppercase text-gray-600 tracking-wider">Add Text</h4>
+                    <input
+                      type="text"
+                      placeholder="Enter text"
+                      value={textLayers[selectedArea.id]?.content || ""}
+                      onChange={(e) => {
+                        setTextLayers(prev => ({
+                          ...prev,
+                          [selectedArea.id]: {
+                            ...prev[selectedArea.id],
+                            content: e.target.value,
+                            fontSize: prev[selectedArea.id]?.fontSize || 40,
+                            color: prev[selectedArea.id]?.color || "#000000",
+                            fontFamily: prev[selectedArea.id]?.fontFamily || "Arial",
+                            fontWeight: prev[selectedArea.id]?.fontWeight || "normal",
+                            textShadow: prev[selectedArea.id]?.textShadow || "none"
+                          }
+                        }))
+                        if (!textPositions[selectedArea.id]) {
+                          setTextPositions(prev => ({
+                            ...prev,
+                            [selectedArea.id]: { x: 0, y: 0, scale: 1, rotate: 0 }
+                          }))
+                        }
+                      }}
+                      className="w-full border rounded-lg p-2 text-sm"
+                    />
 
-                {/* Controls + Confirm button - only show if uploaded */}
+                    {textLayers[selectedArea.id]?.content && (
+                      <div className="space-y-3 mt-3">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-600">Color:</label>
+                          <input
+                            type="color"
+                            value={textLayers[selectedArea.id]?.color || "#000000"}
+                            onChange={(e) =>
+                              setTextLayers(prev => ({
+                                ...prev,
+                                [selectedArea.id]: {
+                                  ...prev[selectedArea.id],
+                                  color: e.target.value
+                                }
+                              }))
+                            }
+                            className="w-8 h-8 border rounded pointer-cursor"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Font Size</label>
+                            <input
+                              type="range" min="10" max="120"
+                              value={textLayers[selectedArea.id]?.fontSize || 40}
+                              onChange={(e) => handleTextSizeChange(selectedArea.id, Number(e.target.value))}
+                              className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Scale</label>
+                            <input
+                              type="range" min="0.5" max="3" step="0.1"
+                              value={textPositions[selectedArea.id]?.scale || 1}
+                              onChange={(e) => handleTextScaleChange(selectedArea.id, Number(e.target.value))}
+                              className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Font Family</label>
+                            <select
+                              value={textLayers[selectedArea.id]?.fontFamily || "Arial"}
+                              onChange={(e) => setTextLayers(prev => ({...prev, [selectedArea.id]: {...prev[selectedArea.id], fontFamily: e.target.value}}))}
+                              className="w-full border rounded p-1.5 text-xs bg-white"
+                            >
+                              <option value="Arial">Arial</option>
+                              <option value="Helvetica">Helvetica</option>
+                              <option value="Times New Roman">Times New Roman</option>
+                              <option value="Georgia">Georgia</option>
+                              <option value="Courier New">Courier New</option>
+                              <option value="Impact">Impact</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-gray-500 uppercase block mb-1">Font Weight</label>
+                            <select
+                              value={textLayers[selectedArea.id]?.fontWeight || "normal"}
+                              onChange={(e) => setTextLayers(prev => ({...prev, [selectedArea.id]: {...prev[selectedArea.id], fontWeight: e.target.value}}))}
+                              className="w-full border rounded p-1.5 text-xs bg-white"
+                            >
+                              <option value="normal">Normal</option>
+                              <option value="bold">Bold</option>
+                              <option value="lighter">Light</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button onClick={() => handleTextRotate(selectedArea.id)} className="flex-1 py-1 px-2 border rounded text-[10px] font-bold hover:bg-white">↻ Rotate</button>
+                          <button onClick={() => resetTextPosition(selectedArea.id)} className="flex-1 py-1 px-2 border rounded text-[10px] font-bold hover:bg-white">↺ Reset</button>
+                          <button
+                            onClick={() => {
+                              setTextLayers(prev => { const newState = {...prev}; delete newState[selectedArea.id]; return newState; });
+                              setTextPositions(prev => { const newState = {...prev}; delete newState[selectedArea.id]; return newState; });
+                            }}
+                            className="flex-1 py-1 px-2 border border-red-200 text-red-600 rounded text-[10px] font-bold hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Confirm button */}
                 {(uploadedImages[selectedArea.id] || textLayers[selectedArea.id]?.content) && (
-                  <div className="space-y-5">
-                    {/* Confirm Design Button */}
+                  <div className="pt-2 border-t">
                     <button
                       onClick={() => handleConfirmDesign(view)}
                       disabled={isConfirming || confirmedPreviewUrls[view]}
-                      className={`w-full py-3.5 px-6 rounded-xl font-bold text-white transition-all shadow-md ${
-                        confirmedPreviewUrls[view]
-                          ? 'bg-green-600 cursor-not-allowed ring-2 ring-green-300'
-                          : isConfirming
-                            ? 'bg-gray-400 cursor-wait'
-                            : 'bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]'
+                      className={`w-full py-2.5 rounded-xl font-bold text-sm text-white transition-all ${
+                        confirmedPreviewUrls[view] ? 'bg-green-600' : isConfirming ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700 shadow-sm'
                       }`}
                     >
-                      {confirmedPreviewUrls[view]
-                        ? '✓ Design Confirmed for ' + view.toUpperCase()
-                        : isConfirming
-                          ? 'Confirming...'
-                          : 'Confirm Design & Save Preview'}
+                      {confirmedPreviewUrls[view] ? '✓ Design Confirmed' : isConfirming ? 'Confirming...' : 'Confirm Design & Save'}
                     </button>
-
-                    {confirmedPreviewUrls[view] && (
-                      <p className="text-sm text-green-700 text-center font-medium">
-                        Preview saved successfully ✓ Ready for cart
-                      </p>
-                    )}
+                    {confirmedPreviewUrls[view] && <p className="text-[10px] text-green-600 text-center mt-1 font-medium italic">Ready for cart!</p>}
                   </div>
                 )}
               </div>
             )}
 
-
-            {/* ACTION BUTTONS (Sticky Bottom Bar Mobile) */}
+            {/* ACTION BUTTONS (Sticky Bottom bar Mobile) */}
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-6 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
               <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-                {/* Price Display */}
                 <div className="flex-[0.8] pl-2">
                   <span className="text-xs text-gray-500 block">Total Price</span>
-                  <div className="font-bold text-xl text-black">
-                    £{product?.pricing?.specialPrice || product?.pricing?.basePrice}
-                  </div>
+                  <div className="font-bold text-xl">£{product?.pricing?.specialPrice || product?.pricing?.basePrice}</div>
                 </div>
-
-                <div className="flex-[1.2] flex flex-col gap-2">
-                  {/* Direct Add to Cart Button (when preview already generated) */}
-                  {showCloudinaryUrls && previewImageUrl ? (
-                    <button
-                      onClick={() => addDesignToCart(cloudinaryUrls)}
-                      disabled={isAddingToCart}
-                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
-                        isAddingToCart
-                          ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                          : 'bg-black text-white hover:bg-gray-800 shadow-[0_4px_12px_rgba(0,0,0,0.15)] active:scale-95'
-                      }`}
-                    >
-                      {isAddingToCart ? 'Adding...' : '🛒 Add to Cart'}
-                    </button>
-                  ) : (
-                    /* Preview Button */
-                    <button
-                      onClick={handlePreviewAndAddToCart}
-                      disabled={isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)}
-                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
-                        isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-[0_4px_12px_rgba(79,70,229,0.25)] active:scale-95'
-                      }`}
-                    >
-                      {isUploading ? 'Uploading...' : totalUploadedAreas === 0 && Object.keys(textLayers).length === 0 ? 'Select a design' : 'Add to Cart'}
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              {showCloudinaryUrls && (
-                <div className="mt-3 flex gap-2">
+                <div className="flex-[1.2]">
                   <button
-                    onClick={() => setShowPreviewModal(true)}
-                    className="flex-1 py-2 border border-blue-600 text-blue-600 rounded-lg bg-blue-50 text-xs font-semibold"
+                    onClick={handlePreviewAndAddToCart}
+                    disabled={isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0)}
+                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all ${
+                      isUploading || (totalUploadedAreas === 0 && Object.keys(textLayers).length === 0) ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white shadow-lg active:scale-95'
+                    }`}
                   >
-                    View Preview Images
+                    {isUploading ? 'Uploading...' : 'Add to Cart'}
                   </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </aside>
