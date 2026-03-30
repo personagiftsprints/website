@@ -251,7 +251,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       });
     }
 
-    const clientUrl = (process.env.CLIENT_BASE_URL || "http://localhost:5173").replace(/\/$/, "");
+    const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
 
     const sessionConfig = {
       payment_method_types: ["card"],
@@ -271,10 +271,13 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       };
     }
 
+    console.log("Creating checkout session for cart:", JSON.stringify(cart, null, 2));
     const session = await stripe.checkout.sessions.create(sessionConfig);
+    console.log("Stripe session created:", session.id);
 
     order.checkoutSessionId = session.id;
     await order.save();
+    console.log("Order updated with checkoutSessionId:", order._id);
 
     res.json({
       success: true,
@@ -283,7 +286,11 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       orderId: order._id,
     });
   } catch (err) {
-    console.error("Checkout route error:", err);
+    console.error("Checkout route error DETAILED:", {
+      message: err.message,
+      stack: err.stack,
+      body: req.body
+    });
     res.status(500).json({ success: false, message: err.message || "Internal server error" });
   }
 });
@@ -300,30 +307,43 @@ router.post("/webhook", async (req, res) => {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const orderId = session.metadata?.orderId;
+    
     if (orderId) {
-      const order = await Order.findById(orderId);
-      if (order && order.payment.status !== "paid") {
-        order.orderStatus = "paid";
-        order.payment.status = "paid";
-        order.payment.paymentId = session.payment_intent;
-        order.payment.paidAt = new Date();
-        await order.save();
+      try {
+        const order = await Order.findById(orderId);
+        if (order && order.payment.status !== "paid") {
+          order.orderStatus = "paid";
+          order.payment.status = "paid";
+          order.payment.paymentId = session.payment_intent;
+          order.payment.paidAt = new Date();
+          await order.save();
 
-        if (order.discount?.code) {
-          await Coupon.updateOne({ code: order.discount.code }, { $inc: { usedCount: 1 } });
-        }
+          if (order.discount?.code) {
+            await Coupon.updateOne({ code: order.discount.code }, { $inc: { usedCount: 1 } });
+          }
 
-        const customerEmail = session.customer_email || order.deliveryAddress?.email;
-        if (customerEmail) {
-          const orderLink = `${process.env.CLIENT_URL}/order/${order._id}`;
-          const emailData = orderPlacedTemplate({
-            name: order.deliveryAddress?.fullName || "Customer",
-            orderId: order.orderNumber,
-            total: order.totalAmount.toFixed(2),
-            orderLink,
-          });
-          await sendMail({ to: customerEmail, ...emailData });
+          // Use various sources for customer email
+          const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email;
+          
+          if (customerEmail && customerEmail.includes('@')) {
+            const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+            const orderLink = `${clientUrl}/order/${order._id}`;
+            
+            const emailData = orderPlacedTemplate({
+              name: order.deliveryAddress?.fullName || "Customer",
+              orderId: order.orderNumber,
+              total: (order.totalAmount || 0).toFixed(2),
+              orderLink,
+            });
+            
+            console.log(`Sending confirmation email to: ${customerEmail} for order: ${order.orderNumber}`);
+            await sendMail({ to: customerEmail, ...emailData });
+          } else {
+            console.warn(`No valid customer email found for order ${orderId}. Session: ${session.id}`);
+          }
         }
+      } catch (saveError) {
+        console.error("Error processing order completion webhook:", saveError);
       }
     }
   }

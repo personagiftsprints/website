@@ -65,3 +65,7 @@ export const getDashboardSummary = async () => {
   )
   return data
 }
+export const sendInvoiceEmail = async (orderId) => {
+  const { data } = await api.post(`/admin/orders/${orderId}/send-invoice`)
+  return data
+}

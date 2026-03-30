@@ -5,9 +5,11 @@ import Link from "next/link"
 import {
   Search,
   Filter,
-  Eye
+  Eye,
+  Mail,
+  Loader2
 } from "lucide-react"
-import { getAllOrdersAdmin } from "@/services/admin.service"
+import { getAllOrdersAdmin, sendInvoiceEmail } from "@/services/admin.service"
 import GrayLogo from "@/assets/icons/gray.png"
 import Image from "next/image"
 const STATUS_STYLES = {
@@ -27,6 +29,7 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
+  const [sendingId, setSendingId] = useState(null)
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -59,6 +62,19 @@ export default function AdminOrdersPage() {
 
     setFiltered(data)
   }, [search, statusFilter, orders])
+  
+  const handleSendInvoice = async (orderId) => {
+    try {
+      setSendingId(orderId)
+      await sendInvoiceEmail(orderId)
+      alert("Invoice sent successfully to the customer!")
+    } catch (err) {
+      console.error("Failed to send invoice", err)
+      alert(err.response?.data?.message || "Failed to send invoice")
+    } finally {
+      setSendingId(null)
+    }
+  }
 
   return (
     <div className="max-w-8xl mx-auto space-y-6">
@@ -177,13 +193,29 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td className="p-4 text-right">
-                    <Link
-                      href={`/admin/orders/${order._id}`}
-                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View
-                    </Link>
+                    <div className="flex items-center justify-end gap-3 px-4 py-4">
+                      <Link
+                        href={`/admin/orders/${order._id}`}
+                        className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-zinc-900 font-medium transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>View</span>
+                      </Link>
+                      
+                      <button
+                        onClick={() => handleSendInvoice(order._id)}
+                        disabled={sendingId === order._id}
+                        className={`inline-flex items-center gap-1.5 font-medium transition-colors
+                          ${sendingId === order._id ? 'text-zinc-400 cursor-not-allowed' : 'text-emerald-600 hover:text-emerald-800'}`}
+                      >
+                        {sendingId === order._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Mail className="w-4 h-4" />
+                        )}
+                        <span>{sendingId === order._id ? 'Sending...' : 'Email Invoice'}</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -391,3 +391,160 @@ ${orderLink}
   </div>
   `
 })
+
+export const orderInvoiceTemplate = ({
+  name,
+  orderId,
+  orderNumber,
+  items,
+  subtotal,
+  discount,
+  deliveryCharge,
+  total,
+  status,
+  orderLink
+}) => ({
+  subject: `Invoice for Order • ${orderNumber}`,
+
+  text: `Hello ${name},
+
+Your order (${orderNumber}) currently has the status: ${status}.
+
+Order Summary:
+${items.map(item => `- ${item.name} (x${item.quantity}): £${item.price.toFixed(2)}`).join("\n")}
+
+Subtotal: £${subtotal.toFixed(2)}
+Discount: -£${discount.toFixed(2)}
+Delivery: £${deliveryCharge.toFixed(2)}
+Total: £${total.toFixed(2)}
+
+View your order:
+${orderLink}
+
+— Persona Gifts & Prints
+`,
+
+  html: `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+              background-color:#f4f4f5;
+              padding:24px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;
+                border-radius:12px;border:1px solid #e4e4e7;overflow:hidden;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+
+      <!-- HEADER -->
+      <div style="padding:24px;border-bottom:1px solid #f4f4f5;
+                  background: linear-gradient(135deg, #18181b 0%, #3f3f46 100%);
+                  color: white;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <img src="https://res.cloudinary.com/dx9rxauty/image/upload/v1771900510/logo_bkof2v.png"
+               alt="Persona"
+               style="height:40px;width:auto;filter: brightness(0) invert(1);" />
+          <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.025em;">
+            PERSONA
+          </h1>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+          <div>
+            <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;opacity:0.8;">
+              Order Number
+            </p>
+            <p style="margin:2px 0 0;font-size:18px;font-weight:600;">
+              ${orderNumber}
+            </p>
+          </div>
+          <div style="text-align:right;">
+            <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;opacity:0.8;">
+              Status
+            </p>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:600;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;">
+              ${status.toUpperCase()}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:32px;color:#27272a;">
+        <p style="margin-top:0;font-size:16px;">Hello <strong>${name}</strong>,</p>
+        <p style="font-size:14px;color:#71717a;line-height:1.5;">
+          Here is the current status and summary of your order. You can track your order or view more details by clicking the button below.
+        </p>
+
+        <div style="margin:32px 0;border:1px solid #f4f4f5;border-radius:8px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead style="background:#fafafa;">
+              <tr>
+                <th style="padding:12px;text-align:left;border-bottom:1px solid #f4f4f5;color:#71717a;font-weight:500;">Item</th>
+                <th style="padding:12px;text-align:center;border-bottom:1px solid #f4f4f5;color:#71717a;font-weight:500;">Qty</th>
+                <th style="padding:12px;text-align:right;border-bottom:1px solid #f4f4f5;color:#71717a;font-weight:500;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(item => `
+              <tr>
+                <td style="padding:12px;border-bottom:1px solid #f4f4f5;">
+                  <div style="font-weight:500;">${item.name}</div>
+                  ${item.variant ? `<div style="font-size:12px;color:#a1a1aa;">${item.variant}</div>` : ''}
+                </td>
+                <td style="padding:12px;text-align:center;border-bottom:1px solid #f4f4f5;color:#71717a;">
+                  ${item.quantity}
+                </td>
+                <td style="padding:12px;text-align:right;border-bottom:1px solid #f4f4f5;font-weight:500;">
+                  £${item.price.toFixed(2)}
+                </td>
+              </tr>
+              `).join("")}
+            </tbody>
+            <tfoot style="background:#fafafa;">
+              <tr>
+                <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">Subtotal</td>
+                <td style="padding:12px;text-align:right;font-weight:500;">£${subtotal.toFixed(2)}</td>
+              </tr>
+              ${discount > 0 ? `
+              <tr>
+                <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">Discount</td>
+                <td style="padding:12px;text-align:right;color:#ef4444;font-weight:500;">-£${discount.toFixed(2)}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">Delivery</td>
+                <td style="padding:12px;text-align:right;font-weight:500;">${deliveryCharge > 0 ? `£${deliveryCharge.toFixed(2)}` : 'FREE'}</td>
+              </tr>
+              <tr style="font-size:16px;font-weight:700;">
+                <td colspan="2" style="padding:20px 12px;text-align:right;border-top:2px solid #e4e4e7;">Total</td>
+                <td style="padding:20px 12px;text-align:right;border-top:2px solid #e4e4e7;color:#18181b;">£${total.toFixed(2)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div style="text-align:center;margin:32px 0;">
+          <a href="${orderLink}"
+             style="display:inline-block;padding:14px 32px;
+                    background:#18181b;color:#ffffff;
+                    text-decoration:none;border-radius:8px;
+                    font-weight:600;font-size:15px;
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+            View Order & Track Status
+          </a>
+        </div>
+
+        <p style="font-size:13px;color:#a1a1aa;text-align:center;margin-top:40px;">
+          If you have any questions, please contact our support team at
+          <a href="mailto:info@personagifts.co.uk" style="color:#18181b;text-decoration:underline;">info@personagifts.co.uk</a>
+        </p>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:24px;background:#f9fafb;
+                  border-top:1px solid #f4f4f5;
+                  font-size:12px;color:#71717a;text-align:center;">
+        <p style="margin:0 0 8px 0;">© ${new Date().getFullYear()} Persona Gifts & Prints. All rights reserved.</p>
+        <p style="margin:0;">This is an automated transactional email.</p>
+      </div>
+
+    </div>
+  </div>
+  `
+})

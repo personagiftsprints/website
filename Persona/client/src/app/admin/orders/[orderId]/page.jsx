@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Download, Eye, FileText, Smartphone } from "lucide-react";
+import { Download, Eye, FileText, Smartphone, Mail, Loader2 } from "lucide-react";
 import GrayLogo from "@/assets/icons/gray.png"
 
-import { getOrderAdminById, updateOrderStatus } from "@/services/admin.service";
+import { getOrderAdminById, updateOrderStatus, sendInvoiceEmail } from "@/services/admin.service";
 import Image from "next/image";
 
 const STATUS_FLOW = {
@@ -1288,6 +1288,7 @@ export default function AdminOrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sendingInvoice, setSendingInvoice] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -1312,6 +1313,19 @@ export default function AdminOrderDetailPage() {
       alert("Order status updated");
     } catch (err) {
       alert(err.message);
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    try {
+      setSendingInvoice(true);
+      await sendInvoiceEmail(orderId);
+      alert("Invoice sent successfully to the customer!");
+    } catch (err) {
+      console.error("Failed to send invoice:", err);
+      alert(err.response?.data?.message || "Failed to send invoice");
+    } finally {
+      setSendingInvoice(false);
     }
   };
 
@@ -1364,6 +1378,19 @@ export default function AdminOrderDetailPage() {
             className="bg-indigo-600 text-white px-6 py-2 rounded disabled:opacity-50"
           >
             Update Status
+          </button>
+
+          <button
+            onClick={handleSendInvoice}
+            disabled={sendingInvoice}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded transition-colors disabled:opacity-50"
+          >
+            {sendingInvoice ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
+            {sendingInvoice ? "Sending..." : "Email Invoice"}
           </button>
         </div>
         <div>

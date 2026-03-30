@@ -4,6 +4,8 @@ import User from "../models/User.js"
 import Stripe from "stripe"
 import Order from "../models/Order.js"
 import { getDashboardSummary } from "../controllers/admin.controller.js"
+import { sendMail } from "../utils/mailer.js"
+import { orderInvoiceTemplate } from "../utils/emailTemplates.js"
 
 // ✅ MUST use Stripe Secret Key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -265,6 +267,63 @@ router.patch(
     } catch (err) {
       console.error("ADMIN UPDATE STATUS ERROR ❌", err)
       res.status(500).json({ message: "Failed to update order status" })
+    }
+  }
+)
+
+router.post(
+  "/orders/:orderId/send-invoice",
+  authMiddleware,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { orderId } = req.params
+      const order = await Order.findById(orderId).populate("user", "email firstName lastName")
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" })
+      }
+
+      const customerEmail = order.user?.email || order.deliveryAddress?.email
+      if (!customerEmail) {
+        return res.status(400).json({ message: "Customer email not found" })
+      }
+
+      const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+      const orderLink = `${clientUrl}/order/${order._id}`;
+
+      const items = order.items.map(item => ({
+        name: item.productSnapshot?.name || "Custom Product",
+        quantity: item.quantity,
+        price: item.productSnapshot?.finalPrice || 0,
+        variant: item.variant ? Object.values(item.variant).filter(Boolean).join(" / ") : ""
+      }))
+
+      const emailData = orderInvoiceTemplate({
+        name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        items,
+        subtotal: order.subtotal || 0,
+        discount: order.discount?.amount || 0,
+        deliveryCharge: order.deliveryCharge || 0,
+        total: order.totalAmount,
+        status: order.orderStatus,
+        orderLink
+      })
+
+      await sendMail({
+        to: customerEmail,
+        ...emailData
+      })
+
+      res.json({
+        success: true,
+        message: "Invoice sent successfully"
+      })
+    } catch (err) {
+      console.error("ADMIN SEND INVOICE ERROR ❌", err)
+      res.status(500).json({ message: "Failed to send invoice" })
     }
   }
 )
