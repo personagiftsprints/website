@@ -9,7 +9,8 @@
     "seed:sku": "node src/seed/sku.js",
     "seed:product": "node src/seed/product-metadata.js",
     "seed:products": "node src/seed/products.js",
-    "seed:delete-today": "node src/seed/delete-today-products.js"
+    "seed:delete-today": "node src/seed/delete-today-products.js",
+    "seed:delete-created": "node src/seed/delete-created-orders.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

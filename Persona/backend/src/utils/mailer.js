@@ -7,7 +7,7 @@ export const sendMail = async ({ to, subject, html, text }) => {
     // console.log("USING HARDCODED FROM")
 
     const response = await resend.emails.send({
-      from: "Persona <noreply@personagifts.co.uk>",
+      from: process.env.EMAIL_FROM || "Persona <noreply@personagifts.co.uk>",
       to,
       subject,
       html,
