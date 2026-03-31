@@ -160,14 +160,15 @@ const generateCustomFields = () => {
   setCustomFields(fields);
 };
   useEffect(() => {
-    if (formData.type !== "tshirt") {
+    if (!["tshirt", "hoodie"].includes(formData.type)) {
       setProductConfig(null);
       return;
     }
 
     const fetchAttributes = async () => {
       try {
-        const res = await getProductAttribute("tshirt");
+        const typeKey = formData.isKids ? `${formData.type}_kids` : formData.type;
+        const res = await getProductAttribute(typeKey);
         const variants = generateVariants(res.data);
         setProductConfig({
           attributes: res.data,
@@ -179,7 +180,7 @@ const generateCustomFields = () => {
     };
 
     fetchAttributes();
-  }, [formData.type]);
+  }, [formData.type, formData.isKids]);
 
   // Effects
   useEffect(() => {
@@ -658,16 +659,18 @@ console.log('🚀 Sending payload:', JSON.stringify(payload, null, 2));
                         </select>
                       </div>
                       
-                      {formData.type === "tshirt" && (
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 border rounded-xl">
+                      {["tshirt", "hoodie"].includes(formData.type) && (
+                        <div className="flex items-center gap-4 p-4 bg-orange-50 border border-orange-100 rounded-xl">
                           <input
                             type="checkbox"
-                            variant="primary"
                             checked={formData.isKids}
                             onChange={(e) => handleInputChange("isKids", e.target.checked)}
-                            className="w-5 h-5"
+                            className="w-5 h-5 text-orange-600 focus:ring-orange-500 rounded cursor-pointer"
                           />
-                          <p className="text-sm font-semibold text-gray-700">Kids Specific Product</p>
+                          <label className="cursor-pointer">
+                            <p className="text-sm font-bold text-orange-900">Kids Specific Product</p>
+                            <p className="text-xs text-orange-700">Check this if the {formData.type} is specifically for children</p>
+                          </label>
                         </div>
                       )}
 

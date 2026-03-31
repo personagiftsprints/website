@@ -438,18 +438,18 @@ export default function EditProductPage() {
                   </select>
                 </div>
 
-                {form.type === "tshirt" && (
-                  <div className="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                {["tshirt", "hoodie"].includes(form.type) && (
+                  <div className="flex items-center gap-4 p-4 bg-orange-50 border border-orange-100 rounded-xl">
                     <input
                       type="checkbox"
                       id="isKids"
                       checked={form.isKids}
                       onChange={(e) => setForm({ ...form, isKids: e.target.checked })}
-                      className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                      className="w-5 h-5 text-orange-600 focus:ring-orange-500 rounded cursor-pointer"
                     />
                     <label htmlFor="isKids" className="cursor-pointer">
-                      <p className="font-bold text-indigo-900">Kids T-Shirt</p>
-                      <p className="text-xs text-indigo-700">Check this if the t-shirt is specifically for children</p>
+                      <p className="text-sm font-bold text-orange-900 capitalize">Kids {form.type}</p>
+                      <p className="text-xs text-orange-700">Check this if the {form.type} is specifically for children</p>
                     </label>
                   </div>
                 )}

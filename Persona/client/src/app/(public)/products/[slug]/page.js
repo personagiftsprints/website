@@ -8,7 +8,8 @@ import {
   getProductCustomization,
   uploadImagesAPI 
 } from "@/services/product.service";
-import sizeChart from "@/assets/images/sizeChart.jpg";
+import KidssizeChart from "@/assets/images/sizeChart.jpg";
+import sizeChart from "@/assets/sizeChart.jpg";
 import Image from "next/image";
 
 export default function ProductDetailPage() {
@@ -831,7 +832,7 @@ const renderCustomFields = () => {
             <h2 className="text-lg font-semibold mb-4">Size Chart</h2>
 
             <Image
-              src={sizeChart}
+              src={product?.isKids ? KidssizeChart : sizeChart}
               alt="Size Chart"
               className="w-full object-contain"
             />
