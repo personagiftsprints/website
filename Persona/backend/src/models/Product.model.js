@@ -196,7 +196,7 @@ productSchema.pre('save', function () {
   const mainImage = this.images.find(i => i.isMain)
   this.thumbnail = mainImage?.url || this.images[0]?.url || null
 
-  // Fix: handle optional specialPrice and ensure it's lower than basePrice for discount
+ 
   if (
     this.pricing?.specialPrice &&
     this.pricing.specialPrice > 0 &&
@@ -213,10 +213,6 @@ productSchema.pre('save', function () {
 })
 
 
-// productSchema.index({ slug: 1 })
-
-// productSchema.index({ sku: 1 }, { unique: true })
-// productSchema.index({ 'productConfig.variants.sku': 1 }, { unique: true, sparse: true })
 productSchema.index({ type: 1, isActive: 1 })
 
 export default mongoose.model('Product', productSchema)

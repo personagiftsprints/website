@@ -3,12 +3,20 @@ export const PRODUCT_TYPE_ATTRIBUTES = {
     { code: 'size', name: 'Size', values: ['S', 'M', 'L', 'XL', 'XXL'] },
     { code: 'color', name: 'Color', values: ['Black', 'White', 'Red', 'Blue'] }
   ],
+  tshirt_kids: [
+    { code: 'size', name: 'Size', values: ['3/4', '5/6', '7/8', '9/11', '12/13', '14/15'] },
+    { code: 'color', name: 'Color', values: ['Black', 'White', 'Red', 'Blue'] }
+  ],
   mug: [
     { code: 'type', name: 'Type', values: ['Normal', 'Magic'] },
     { code: 'color', name: 'Color', values: ['White', 'Black'] }
   ],
   hoodie: [
     { code: 'size', name: 'Size', values: ['S', 'M', 'L', 'XL'] },
+    { code: 'color', name: 'Color', values: ['Black', 'Grey'] }
+  ],
+  hoodie_kids: [
+    { code: 'size', name: 'Size', values: ['3/4', '5/6', '7/8', '9/11', '12/13', '14/15'] },
     { code: 'color', name: 'Color', values: ['Black', 'Grey'] }
   ],
   poster: [

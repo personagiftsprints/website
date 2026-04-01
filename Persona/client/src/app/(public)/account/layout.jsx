@@ -9,13 +9,15 @@ import { User, MapPin, Home, ListOrdered } from "lucide-react"
 export default function AccountLayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
   useEffect(() => {
-    if (user === null) router.replace("/")
-  }, [user, router])
+    if (!loading && user === null) {
+      router.replace("/")
+    }
+  }, [user, loading, router])
 
-  if (!user) return null
+  if (loading || !user) return null
 
   const firstLetter = user.firstName?.[0]?.toUpperCase() || "U"
 

@@ -310,7 +310,7 @@ router.post("/webhook", async (req, res) => {
     
     if (orderId) {
       try {
-        const order = await Order.findById(orderId);
+        const order = await Order.findById(orderId).populate("user");
         if (order && order.payment.status !== "paid") {
           order.orderStatus = "paid";
           order.payment.status = "paid";
@@ -323,14 +323,14 @@ router.post("/webhook", async (req, res) => {
           }
 
           // Use various sources for customer email
-          const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email;
+          const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
           
           if (customerEmail && customerEmail.includes('@')) {
             const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
             const orderLink = `${clientUrl}/order/${order._id}`;
             
             const emailData = orderPlacedTemplate({
-              name: order.deliveryAddress?.fullName || "Customer",
+              name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
               orderId: order.orderNumber,
               total: (order.totalAmount || 0).toFixed(2),
               orderLink,

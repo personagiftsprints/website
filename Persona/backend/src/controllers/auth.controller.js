@@ -37,6 +37,17 @@ export const googleAuth = async (req, res) => {
         googleId: sub,
         role: "customer",
       })
+
+      const emailTemplate = accountCreatedTemplate({
+        name: user.firstName
+      })
+
+      sendMail({
+        to: user.email,
+        subject: emailTemplate.subject,
+        text: emailTemplate.text,
+        html: emailTemplate.html
+      }).catch(console.error)
     }
 
     const jwtToken = signToken(user)
@@ -105,12 +116,12 @@ export const emailAuth = async (req, res) => {
       name: user.firstName
     })
 
-    sendMail({
+    await sendMail({
       to: user.email,
       subject: emailTemplate.subject,
       text: emailTemplate.text,
       html: emailTemplate.html
-    }).catch(console.error)
+    })
   }
 
   res.json({
