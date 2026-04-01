@@ -34,8 +34,8 @@ export const grantAdminAccess = async ({ email, role }) => {
 /* =================================================
    GET ALL ORDERS (ADMIN)
 ================================================= */
-export const getAllOrdersAdmin = async () => {
-  const { data } = await api.get("/admin/orders")
+export const getAllOrdersAdmin = async (page = 1) => {
+  const { data } = await api.get(`/admin/orders?page=${page}`)
   return data
 }
 

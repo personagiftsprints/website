@@ -30,13 +30,19 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [sendingId, setSendingId] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     const fetchOrders = async () => {
+      setLoading(true)
       try {
-        const res = await getAllOrdersAdmin()
+        const res = await getAllOrdersAdmin(currentPage)
         setOrders(res.orders || [])
         setFiltered(res.orders || [])
+        if (res.pagination) {
+          setTotalPages(res.pagination.totalPages)
+        }
       } catch (err) {
         console.error("Failed to load orders", err)
       } finally {
@@ -45,7 +51,7 @@ export default function AdminOrdersPage() {
     }
 
     fetchOrders()
-  }, [])
+  }, [currentPage])
 
   useEffect(() => {
     let data = [...orders]
@@ -223,6 +229,29 @@ export default function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 p-4 border-t border-gray-200 bg-gray-50">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600 font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
