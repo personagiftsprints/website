@@ -334,6 +334,7 @@ router.post("/webhook", async (req, res) => {
               orderId: order.orderNumber,
               total: (order.totalAmount || 0).toFixed(2),
               orderLink,
+              couponCode: order.discount?.code
             });
             
             console.log(`Sending confirmation email to: ${customerEmail} for order: ${order.orderNumber}`);

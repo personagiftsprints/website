@@ -178,7 +178,8 @@ export const orderPlacedTemplate = ({
   name,
   orderId,
   total,
-  orderLink
+  orderLink,
+  couponCode
 }) => ({
   subject: `Order Confirmation • ${orderId}`,
 
@@ -188,7 +189,7 @@ Thank you for shopping with Persona Gifts & Prints.
 
 Your order (${orderId}) has been successfully placed.
 
-Total Paid: £${total}
+Total Paid: £${total} ${couponCode ? `(Coupon: ${couponCode})` : ''}
 
 View your order:
 ${orderLink}
@@ -257,7 +258,7 @@ If you have any questions, please contact our support team.
             <strong>Order ID:</strong> ${orderId}
           </p>
           <p style="margin:0;">
-            <strong>Total Paid:</strong> £${total}
+            <strong>Total Paid:</strong> £${total} ${couponCode ? `<span style="font-size:11px;background:#fee2e2;color:#ef4444;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:600;">${couponCode}</span>` : ''}
           </p>
         </div>
 
@@ -402,7 +403,8 @@ export const orderInvoiceTemplate = ({
   deliveryCharge,
   total,
   status,
-  orderLink
+  orderLink,
+  couponCode
 }) => ({
   subject: `Invoice for Order • ${orderNumber}`,
 
@@ -414,7 +416,7 @@ Order Summary:
 ${items.map(item => `- ${item.name} (x${item.quantity}): £${item.price.toFixed(2)}`).join("\n")}
 
 Subtotal: £${subtotal.toFixed(2)}
-Discount: -£${discount.toFixed(2)}
+Discount: -£${discount.toFixed(2)} ${couponCode ? `(Code: ${couponCode})` : ''}
 Delivery: £${deliveryCharge.toFixed(2)}
 Total: £${total.toFixed(2)}
 
@@ -503,7 +505,9 @@ ${orderLink}
               </tr>
               ${discount > 0 ? `
               <tr>
-                <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">Discount</td>
+                <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">
+                  Discount ${couponCode ? `<span style="font-size:11px;background:#fee2e2;color:#ef4444;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:600;">${couponCode}</span>` : ''}
+                </td>
                 <td style="padding:12px;text-align:right;color:#ef4444;font-weight:500;">-£${discount.toFixed(2)}</td>
               </tr>
               ` : ''}

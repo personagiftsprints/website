@@ -648,9 +648,7 @@ export default function MugDesigner() {
     setIsLoading(true)
   }, [view])
 
-  useEffect(() => {
-    setSelectedArea(null)
-  }, [view])
+
 
   // Filter current view areas
   const currentViewAreas = useMemo(() => {
@@ -658,6 +656,18 @@ export default function MugDesigner() {
     if (view === "full_wrap") return [];
     return printConfig?.views?.[view]?.areas || []
   }, [printConfig, view])
+
+  useEffect(() => {
+    if (currentViewAreas && currentViewAreas.length > 0) {
+      if (currentViewAreas.length === 1) {
+        setSelectedArea(currentViewAreas[0])
+      } else {
+        setSelectedArea(null)
+      }
+    } else {
+      setSelectedArea(null)
+    }
+  }, [view, currentViewAreas])
 
   // Text drag handlers
   const handleTextDragStart = useCallback((e, areaId) => {
@@ -1429,7 +1439,7 @@ export default function MugDesigner() {
 
           {/* Controls Panel */}
           <div className="mt-4 p-4 bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200">
-            <div className="flex flex-wrap gap-2 justify-center mb-3">
+            {/* <div className="flex flex-wrap gap-2 justify-center mb-3">
               {["front", "center", "back"].map(v => (
                 <button
                   key={v}
@@ -1443,7 +1453,7 @@ export default function MugDesigner() {
                   {v.charAt(0).toUpperCase() + v.slice(1)} View
                 </button>
               ))}
-            </div>
+            </div> */}
             
             {/* Image Controls */}
             {selectedArea && uploadedImages[selectedArea.id] && (
@@ -1881,45 +1891,47 @@ export default function MugDesigner() {
               ))}
             </div>
 
-            {/* Area Selector */}
-            <div className="grid grid-cols-2 gap-3">
-              {currentViewAreas.map(area => {
-                const active = selectedArea?.id === area.id
-                const hasImage = !!uploadedImages[area.id]
-                const hasText = !!(textLayers[area.id]?.content)
-                
-                return (
-                  <button
-                    key={area.id}
-                    onClick={() => setSelectedArea(area)}
-                    className={`p-4 rounded-xl border-2 text-left transition ${
-                      active 
-                        ? "border-black bg-gray-100" 
-                        : hasImage || hasText
-                          ? "border-green-500 bg-green-50"
-                          : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <p className="font-semibold">{area.name}</p>
-                    <p className="text-xs text-gray-500">{area.max}</p>
-                    {(hasImage || hasText) && (
-                      <div className="mt-1">
-                        {hasImage && (
-                          <span className="text-xs text-green-600 font-medium inline-block mr-2">
-                            ✓ Image
-                          </span>
-                        )}
-                        {hasText && (
-                          <span className="text-xs text-blue-600 font-medium inline-block">
-                            ✓ Text
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+            {/* Area Selector - ONLY SHOW IF MULTIPLE AREAS EXIST */}
+            {currentViewAreas.length > 1 && (
+              <div className="grid grid-cols-2 gap-3">
+                {currentViewAreas.map(area => {
+                  const active = selectedArea?.id === area.id
+                  const hasImage = !!uploadedImages[area.id]
+                  const hasText = !!(textLayers[area.id]?.content)
+                  
+                  return (
+                    <button
+                      key={area.id}
+                      onClick={() => setSelectedArea(area)}
+                      className={`p-4 rounded-xl border-2 text-left transition ${
+                        active 
+                          ? "border-black bg-gray-100" 
+                          : hasImage || hasText
+                            ? "border-green-500 bg-green-50"
+                            : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <p className="font-semibold">{area.name}</p>
+                    
+                      {(hasImage || hasText) && (
+                        <div className="mt-1">
+                          {hasImage && (
+                            <span className="text-xs text-green-600 font-medium inline-block mr-2">
+                              ✓ Image
+                            </span>
+                          )}
+                          {hasText && (
+                            <span className="text-xs text-blue-600 font-medium inline-block">
+                              ✓ Text
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Upload Area */}
             {selectedArea && (
@@ -1927,7 +1939,7 @@ export default function MugDesigner() {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-lg">{selectedArea.name}</h3>
-                    <p className="text-sm text-gray-600">{selectedArea.max}</p>
+                    
                   </div>
                   <div className="flex gap-2">
                     {uploadedImages[selectedArea.id] && (

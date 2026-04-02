@@ -309,7 +309,8 @@ router.post(
         deliveryCharge: order.deliveryCharge || 0,
         total: order.totalAmount,
         status: order.orderStatus,
-        orderLink
+        orderLink,
+        couponCode: order.discount?.code
       })
 
       await sendMail({

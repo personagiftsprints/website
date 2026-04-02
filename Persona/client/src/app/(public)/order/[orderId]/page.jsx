@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Download, Eye, Smartphone, FileText, Image as ImageIcon } from "lucide-react";
+import { Download, Eye, Smartphone, FileText, Image as ImageIcon, Truck, Store } from "lucide-react";
 import { getOrderById } from "@/services/order.service";
 
 const STATUS_STYLE = {
@@ -562,6 +562,21 @@ export default function OrderDetailsPage() {
             >
               {currentStatus.replace(/_/g, " ")}
             </span>
+
+            {/* Order Type Badge */}
+            <div className="flex items-center gap-2 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
+              {order.orderType === "collect" ? (
+                <>
+                  <Store size={14} className="text-indigo-600" />
+                  <span className="text-xs font-bold text-slate-800">Shop Pick up</span>
+                </>
+              ) : (
+                <>
+                  <Truck size={14} className="text-blue-600" />
+                  <span className="text-xs font-bold text-slate-800">Home Delivery</span>
+                </>
+              )}
+            </div>
           </div>
 
           {currentStatus === "cancelled" && (
@@ -694,7 +709,7 @@ export default function OrderDetailsPage() {
 
             {order.discount?.amount > 0 && (
               <div className="flex justify-between text-emerald-600">
-                <span>Coupon applied</span>
+                <span>Coupon applied {order.discount.code && <span className="text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1 uppercase font-bold">{order.discount.code}</span>}</span>
                 <span>-£{order.discount.amount.toFixed(2)}</span>
               </div>
             )}
