@@ -1716,8 +1716,8 @@ export default function MugDesigner() {
             {renderMugWithOverlay()}
             
             {/* Mobile Controls */}
-            <div className="mt-4 p-4 lg:hidden bg-white/90 backdrop-blur-sm rounded-xl border shadow-sm">
-              <div className="flex flex-wrap gap-2 justify-center mb-3">
+            <div className="mt-4 p-4 lg:hidden bg-white/90 backdrop-blur-sm rounded-xl  ">
+              {/* <div className="flex flex-wrap gap-2 justify-center mb-3">
                 {["front", "center", "back"].map(v => (
                   <button
                     key={v}
@@ -1731,7 +1731,7 @@ export default function MugDesigner() {
                     {v.charAt(0).toUpperCase() + v.slice(1)} View
                   </button>
                 ))}
-              </div>
+              </div> */}
               
               {selectedArea && uploadedImages[selectedArea.id] && (
                 <div className="space-y-3 mb-4 pb-4 border-b">
