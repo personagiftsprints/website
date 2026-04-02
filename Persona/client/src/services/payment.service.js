@@ -41,3 +41,12 @@ export const createCheckoutSession = async ({
     )
   }
 }
+export const verifyPayment = async (sessionId) => {
+  try {
+    const data = await api.get(`/payment/verify-payment/${sessionId}`)
+    return data
+  } catch (err) {
+    console.error("VERIFY PAYMENT ERROR ❌", err.response || err)
+    throw new Error(err.response?.data?.message || "Verification failed")
+  }
+}

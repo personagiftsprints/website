@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Lottie from "lottie-react"
 import orderAnimation from "@/assets/order.json"
+import { verifyPayment } from "@/services/payment.service"
 import { getOrderBySessionId } from "@/services/order.service"
 
 export default function SuccessClient() {
@@ -18,7 +19,7 @@ export default function SuccessClient() {
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem("auth"))
-       localStorage.removeItem("cart")
+    localStorage.removeItem("cart")
 
     if (!sessionId) {
       setLoading(false)
@@ -27,10 +28,16 @@ export default function SuccessClient() {
 
     const loadOrder = async () => {
       try {
+        console.log("🚀 Verifying payment for session:", sessionId);
+        // Step 1: Force backend to verify with Stripe (Fallback for webhooks)
+        await verifyPayment(sessionId).catch(e => console.error("Verify failed but continuing:", e));
+
+        // Step 2: Fetch the order data
         const res = await getOrderBySessionId(sessionId)
         setOrder(res.order)
         localStorage.removeItem("cart")
-      } catch {
+      } catch (err) {
+        console.error("Success Page Error:", err);
         setOrder(null)
       } finally {
         setLoading(false)

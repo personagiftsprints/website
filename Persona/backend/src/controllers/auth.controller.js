@@ -116,6 +116,7 @@ export const emailAuth = async (req, res) => {
       name: user.firstName
     })
 
+    console.log(`Sending account created email to: ${user.email}`);
     await sendMail({
       to: user.email,
       subject: emailTemplate.subject,

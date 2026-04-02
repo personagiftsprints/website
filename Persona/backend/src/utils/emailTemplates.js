@@ -452,7 +452,7 @@ ${orderLink}
               Order Number
             </p>
             <p style="margin:2px 0 0;font-size:18px;font-weight:600;">
-              ${orderNumber}
+              \${orderNumber}
             </p>
           </div>
           <div style="text-align:right;">
@@ -460,7 +460,7 @@ ${orderLink}
               Status
             </p>
             <p style="margin:2px 0 0;font-size:14px;font-weight:600;background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;">
-              ${status.toUpperCase()}
+              \${status.toUpperCase()}
             </p>
           </div>
         </div>
@@ -468,7 +468,7 @@ ${orderLink}
 
       <!-- BODY -->
       <div style="padding:32px;color:#27272a;">
-        <p style="margin-top:0;font-size:16px;">Hello <strong>${name}</strong>,</p>
+        <p style="margin-top:0;font-size:16px;">Hello <strong>\${name}</strong>,</p>
         <p style="font-size:14px;color:#71717a;line-height:1.5;">
           Here is the current status and summary of your order. You can track your order or view more details by clicking the button below.
         </p>
@@ -483,48 +483,48 @@ ${orderLink}
               </tr>
             </thead>
             <tbody>
-              ${items.map(item => `
+              \${items.map(item => \`
               <tr>
                 <td style="padding:12px;border-bottom:1px solid #f4f4f5;">
-                  <div style="font-weight:500;">${item.name}</div>
-                  ${item.variant ? `<div style="font-size:12px;color:#a1a1aa;">${item.variant}</div>` : ''}
+                  <div style="font-weight:500;">\${item.name}</div>
+                  \${item.variant ? \`<div style="font-size:12px;color:#a1a1aa;">\${item.variant}</div>\` : ''}
                 </td>
                 <td style="padding:12px;text-align:center;border-bottom:1px solid #f4f4f5;color:#71717a;">
-                  ${item.quantity}
+                  \${item.quantity}
                 </td>
                 <td style="padding:12px;text-align:right;border-bottom:1px solid #f4f4f5;font-weight:500;">
-                  £${item.price.toFixed(2)}
+                  £\${item.price.toFixed(2)}
                 </td>
               </tr>
-              `).join("")}
+              \`).join("")}
             </tbody>
             <tfoot style="background:#fafafa;">
               <tr>
                 <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">Subtotal</td>
-                <td style="padding:12px;text-align:right;font-weight:500;">£${subtotal.toFixed(2)}</td>
+                <td style="padding:12px;text-align:right;font-weight:500;">£\${subtotal.toFixed(2)}</td>
               </tr>
-              ${discount > 0 ? `
+              \${discount > 0 ? \`
               <tr>
                 <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">
-                  Discount ${couponCode ? `<span style="font-size:11px;background:#fee2e2;color:#ef4444;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:600;">${couponCode}</span>` : ''}
+                  Discount \${couponCode ? \`<span style="font-size:11px;background:#fee2e2;color:#ef4444;padding:2px 6px;border-radius:4px;margin-left:4px;font-weight:600;">\${couponCode}</span>\` : ''}
                 </td>
-                <td style="padding:12px;text-align:right;color:#ef4444;font-weight:500;">-£${discount.toFixed(2)}</td>
+                <td style="padding:12px;text-align:right;color:#ef4444;font-weight:500;">-£\${discount.toFixed(2)}</td>
               </tr>
-              ` : ''}
+              \` : ''}
               <tr>
                 <td colspan="2" style="padding:12px;text-align:right;color:#71717a;">Delivery</td>
-                <td style="padding:12px;text-align:right;font-weight:500;">${deliveryCharge > 0 ? `£${deliveryCharge.toFixed(2)}` : 'FREE'}</td>
+                <td style="padding:12px;text-align:right;font-weight:500;">\${deliveryCharge > 0 ? \`£\${deliveryCharge.toFixed(2)}\` : 'FREE'}</td>
               </tr>
               <tr style="font-size:16px;font-weight:700;">
                 <td colspan="2" style="padding:20px 12px;text-align:right;border-top:2px solid #e4e4e7;">Total</td>
-                <td style="padding:20px 12px;text-align:right;border-top:2px solid #e4e4e7;color:#18181b;">£${total.toFixed(2)}</td>
+                <td style="padding:20px 12px;text-align:right;border-top:2px solid #e4e4e7;color:#18181b;">£\${total.toFixed(2)}</td>
               </tr>
             </tfoot>
           </table>
         </div>
 
         <div style="text-align:center;margin:32px 0;">
-          <a href="${orderLink}"
+          <a href="\${orderLink}"
              style="display:inline-block;padding:14px 32px;
                     background:#18181b;color:#ffffff;
                     text-decoration:none;border-radius:8px;
@@ -548,6 +548,70 @@ ${orderLink}
         <p style="margin:0;">This is an automated transactional email.</p>
       </div>
 
+    </div>
+  </div>
+  `
+})
+
+export const paymentFailedTemplate = ({ name, orderNumber, orderLink }) => ({
+  subject: `Payment Issue • Order ${orderNumber}`,
+
+  text: `Hello ${name},
+
+We encountered a problem with your payment for order ${orderNumber}.
+
+Your order is currently pending payment. To complete your purchase, please visit your order details page:
+${orderLink}
+
+If you have any questions, please contact us.
+
+— Persona Gifts & Prints
+`,
+
+  html: `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+              background-color:#fff1f2;
+              padding:24px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;
+                border-radius:12px;border:1px solid #fecdd3;overflow:hidden;">
+
+      <!-- HEADER -->
+      <div style="padding:24px;border-bottom:1px solid #f4f4f5;
+                  background: #e11d48;
+                  color: white;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <h1 style="margin:0;font-size:20px;font-weight:700;">PAYMENT UPDATE</h1>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:32px;color:#27272a;">
+        <p style="margin-top:0;font-size:16px;">Hello <strong>${name}</strong>,</p>
+        <p style="font-size:14px;color:#71717a;line-height:1.5;">
+          There was an issue processing the payment for your order <strong>${orderNumber}</strong>. 
+          As of now, your order is marked as <strong>Pending Payment</strong>.
+        </p>
+
+        <p style="font-size:14px;color:#71717a;line-height:1.5;">
+          If the payment was intentionally cancelled, you can ignore this email. 
+          If you wish to complete your purchase, you can find your order in your account or contact us for assistance.
+        </p>
+
+        <div style="text-align:center;margin:32px 0;">
+          <a href="${orderLink}"
+             style="display:inline-block;padding:14px 32px;
+                    background:#18181b;color:#ffffff;
+                    text-decoration:none;border-radius:8px;
+                    font-weight:600;">
+            View My Order
+          </a>
+        </div>
+
+        <p style="font-size:13px;color:#a1a1aa;text-align:center;margin-top:40px;">
+          Need help? Reply to this email or contact 
+          <a href="mailto:info@personagifts.co.uk" style="color:#18181b;text-decoration:underline;">info@personagifts.co.uk</a>
+        </p>
+      </div>
     </div>
   </div>
   `

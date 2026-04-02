@@ -6,7 +6,7 @@ import Coupon from "../models/Coupon.js";
 import Settings from "../models/Settings.js";
 import { optionalAuth } from "../middlewares/optionalAuth.js";
 import { sendMail } from "../utils/mailer.js";
-import { orderPlacedTemplate } from "../utils/emailTemplates.js";
+import { orderPlacedTemplate, orderInvoiceTemplate, paymentFailedTemplate } from "../utils/emailTemplates.js";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -177,7 +177,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
         giftWrap: giftWrap || false,
         giftWrapCharge: giftWrapCharge,
       },
-      totalAmount,
+      totalAmount: 0, // Will update after calculating line items to match Stripe exactly
       deliveryAddress: {
         fullName: address?.fullName || address?.name || "",
         phone: address?.phone || "",
@@ -218,38 +218,51 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       };
     });
 
+    // Calculate final total from line items to ensure 100% match with Stripe
+    let totalInCents = lineItems.reduce((acc, item) => acc + (item.price_data.unit_amount * item.quantity), 0);
+    
     if (deliveryCharge > 0) {
+      const chargeInCents = Math.round(deliveryCharge * 100);
       lineItems.push({
         price_data: {
           currency: "gbp",
           product_data: { name: "Delivery Charge" },
-          unit_amount: deliveryCharge * 100,
+          unit_amount: chargeInCents,
         },
         quantity: 1,
       });
+      totalInCents += chargeInCents;
     }
 
     if (hamperCharge > 0) {
+      const hChargeInCents = Math.round(hamperCharge * 100);
       lineItems.push({
         price_data: {
           currency: "gbp",
           product_data: { name: `Hamper Packaging (${hamper})` },
-          unit_amount: hamperCharge * 100,
+          unit_amount: hChargeInCents,
         },
         quantity: 1,
       });
+      totalInCents += hChargeInCents;
     }
 
     if (giftWrapCharge > 0) {
+      const gChargeInCents = Math.round(giftWrapCharge * 100);
       lineItems.push({
         price_data: {
           currency: "gbp",
           product_data: { name: "Gift Wrap" },
-          unit_amount: giftWrapCharge * 100,
+          unit_amount: gChargeInCents,
         },
         quantity: 1,
       });
+      totalInCents += gChargeInCents;
     }
+
+    // UPDATE the order with the EXACT total that Stripe will charge
+    order.totalAmount = totalInCents / 100;
+    await order.save();
 
     const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
 
@@ -262,6 +275,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       customer_email: email || address?.email || req.user?.email,
       metadata: {
         orderId: order._id.toString(),
+        coupon: appliedCoupon?.code || "NONE",
       },
     };
 
@@ -279,6 +293,41 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     await order.save();
     console.log("Order updated with checkoutSessionId:", order._id);
 
+    // ADMIN NOTIFICATION: Send email to admin about new pending order
+    try {
+      const adminEmail = "info@personagifts.co.uk";
+      const clientUrlFull = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
+      const adminOrderLink = `${clientUrlFull}/order/${order._id}`;
+      
+      const adminEmailData = orderInvoiceTemplate({
+        name: "Admin",
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        items: itemsPayload.map(item => ({
+          name: item.productSnapshot?.name || "Product",
+          quantity: item.quantity,
+          price: item.productSnapshot?.finalPrice || 0,
+          variant: item.variant ? Object.values(item.variant).filter(Boolean).join(" / ") : ""
+        })),
+        subtotal: subtotal,
+        discount: discountAmount,
+        deliveryCharge: deliveryCharge,
+        total: totalAmount,
+        status: "pending_payment_attempt",
+        orderLink: adminOrderLink,
+        couponCode: appliedCoupon?.code
+      });
+
+      sendMail({
+        to: adminEmail,
+        subject: `🚨 New Pending Order: ${order.orderNumber}`,
+        html: adminEmailData.html,
+        text: adminEmailData.text
+      }).catch(err => console.error("Admin order notification failed:", err));
+    } catch (adminErr) {
+      console.error("Error preparing admin notification:", adminErr);
+    }
+
     res.json({
       success: true,
       sessionId: session.id,
@@ -295,13 +344,83 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
   }
 });
 
+
+/* ---------------- VERIFY PAYMENT FALLBACK ---------------- */
+// This ensures the order is marked as paid even if the webhook is delayed or blocked.
+router.get("/verify-payment/:sessionId", async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (!sessionId || !sessionId.startsWith('cs_')) {
+      return res.status(400).json({ success: false, message: "Invalid session ID" });
+    }
+
+    console.log(`🔍 Verifying payment for session: ${sessionId}`);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status === "paid") {
+      const orderId = session.metadata?.orderId;
+      
+      if (!orderId) {
+        return res.status(400).json({ success: false, message: "No order ID found in session" });
+      }
+
+      const order = await Order.findById(orderId).populate("user");
+      
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+      }
+
+      // If already marked as paid, just return success
+      if (order.payment.status === "paid") {
+        return res.json({ success: true, status: "paid", orderId: order._id });
+      }
+
+      // Update order to PAID
+      console.log(`✅ Session verified as PAID. Updating order ${order.orderNumber}`);
+      order.orderStatus = "paid";
+      order.payment.status = "paid";
+      order.payment.paymentId = session.payment_intent;
+      order.payment.paidAt = new Date();
+      await order.save();
+
+      // Trigger confirmation email
+      const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
+      
+      if (customerEmail && customerEmail.includes('@')) {
+        const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
+        const orderLink = `${clientUrl}/order/${order._id}`;
+        
+        const emailData = orderPlacedTemplate({
+          name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
+          orderId: order.orderNumber,
+          total: (order.totalAmount || 0).toFixed(2),
+          orderLink,
+          couponCode: order.discount?.code
+        });
+
+        await sendMail({ to: customerEmail, ...emailData });
+      }
+
+      return res.json({ success: true, status: "paid", orderId: order._id });
+    }
+
+    res.json({ success: false, status: session.payment_status });
+  } catch (err) {
+    console.error("❌ Payment verification failed:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.post("/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch {
-    return res.status(400).send("Webhook Error");
+    console.log("✅ Webhook event constructed successfully:", event.type);
+  } catch (err) {
+    console.error("❌ Webhook Error - Event construction failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
@@ -337,14 +456,46 @@ router.post("/webhook", async (req, res) => {
               couponCode: order.discount?.code
             });
             
-            console.log(`Sending confirmation email to: ${customerEmail} for order: ${order.orderNumber}`);
-            await sendMail({ to: customerEmail, ...emailData });
+            const result = await sendMail({ to: customerEmail, ...emailData });
+            if (result && result.success) {
+              console.log(`✅ Confirmation email sent to: ${customerEmail}`);
+            } else {
+              console.error(`❌ Failed to send confirmation email to: ${customerEmail}`, result?.error);
+            }
           } else {
-            console.warn(`No valid customer email found for order ${orderId}. Session: ${session.id}`);
+            console.warn(`⚠️ No valid customer email found for order ${orderId}. Session: ${session.id}. Sources: [Session: ${session.customer_details?.email || 'N/A'}, Order: ${order.deliveryAddress?.email || 'N/A'}]`);
           }
         }
       } catch (saveError) {
         console.error("Error processing order completion webhook:", saveError);
+      }
+    }
+  } else if (event.type === "checkout.session.async_payment_failed" || event.type === "checkout.session.expired") {
+    const session = event.data.object;
+    const orderId = session.metadata?.orderId;
+
+    if (orderId) {
+      try {
+        const order = await Order.findById(orderId);
+        if (order) {
+          const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email;
+          
+          if (customerEmail) {
+            const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
+            const orderLink = `${clientUrl}/order/${order._id}`;
+            
+            const emailData = paymentFailedTemplate({
+              name: order.deliveryAddress?.fullName || "Customer",
+              orderNumber: order.orderNumber,
+              orderLink
+            });
+
+            console.log(`Sending payment failed email to: ${customerEmail}`);
+            await sendMail({ to: customerEmail, ...emailData });
+          }
+        }
+      } catch (err) {
+        console.error("Error processing payment failure webhook:", err);
       }
     }
   }
