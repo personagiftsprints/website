@@ -17,6 +17,7 @@ export default function AuthDrawer({ open, onClose }) {
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const { setUser } = useAuth();
 
   const handleSendResetLink = async () => {
@@ -48,15 +49,22 @@ export default function AuthDrawer({ open, onClose }) {
   const handleEmailSubmit = async () => {
     if (!email) return;
     setLoading(true);
-    const res = await checkEmail(email);
-    setIsExistingUser(res.exists);
-    setStep("details");
-    setLoading(false);
+    setErrorMsg("");
+    try {
+      const res = await checkEmail(email);
+      setIsExistingUser(res.exists);
+      setStep("details");
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
     if (!password) return;
     setLoading(true);
+    setErrorMsg("");
 
     const payload = {
       email,
@@ -64,14 +72,19 @@ export default function AuthDrawer({ open, onClose }) {
       ...(isExistingUser ? {} : { firstName, lastName }),
     };
 
-    const res = await emailAuth(payload);
+    try {
+      const res = await emailAuth(payload);
 
-    if (res.token) {
-      saveSession({ token: res.token, user: res.user });
-      setUser(res.user);
-      onClose();
+      if (res.token) {
+        saveSession({ token: res.token, user: res.user });
+        setUser(res.user);
+        onClose();
+      }
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || "Invalid password. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -159,7 +172,7 @@ export default function AuthDrawer({ open, onClose }) {
     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
   </button>
 </div>
-
+              {errorMsg && <p className="text-sm text-red-500 text-center">{errorMsg}</p>}
               <button
                 disabled={loading}
                 onClick={handleSubmit}
@@ -252,6 +265,7 @@ export default function AuthDrawer({ open, onClose }) {
     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
   </button>
 </div>
+              {errorMsg && <p className="text-sm text-red-500 text-center">{errorMsg}</p>}
               <button
                 disabled={loading}
                 onClick={handleSubmit}

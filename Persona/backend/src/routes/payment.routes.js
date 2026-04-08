@@ -202,7 +202,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
 
       return {
         price_data: {
-          currency: "gbp",
+          currency: process.env.CURRENCY || "gbp",
           product_data: {
             name: item.name || item.productSnapshot?.name || "Custom Product",
             images: [item.image || item.productSnapshot?.image || null].filter(Boolean),
@@ -225,7 +225,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       const chargeInCents = Math.round(deliveryCharge * 100);
       lineItems.push({
         price_data: {
-          currency: "gbp",
+          currency: process.env.CURRENCY || "gbp",
           product_data: { name: "Delivery Charge" },
           unit_amount: chargeInCents,
         },
@@ -238,7 +238,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       const hChargeInCents = Math.round(hamperCharge * 100);
       lineItems.push({
         price_data: {
-          currency: "gbp",
+          currency: process.env.CURRENCY || "gbp",
           product_data: { name: `Hamper Packaging (${hamper})` },
           unit_amount: hChargeInCents,
         },
@@ -251,7 +251,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       const gChargeInCents = Math.round(giftWrapCharge * 100);
       lineItems.push({
         price_data: {
-          currency: "gbp",
+          currency: process.env.CURRENCY || "gbp",
           product_data: { name: "Gift Wrap" },
           unit_amount: gChargeInCents,
         },

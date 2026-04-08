@@ -62,7 +62,7 @@ const pricingSchema = new mongoose.Schema(
   {
     basePrice: { type: Number, required: true, min: 0 },
     specialPrice: { type: Number, required: false, min: 0 },
-    currency: { type: String, default: 'GBP' },
+    currency: { type: String, default: process.env.CURRENCY ? process.env.CURRENCY.toUpperCase() : 'GBP' },
     taxInclusive: { type: Boolean, default: true },
     discountPercentage: { type: Number, min: 0, max: 100, default: 0 }
   },
