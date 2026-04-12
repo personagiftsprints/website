@@ -295,7 +295,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
 
     // ADMIN NOTIFICATION: Send email to admin about new pending order
     try {
-      const adminEmail = "info@personagifts.co.uk";
+      const adminEmail = "personagiftsprints@gmail.com";
       const clientUrlFull = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
       const adminOrderLink = `${clientUrlFull}/order/${order._id}`;
       
@@ -443,10 +443,10 @@ router.post("/webhook", async (req, res) => {
 
           // Use various sources for customer email
           const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
+          const clientUrlFull = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
           
           if (customerEmail && customerEmail.includes('@')) {
-            const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
-            const orderLink = `${clientUrl}/order/${order._id}`;
+            const orderLink = `${clientUrlFull}/order/${order._id}`;
             
             const emailData = orderPlacedTemplate({
               name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
@@ -464,6 +464,39 @@ router.post("/webhook", async (req, res) => {
             }
           } else {
             console.warn(`⚠️ No valid customer email found for order ${orderId}. Session: ${session.id}. Sources: [Session: ${session.customer_details?.email || 'N/A'}, Order: ${order.deliveryAddress?.email || 'N/A'}]`);
+          }
+
+          // ADMIN NOTIFICATION FOR PAID ORDER
+          try {
+            const adminOrderLink = `${clientUrlFull}/admin/orders?search=${order.orderNumber}`;
+            const adminEmailData = orderInvoiceTemplate({
+              name: "Admin",
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              items: order.items.map(item => ({
+                name: item.productSnapshot?.name || "Product",
+                quantity: item.quantity,
+                price: item.productSnapshot?.finalPrice || 0,
+                variant: item.variant ? Object.values(item.variant).filter(Boolean).join(" / ") : ""
+              })),
+              subtotal: order.subtotal || 0,
+              discount: order.discount?.amount || 0,
+              deliveryCharge: order.deliveryCharge || 0,
+              total: order.totalAmount || 0,
+              status: "PAID - NEW ORDER RECEIVED",
+              orderLink: adminOrderLink,
+              couponCode: order.discount?.code
+            });
+
+            await sendMail({
+              to: "personagiftsprints@gmail.com",
+              subject: `🎉 New Order Paid: ${order.orderNumber}`,
+              html: adminEmailData.html,
+              text: adminEmailData.text
+            });
+            console.log(`✅ Admin notification sent for paid order: ${order.orderNumber}`);
+          } catch (adminErr) {
+            console.error("Admin order paid notification failed:", adminErr);
           }
         }
       } catch (saveError) {
