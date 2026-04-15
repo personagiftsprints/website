@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MONGO_URI = "mongodb+srv://personagiftsprintsadmin:YehVfuGESb0eQYxS@personacluster.0lhs5bg.mongodb.net/persona?appName=PersonaCluster";
+const MONGO_URI = "";
 
 async function renameViews() {
   await mongoose.connect(MONGO_URI);
