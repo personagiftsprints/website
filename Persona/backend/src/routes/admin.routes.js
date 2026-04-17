@@ -244,6 +244,8 @@ router.patch(
         "printing",
         "shipped",
         "out_for_delivery",
+        "delivered",
+        "collected",
         "cancelled"
       ]
 
