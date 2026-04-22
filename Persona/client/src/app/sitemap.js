@@ -38,7 +38,7 @@ export default async function sitemap() {
 
     // Category-style pages (if you have them)
     {
-      url: `${BASE_URL}/collections/tshirt`,
+      url: `${BASE_URL}/`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,

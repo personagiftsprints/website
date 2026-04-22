@@ -80,11 +80,15 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" className={montserrat.variable}>
+
+      
       <body className="font-montserrat" suppressHydrationWarning>
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
         />
+
+          
 
         <AuthProvider>
           <MaintenanceOverlay />

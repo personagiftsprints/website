@@ -11,6 +11,7 @@ import {
 import KidssizeChart from "@/assets/images/sizeChart.jpg";
 import sizeChart from "@/assets/sizeChart.jpg";
 import Image from "next/image";
+import ReviewSection from "@/components/ReviewSection";
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
@@ -766,6 +767,11 @@ const renderCustomFields = () => {
             </p>
           )}
         </div>
+      </div>
+
+      {/* REVIEWS */}
+      <div className="col-span-1 lg:col-span-2 mt-12">
+        <ReviewSection productId={product._id} />
       </div>
 
       {/* SIMILAR PRODUCTS */}
