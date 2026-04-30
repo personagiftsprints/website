@@ -293,40 +293,8 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     await order.save();
     console.log("Order updated with checkoutSessionId:", order._id);
 
-    // ADMIN NOTIFICATION: Send email to admin about new pending order
-    try {
-      const adminEmail = "personagiftsprints@gmail.com";
-      const clientUrlFull = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
-      const adminOrderLink = `${clientUrlFull}/order/${order._id}`;
-      
-      const adminEmailData = orderInvoiceTemplate({
-        name: "Admin",
-        orderId: order._id,
-        orderNumber: order.orderNumber,
-        items: itemsPayload.map(item => ({
-          name: item.productSnapshot?.name || "Product",
-          quantity: item.quantity,
-          price: item.productSnapshot?.finalPrice || 0,
-          variant: item.variant ? Object.values(item.variant).filter(Boolean).join(" / ") : ""
-        })),
-        subtotal: subtotal,
-        discount: discountAmount,
-        deliveryCharge: deliveryCharge,
-        total: totalAmount,
-        status: "pending_payment_attempt",
-        orderLink: adminOrderLink,
-        couponCode: appliedCoupon?.code
-      });
-
-      sendMail({
-        to: adminEmail,
-        subject: `🚨 New Pending Order: ${order.orderNumber}`,
-        html: adminEmailData.html,
-        text: adminEmailData.text
-      }).catch(err => console.error("Admin order notification failed:", err));
-    } catch (adminErr) {
-      console.error("Error preparing admin notification:", adminErr);
-    }
+    // (Removed) The pending payment attempt notification was removed so that the admin
+    // only gets notified when the order is successfully paid via the webhook.
 
     res.json({
       success: true,
