@@ -744,6 +744,11 @@ export default function OrderDetailsPage() {
             </div>
 
             <p className="text-xs text-slate-500">Paid via {order.payment?.provider}</p>
+            {order.checkoutSessionId?.includes('test') || order.payment?.paymentId?.includes('test') ? (
+              <p className="text-xs font-bold text-rose-600">Test Payment</p>
+            ) : (
+              <p className="text-xs font-bold text-emerald-600">Payment Status: OK</p>
+            )}
           </div>
         </div>
 

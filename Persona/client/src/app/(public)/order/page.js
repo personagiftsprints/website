@@ -289,6 +289,15 @@ export default function MyOrdersPage() {
                       >
                         {status.label}
                       </span>
+                      {order.checkoutSessionId?.includes('test') || order.payment?.paymentId?.includes('test') ? (
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+                          Test Payment
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+                          OK
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-slate-600 line-clamp-1">{summary}</p>
                     <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-400">
