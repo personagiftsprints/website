@@ -20,10 +20,10 @@ export default function AdminSettingsPage() {
     try {
       setTestingEmail(true)
       const res = await testEmailService(testEmail)
-      if (res.data?.success) {
-        alert(res.data.message || "Test email sent successfully!")
+      if (res.success) {
+        alert(res.message || "Test email sent successfully!")
       } else {
-        alert("Failed to send test email: " + (res.data?.message || "Unknown error"))
+        alert("Failed to send test email: " + (res.message || "Unknown error"))
       }
     } catch (err) {
       console.error("Test email failed:", err)
