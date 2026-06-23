@@ -37,3 +37,12 @@ export const getMaintenanceStatus = async () => {
   }
 }
 
+export const testEmailService = async (email) => {
+  try {
+    return await api.post('/settings/test-email', { email })
+  } catch (err) {
+    console.error('Test email service error:', err)
+    throw err
+  }
+}
+

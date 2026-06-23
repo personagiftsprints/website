@@ -1,14 +1,37 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getSettings, updateSettings } from "@/services/settings.service"
-import { Save, ShieldAlert, Clock, Info, Truck, ExternalLink } from "lucide-react"
+import { getSettings, updateSettings, testEmailService } from "@/services/settings.service"
+import { Save, ShieldAlert, Clock, Info, Truck, ExternalLink, Mail } from "lucide-react"
 import Link from "next/link"
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [testEmail, setTestEmail] = useState("personagiftsprints@gmail.com")
+  const [testingEmail, setTestingEmail] = useState(false)
+
+  const handleTestEmail = async () => {
+    if (!testEmail) {
+      alert("Please enter a valid email address.")
+      return
+    }
+    try {
+      setTestingEmail(true)
+      const res = await testEmailService(testEmail)
+      if (res.data?.success) {
+        alert(res.data.message || "Test email sent successfully!")
+      } else {
+        alert("Failed to send test email: " + (res.data?.message || "Unknown error"))
+      }
+    } catch (err) {
+      console.error("Test email failed:", err)
+      alert("Failed to send test email: " + (err.response?.data?.message || err.message))
+    } finally {
+      setTestingEmail(false)
+    }
+  }
 
   useEffect(() => {
     fetchSettings()
@@ -239,6 +262,45 @@ export default function AdminSettingsPage() {
                       Manage Trending
                     </Link>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Email Service Verification Section */}
+        <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-green-50 p-4 border-b border-green-100 flex items-center gap-3">
+            <Mail className="text-green-600" size={24} />
+            <h2 className="text-lg font-bold text-green-900">Email Service Verification</h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Verify that the email system is working correctly by sending a test email. The test email will contain verification success confirmation along with the current date and time.
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-6 items-end">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700 block">
+                    Recipient Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:ring-4 focus:ring-green-100 focus:border-green-400 transition-all outline-none"
+                    placeholder="personagiftsprints@gmail.com"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleTestEmail}
+                  disabled={testingEmail}
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3.5 rounded-xl font-bold transition-all disabled:opacity-50 shadow-lg shadow-green-100"
+                >
+                  <Mail size={18} />
+                  {testingEmail ? "Sending Test..." : "Send Test Email"}
+                </button>
               </div>
             </div>
           </div>
