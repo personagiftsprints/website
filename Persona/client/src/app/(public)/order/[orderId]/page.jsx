@@ -412,11 +412,12 @@ const TshirtDesignPreview = ({ item, orderNumber }) => {
   const [expanded, setExpanded] = useState(false);
   
   const tshirtData = item.customization?.data?.tshirt || {};
-  const printAreas = tshirtData.print_areas || {};
+  const printAreas = tshirtData.print_areas || item.designData?.print_areas || {};
   const previewUrls = tshirtData.preview_urls || item.designData?.preview_urls || {};
-  const mainPreview = tshirtData.preview_image_url || item.designData?.preview_url;
+  const mainPreview = tshirtData.preview_image_url || item.designData?.preview_url || item.designData?.previewImage;
   
-  if (Object.keys(printAreas).length === 0 && !mainPreview) return null;
+  const printAreaKeys = Object.keys(printAreas || {});
+  if (printAreaKeys.length === 0 && !mainPreview) return null;
 
   return (
     <div className="mt-4 border-t pt-4">
@@ -468,15 +469,15 @@ const TshirtDesignPreview = ({ item, orderNumber }) => {
           </div>
 
           {/* Print Areas */}
-          {Object.keys(printAreas).length > 0 && (
+          {printAreaKeys.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-gray-700">Print Areas:</p>
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(printAreas).map(([view, area]) => (
                   <div key={view} className="bg-gray-50 p-2 rounded border text-xs">
                     <p className="font-medium capitalize">{view}</p>
-                    <p className="text-gray-600">{area.area?.replace(/_/g, ' ')}</p>
-                    {area.image?.position && (
+                    <p className="text-gray-600">{area?.area?.replace(/_/g, ' ')}</p>
+                    {area?.image?.position?.scale != null && (
                       <p className="text-gray-400 mt-1">
                         Size: {Math.round((area.image.position.scale || 0.5) * 100)}%
                       </p>
@@ -682,23 +683,38 @@ export default function OrderDetailsPage() {
         {/* Address & Summary */}
         <div className="grid sm:grid-cols-2 gap-10 text-sm">
           <div className="space-y-1">
-            <p className="font-medium">Delivery address</p>
-
-            <p>{normalizedAddress.fullName}</p>
-            <p>{normalizedAddress.addressLine1}</p>
-
-            {normalizedAddress.addressLine2 && <p>{normalizedAddress.addressLine2}</p>}
-
-            <p>
-              {normalizedAddress.town}
-              {normalizedAddress.county && `, ${normalizedAddress.county}`}
+            <p className="font-medium">
+              {order.orderType === "collect" ? "Shop Collection Details" : "Delivery address"}
             </p>
 
-            <p className="font-medium">{normalizedAddress.postcode}</p>
+            {order.orderType === "collect" ? (
+              <div className="bg-indigo-50/60 border border-indigo-100 p-3 rounded-lg space-y-1 text-xs text-indigo-950 mt-1">
+                <p className="font-bold text-sm text-indigo-900">🏪 Pickup in Store</p>
+                <p className="font-medium">Customer: {normalizedAddress.fullName}</p>
+                {normalizedAddress.phone && <p>Phone: {normalizedAddress.phone}</p>}
+                <p className="text-slate-500 text-[11px] mt-1 pt-1 border-t border-indigo-100">
+                  Please show your order number when picking up at the shop.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p>{normalizedAddress.fullName}</p>
+                <p>{normalizedAddress.addressLine1}</p>
 
-            <p>{normalizedAddress.country}</p>
+                {normalizedAddress.addressLine2 && <p>{normalizedAddress.addressLine2}</p>}
 
-            <p className="text-slate-500 mt-1">{normalizedAddress.phone}</p>
+                <p>
+                  {normalizedAddress.town}
+                  {normalizedAddress.county && `, ${normalizedAddress.county}`}
+                </p>
+
+                <p className="font-medium">{normalizedAddress.postcode}</p>
+
+                <p>{normalizedAddress.country}</p>
+
+                <p className="text-slate-500 mt-1">{normalizedAddress.phone}</p>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">

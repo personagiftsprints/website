@@ -141,14 +141,33 @@ router.get("/transactions", async (req, res) => {
 router.get("/transactions/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params
- 
 
     const order = await Order.findOne({
-      checkoutSessionId: sessionId
+      $or: [{ checkoutSessionId: sessionId }, { "payment.paymentId": sessionId }]
     }).populate("items.productId")
 
     if (!order) {
       return res.status(404).json({ message: "Transaction not found" })
+    }
+
+    // Auto-Reconciliation with Stripe if payment is pending/created in DB
+    if (order.payment?.status !== "paid" || order.orderStatus === "created") {
+      try {
+        const stripeSessionId = order.checkoutSessionId || sessionId
+        if (stripeSessionId && stripeSessionId.startsWith("cs_")) {
+          const session = await stripe.checkout.sessions.retrieve(stripeSessionId)
+          if (session.payment_status === "paid") {
+            console.log(`⚡ Auto-reconciled order ${order.orderNumber} status to PAID from Stripe`)
+            order.orderStatus = "paid"
+            order.payment.status = "paid"
+            order.payment.paymentId = session.payment_intent || order.payment.paymentId
+            order.payment.paidAt = order.payment.paidAt || new Date()
+            await order.save()
+          }
+        }
+      } catch (stripeErr) {
+        console.error("Auto-reconciliation Stripe check error:", stripeErr.message)
+      }
     }
 
     res.json(order)

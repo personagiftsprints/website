@@ -1,11 +1,12 @@
 import express from "express"
+import Stripe from "stripe"
 import Order from "../models/Order.js"
 import Product from "../models/Product.model.js"
 import { optionalAuth } from "../middlewares/optionalAuth.js"
 import { authMiddleware, adminOnly } from "../middlewares/auth.middleware.js"
 
 const router = express.Router()
-
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
 const allowedTransitions = {
   paid: ["processing"],
@@ -48,7 +49,23 @@ router.get("/:orderId", async (req, res) => {
     return res.status(404).json({ message: "Order not found" })
   }
 
-  
+  // Auto-Reconciliation with Stripe if status in DB is not paid
+  if (order.checkoutSessionId && (order.payment?.status !== "paid" || order.orderStatus === "created")) {
+    try {
+      if (order.checkoutSessionId.startsWith("cs_")) {
+        const session = await stripe.checkout.sessions.retrieve(order.checkoutSessionId)
+        if (session.payment_status === "paid") {
+          order.orderStatus = "paid"
+          order.payment.status = "paid"
+          order.payment.paymentId = session.payment_intent || order.payment.paymentId
+          order.payment.paidAt = order.payment.paidAt || new Date()
+          await order.save()
+        }
+      }
+    } catch (err) {
+      console.error("Auto-reconcile error on getOrderById:", err.message)
+    }
+  }
 
   res.json({
     success: true,
@@ -62,12 +79,32 @@ router.get("/:orderId", async (req, res) => {
 router.get("/session/:sessionId", async (req, res) => {
   const { sessionId } = req.params
 
-  const order = await Order.findOne({
-    "payment.paymentId": sessionId
-  }).select("orderNumber totalAmount orderStatus createdAt")
+  let order = await Order.findOne({
+    $or: [{ checkoutSessionId: sessionId }, { "payment.paymentId": sessionId }]
+  }).select("orderNumber totalAmount orderStatus payment checkoutSessionId createdAt items deliveryAddress packaging user")
 
   if (!order) {
     return res.status(404).json({ message: "Order not found" })
+  }
+
+  // Auto-Reconciliation with Stripe if status in DB is not paid
+  if (order.payment?.status !== "paid" || order.orderStatus === "created") {
+    try {
+      const stripeSessionId = order.checkoutSessionId || sessionId
+      if (stripeSessionId && stripeSessionId.startsWith("cs_")) {
+        const session = await stripe.checkout.sessions.retrieve(stripeSessionId)
+        if (session.payment_status === "paid") {
+          console.log(`⚡ Auto-reconciled session order ${order.orderNumber} to PAID`)
+          order.orderStatus = "paid"
+          order.payment.status = "paid"
+          order.payment.paymentId = session.payment_intent || order.payment.paymentId
+          order.payment.paidAt = order.payment.paidAt || new Date()
+          await order.save()
+        }
+      }
+    } catch (stripeErr) {
+      console.error("Auto-reconciliation error on GET session:", stripeErr.message)
+    }
   }
 
   res.json({

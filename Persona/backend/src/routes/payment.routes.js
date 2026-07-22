@@ -179,14 +179,14 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       },
       totalAmount: 0, // Will update after calculating line items to match Stripe exactly
       deliveryAddress: {
-        fullName: address?.fullName || address?.name || "",
-        phone: address?.phone || "",
-        email: email || address?.email || "",
-        addressLine1: address?.addressLine1 || address?.line1 || "",
+        fullName: address?.fullName || address?.name || (orderType === "collect" ? "Shop Collection Customer" : "Customer"),
+        phone: address?.phone || req.user?.phone || "0000000000",
+        email: email || address?.email || req.user?.email || "",
+        addressLine1: address?.addressLine1 || address?.line1 || (orderType === "collect" ? "Shop Collection" : ""),
         addressLine2: address?.addressLine2 || "",
-        town: address?.town || address?.city || "",
+        town: address?.town || address?.city || (orderType === "collect" ? "Shop" : ""),
         county: address?.county || address?.state || "",
-        postcode: address?.postcode || address?.postalCode || "",
+        postcode: address?.postcode || address?.postalCode || (orderType === "collect" ? "000000" : ""),
         countryCode: "GB",
       },
       orderStatus: "created",
@@ -272,7 +272,7 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
       line_items: lineItems,
       success_url: `${clientUrl}/order/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order._id}`,
       cancel_url: `${clientUrl}/cart`,
-      customer_email: email || address?.email || req.user?.email,
+      customer_email: email || address?.email || req.user?.email || undefined,
       metadata: {
         orderId: order._id.toString(),
         coupon: appliedCoupon?.code || "NONE",
@@ -292,9 +292,6 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
     order.checkoutSessionId = session.id;
     await order.save();
     console.log("Order updated with checkoutSessionId:", order._id);
-
-    // (Removed) The pending payment attempt notification was removed so that the admin
-    // only gets notified when the order is successfully paid via the webhook.
 
     res.json({
       success: true,
@@ -329,45 +326,45 @@ router.get("/verify-payment/:sessionId", async (req, res) => {
     if (session.payment_status === "paid") {
       const orderId = session.metadata?.orderId;
       
-      if (!orderId) {
-        return res.status(400).json({ success: false, message: "No order ID found in session" });
+      let order = null;
+      if (orderId) {
+        order = await Order.findById(orderId).populate("user");
       }
-
-      const order = await Order.findById(orderId).populate("user");
+      if (!order) {
+        order = await Order.findOne({ checkoutSessionId: sessionId }).populate("user");
+      }
       
       if (!order) {
         return res.status(404).json({ success: false, message: "Order not found" });
-      }
-
-      // If already marked as paid, just return success
-      if (order.payment.status === "paid") {
-        return res.json({ success: true, status: "paid", orderId: order._id });
       }
 
       // Update order to PAID
       console.log(`✅ Session verified as PAID. Updating order ${order.orderNumber}`);
       order.orderStatus = "paid";
       order.payment.status = "paid";
-      order.payment.paymentId = session.payment_intent;
-      order.payment.paidAt = new Date();
+      order.payment.paymentId = session.payment_intent || order.payment.paymentId || sessionId;
+      order.payment.paidAt = order.payment.paidAt || new Date();
       await order.save();
 
-      // Trigger confirmation email
-      const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
-      
-      if (customerEmail && customerEmail.includes('@')) {
-        const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
-        const orderLink = `${clientUrl}/order/${order._id}`;
-        
-        const emailData = orderPlacedTemplate({
-          name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
-          orderId: order.orderNumber,
-          total: (order.totalAmount || 0).toFixed(2),
-          orderLink,
-          couponCode: order.discount?.code
-        });
+      // Trigger confirmation email in try/catch block so SMTP failure won't fail response
+      try {
+        const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
+        if (customerEmail && customerEmail.includes('@')) {
+          const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
+          const orderLink = `${clientUrl}/order/${order._id}`;
+          
+          const emailData = orderPlacedTemplate({
+            name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
+            orderId: order.orderNumber,
+            total: (order.totalAmount || 0).toFixed(2),
+            orderLink,
+            couponCode: order.discount?.code
+          });
 
-        await sendMail({ to: customerEmail, ...emailData });
+          await sendMail({ to: customerEmail, ...emailData });
+        }
+      } catch (emailErr) {
+        console.error("Non-fatal: email send failed during verify-payment:", emailErr.message);
       }
 
       return res.json({ success: true, status: "paid", orderId: order._id });

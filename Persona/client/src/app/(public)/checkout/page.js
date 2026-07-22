@@ -311,47 +311,41 @@ const HAMPERS = [
 
 
   useEffect(() => {
-  const loadAddress = async () => {
-    if (user) {
-      setLoadingAddresses(true)
+    const loadAddress = async () => {
+      if (user) {
+        setLoadingAddresses(true)
 
-      try {
-        const res = await getMyAccount()
-        const addresses = res.user?.addresses || []
-        setUserAddresses(addresses)
+        try {
+          const res = await getMyAccount()
+          const addresses = res.user?.addresses || []
+          setUserAddresses(addresses)
 
-        if (addresses.length > 0) {
-          setAddress(addresses[0])
-
-          alert(
-            `We will deliver to:\n\n${addresses[0].addressLine1}, ${addresses[0].town}, ${addresses[0].postcode}\n\nYou can change this if needed.`
-          )
-        } else {
-          alert("Please add a delivery address to continue.")
-          window.location.href = "/account/address"
+          if (addresses.length > 0) {
+            setAddress(addresses[0])
+          } else {
+            setShowAddressForm(true)
+          }
+        } catch (err) {
+          console.error("Failed to load user addresses", err)
+        } finally {
+          setLoadingAddresses(false)
         }
 
-      } catch (err) {
-        console.error("Failed to load user addresses", err)
-      } finally {
-        setLoadingAddresses(false)
-      }
-
-    } else {
-      const savedAddress = JSON.parse(
-        localStorage.getItem("delivery_address") || "null"
-      )
-
-      if (savedAddress) {
-        setAddress(savedAddress)
       } else {
-        setShowAddressForm(true)
+        const savedAddress = JSON.parse(
+          localStorage.getItem("delivery_address") || "null"
+        )
+
+        if (savedAddress) {
+          setAddress(savedAddress)
+        } else {
+          setShowAddressForm(true)
+        }
       }
     }
-  }
 
-  loadAddress()
-}, [user])
+    loadAddress()
+  }, [user])
 
 
 
@@ -529,9 +523,9 @@ const handlePlaceOrder = async () => {
 
     const finalAddress = orderType === "collect"
       ? {
-          fullName: contactForm.fullName,
-          phone: contactForm.phone,
-          email: contactForm.email,
+          fullName: contactForm.fullName || user?.name || "Shop Collection Customer",
+          phone: contactForm.phone || user?.phone || "0000000000",
+          email: contactForm.email || user?.email || "",
           addressLine1: "Shop Collection",
           town: "Shop",
           postcode: "000000",

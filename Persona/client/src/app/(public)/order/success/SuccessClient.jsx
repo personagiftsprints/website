@@ -6,12 +6,13 @@ import Link from "next/link"
 import Lottie from "lottie-react"
 import orderAnimation from "@/assets/order.json"
 import { verifyPayment } from "@/services/payment.service"
-import { getOrderBySessionId } from "@/services/order.service"
+import { getOrderBySessionId, getOrderById } from "@/services/order.service"
 
 export default function SuccessClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const sessionId = searchParams.get("session_id")
+  const orderIdParam = searchParams.get("order_id")
 
   const [loading, setLoading] = useState(true)
   const [order, setOrder] = useState(null)
@@ -21,20 +22,38 @@ export default function SuccessClient() {
     setIsLoggedIn(!!localStorage.getItem("auth"))
     localStorage.removeItem("cart")
 
-    if (!sessionId) {
+    if (!sessionId && !orderIdParam) {
       setLoading(false)
       return
     }
 
     const loadOrder = async () => {
       try {
-        console.log("🚀 Verifying payment for session:", sessionId);
-        // Step 1: Force backend to verify with Stripe (Fallback for webhooks)
-        await verifyPayment(sessionId).catch(e => console.error("Verify failed but continuing:", e));
+        if (sessionId) {
+          console.log("🚀 Verifying payment for session:", sessionId);
+          await verifyPayment(sessionId).catch(e => console.error("Verify failed but continuing:", e));
+        }
 
-        // Step 2: Fetch the order data
-        const res = await getOrderBySessionId(sessionId)
-        setOrder(res.order)
+        let orderData = null
+        if (sessionId) {
+          try {
+            const res = await getOrderBySessionId(sessionId)
+            orderData = res.order
+          } catch (e) {
+            console.warn("Session ID lookup failed, attempting order_id fallback:", e.message)
+          }
+        }
+
+        if (!orderData && orderIdParam) {
+          try {
+            const res = await getOrderById(orderIdParam)
+            orderData = res.order || res
+          } catch (e) {
+            console.error("Order ID fallback failed:", e.message)
+          }
+        }
+
+        setOrder(orderData)
         localStorage.removeItem("cart")
       } catch (err) {
         console.error("Success Page Error:", err);
@@ -45,7 +64,7 @@ export default function SuccessClient() {
     }
 
     loadOrder()
-  }, [sessionId])
+  }, [sessionId, orderIdParam])
 
   if (loading) {
     return (
