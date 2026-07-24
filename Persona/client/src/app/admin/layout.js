@@ -41,7 +41,16 @@ function NavItem({ href, icon: Icon, label, onClick }) {
 function  SidebarContent({ onItemClick }) {
   return (
     <>
-      <div className="p-6 text-xl font-bold flex text-gray-600  items-center"><Image src={Logo} alt="logo" className="w-10"/> Persona Admin</div>
+      <div className="p-6 flex items-center gap-2 overflow-hidden">
+        <div className="relative z-10 bg-white flex-shrink-0">
+          <Image src={Logo} alt="logo" className="w-10 h-auto" />
+        </div>
+        <div className="overflow-hidden relative z-0">
+          <span className="inline-block whitespace-nowrap text-xl font-bold text-gray-700 animate-reveal-text">
+            Persona Admin
+          </span>
+        </div>
+      </div>
 
       <nav className="px-4 text-sm flex-1 space-y-6 overflow-y-auto">
         <div>
@@ -195,7 +204,7 @@ export default function AdminLayout({ children }) {
               <SidebarContent />
             </aside>
 
-            <main className="flex-1 overflow-y-auto p-2 sm:p-0">
+            <main className="flex-1 overflow-y-auto p-5">
               {children}
             </main>
           </div>

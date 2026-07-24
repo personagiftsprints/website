@@ -55,17 +55,17 @@ function HomeBanner() {
       .then(res => {
         let items = []
         if (res?.homeBanners) {
-           items = res.homeBanners
+          items = res.homeBanners
         } else if (res?.homeBanners) {
-           items = res.homeBanners
+          items = res.homeBanners
         } else if (res?.homeBanner?.imageUrl) {
-           items = [res.homeBanner]
+          items = [res.homeBanner]
         } else if (res?.homeBanner?.imageUrl) {
-           items = [res.homeBanner]
+          items = [res.homeBanner]
         }
         setBanners(items)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const onCropComplete = useCallback((_, pixels) => {
@@ -94,7 +94,7 @@ function HomeBanner() {
     formData.append("bannerImage", file)
 
     const res = await addHomeBanner(formData)
-    
+
     // Attempt to parse response format depending on axios setup
     if (res?.homeBanners) setBanners(res.homeBanners)
     else if (res?.homeBanners) setBanners(res.homeBanners)
@@ -126,17 +126,17 @@ function HomeBanner() {
       ) : (
         <div className="space-y-6">
           {banners.map((banner, i) => (
-             <div key={banner._id || i} className="relative group rounded-xl overflow-hidden border">
-                <div className="w-full h-40 md:h-64 bg-gray-100 flex items-center justify-center">
-                   <img src={banner.imageUrl} className="w-full h-full object-cover" />
-                </div>
-                <button
-                  onClick={() => handleDelete(banner._id)}
-                  className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-red-600"
-                >
-                  <Trash2 size={18} />
-                </button>
-             </div>
+            <div key={banner._id || i} className="relative group rounded-xl overflow-hidden border">
+              <div className="w-full h-40 md:h-64 bg-gray-100 flex items-center justify-center">
+                <img src={banner.imageUrl} className="w-full h-full object-cover" />
+              </div>
+              <button
+                onClick={() => handleDelete(banner._id)}
+                className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-red-600"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -190,10 +190,10 @@ function DiscountBanner() {
       .then(res => {
         if (res?.discountBanner) {
           setEnabled(res.discountBanner.enabled)
-          setMessages(res .discountBanner.messages || [])
+          setMessages(res.discountBanner.messages || [])
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const persist = async (nextEnabled, nextMessages) => {
@@ -251,9 +251,8 @@ function DiscountBanner() {
       </div>
 
       <div
-        className={`rounded-xl p-4 text-center font-semibold ${
-          enabled ? "bg-black text-white" : "bg-gray-200 text-gray-500"
-        }`}
+        className={`rounded-xl p-4 text-center font-semibold ${enabled ? "bg-black text-white" : "bg-gray-200 text-gray-500"
+          }`}
       >
         {enabled && messages.length
           ? messages.join(" • ")
@@ -307,22 +306,20 @@ export default function HomeContentManager() {
       <aside className="w-64 p-4 space-y-2 bg-white">
         <button
           onClick={() => setActive("homeBanner")}
-          className={`w-full px-3 py-2 rounded-lg text-left ${
-            active === "homeBanner"
+          className={`w-full px-3 py-2 rounded-lg text-left ${active === "homeBanner"
               ? "bg-black text-white"
               : "hover:bg-gray-100"
-          }`}
+            }`}
         >
           Home Banner Image
         </button>
 
         <button
           onClick={() => setActive("discountBanner")}
-          className={`w-full px-3 py-2 rounded-lg text-left ${
-            active === "discountBanner"
+          className={`w-full px-3 py-2 rounded-lg text-left ${active === "discountBanner"
               ? "bg-black text-white"
               : "hover:bg-gray-100"
-          }`}
+            }`}
         >
           Home Discount Banner
         </button>

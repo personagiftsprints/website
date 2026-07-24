@@ -247,7 +247,9 @@ packaging: {
       provider: String,
       paymentId: String,
       status: String,
-      paidAt: Date
+      paidAt: Date,
+      adminNotified: { type: Boolean, default: false },
+      customerNotified: { type: Boolean, default: false }
     }
   },
   { timestamps: true }

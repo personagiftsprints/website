@@ -310,6 +310,82 @@ router.post("/create-checkout-session", optionalAuth, async (req, res) => {
 });
 
 
+/* ---------------- HELPER FOR SENDING PAID ORDER EMAILS ---------------- */
+const sendPaidOrderEmails = async (order, session) => {
+  const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
+
+  // 1. Customer Email Confirmation
+  if (!order.payment?.customerNotified) {
+    try {
+      const customerEmail = session?.customer_details?.email || session?.customer_email || order.deliveryAddress?.email || order.user?.email;
+      if (customerEmail && customerEmail.includes('@')) {
+        const orderLink = `${clientUrl}/order/${order._id}`;
+        const emailData = orderPlacedTemplate({
+          name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
+          orderId: order.orderNumber,
+          total: (order.totalAmount || 0).toFixed(2),
+          orderLink,
+          couponCode: order.discount?.code
+        });
+
+        const result = await sendMail({ to: customerEmail, ...emailData });
+        if (result && result.success) {
+          console.log(`✅ Confirmation email sent to customer: ${customerEmail}`);
+          order.payment.customerNotified = true;
+          await order.save();
+        } else {
+          console.error(`❌ Failed customer confirmation email:`, result?.error);
+        }
+      }
+    } catch (emailErr) {
+      console.error("Non-fatal: email send failed during customer notification:", emailErr.message);
+    }
+  }
+
+  // 2. Admin Email Notification (personagiftsprints@gmail.com)
+  if (!order.payment?.adminNotified) {
+    try {
+      const adminOrderLink = `${clientUrl}/admin/orders?search=${order.orderNumber}`;
+      const adminEmailData = orderInvoiceTemplate({
+        name: "Admin",
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        items: order.items.map(item => ({
+          name: item.productSnapshot?.name || "Product",
+          quantity: item.quantity,
+          price: item.productSnapshot?.finalPrice || 0,
+          variant: item.variant ? Object.values(item.variant).filter(Boolean).join(" / ") : ""
+        })),
+        subtotal: order.subtotal || 0,
+        discount: order.discount?.amount || 0,
+        deliveryCharge: order.deliveryCharge || 0,
+        total: order.totalAmount || 0,
+        status: "PAID - NEW ORDER RECEIVED",
+        orderLink: adminOrderLink,
+        couponCode: order.discount?.code
+      });
+
+      const adminRecipient = process.env.ADMIN_EMAIL || "personagiftsprints@gmail.com";
+      const result = await sendMail({
+        to: adminRecipient,
+        subject: `🎉 New Order Paid: ${order.orderNumber}`,
+        html: adminEmailData.html,
+        text: adminEmailData.text
+      });
+
+      if (result && result.success) {
+        console.log(`✅ Admin notification sent to ${adminRecipient} for order: ${order.orderNumber}`);
+        order.payment.adminNotified = true;
+        await order.save();
+      } else {
+        console.error(`❌ Failed admin notification email to ${adminRecipient}:`, result?.error);
+      }
+    } catch (adminErr) {
+      console.error("Non-fatal: Admin email send failed:", adminErr.message);
+    }
+  }
+};
+
 /* ---------------- VERIFY PAYMENT FALLBACK ---------------- */
 // This ensures the order is marked as paid even if the webhook is delayed or blocked.
 router.get("/verify-payment/:sessionId", async (req, res) => {
@@ -346,26 +422,8 @@ router.get("/verify-payment/:sessionId", async (req, res) => {
       order.payment.paidAt = order.payment.paidAt || new Date();
       await order.save();
 
-      // Trigger confirmation email in try/catch block so SMTP failure won't fail response
-      try {
-        const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
-        if (customerEmail && customerEmail.includes('@')) {
-          const clientUrl = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
-          const orderLink = `${clientUrl}/order/${order._id}`;
-          
-          const emailData = orderPlacedTemplate({
-            name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
-            orderId: order.orderNumber,
-            total: (order.totalAmount || 0).toFixed(2),
-            orderLink,
-            couponCode: order.discount?.code
-          });
-
-          await sendMail({ to: customerEmail, ...emailData });
-        }
-      } catch (emailErr) {
-        console.error("Non-fatal: email send failed during verify-payment:", emailErr.message);
-      }
+      // Trigger both customer and admin emails
+      await sendPaidOrderEmails(order, session);
 
       return res.json({ success: true, status: "paid", orderId: order._id });
     }
@@ -395,74 +453,21 @@ router.post("/webhook", async (req, res) => {
     if (orderId) {
       try {
         const order = await Order.findById(orderId).populate("user");
-        if (order && order.payment.status !== "paid") {
-          order.orderStatus = "paid";
-          order.payment.status = "paid";
-          order.payment.paymentId = session.payment_intent;
-          order.payment.paidAt = new Date();
-          await order.save();
+        if (order) {
+          if (order.payment.status !== "paid") {
+            order.orderStatus = "paid";
+            order.payment.status = "paid";
+            order.payment.paymentId = session.payment_intent;
+            order.payment.paidAt = new Date();
+            await order.save();
 
-          if (order.discount?.code) {
-            await Coupon.updateOne({ code: order.discount.code }, { $inc: { usedCount: 1 } });
-          }
-
-          // Use various sources for customer email
-          const customerEmail = session.customer_details?.email || session.customer_email || order.deliveryAddress?.email || order.user?.email;
-          const clientUrlFull = (process.env.CLIENT_BASE_URL || process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
-          
-          if (customerEmail && customerEmail.includes('@')) {
-            const orderLink = `${clientUrlFull}/order/${order._id}`;
-            
-            const emailData = orderPlacedTemplate({
-              name: order.deliveryAddress?.fullName || order.user?.firstName || "Customer",
-              orderId: order.orderNumber,
-              total: (order.totalAmount || 0).toFixed(2),
-              orderLink,
-              couponCode: order.discount?.code
-            });
-            
-            const result = await sendMail({ to: customerEmail, ...emailData });
-            if (result && result.success) {
-              console.log(`✅ Confirmation email sent to: ${customerEmail}`);
-            } else {
-              console.error(`❌ Failed to send confirmation email to: ${customerEmail}`, result?.error);
+            if (order.discount?.code) {
+              await Coupon.updateOne({ code: order.discount.code }, { $inc: { usedCount: 1 } });
             }
-          } else {
-            console.warn(`⚠️ No valid customer email found for order ${orderId}. Session: ${session.id}. Sources: [Session: ${session.customer_details?.email || 'N/A'}, Order: ${order.deliveryAddress?.email || 'N/A'}]`);
           }
 
-          // ADMIN NOTIFICATION FOR PAID ORDER
-          try {
-            const adminOrderLink = `${clientUrlFull}/admin/orders?search=${order.orderNumber}`;
-            const adminEmailData = orderInvoiceTemplate({
-              name: "Admin",
-              orderId: order._id,
-              orderNumber: order.orderNumber,
-              items: order.items.map(item => ({
-                name: item.productSnapshot?.name || "Product",
-                quantity: item.quantity,
-                price: item.productSnapshot?.finalPrice || 0,
-                variant: item.variant ? Object.values(item.variant).filter(Boolean).join(" / ") : ""
-              })),
-              subtotal: order.subtotal || 0,
-              discount: order.discount?.amount || 0,
-              deliveryCharge: order.deliveryCharge || 0,
-              total: order.totalAmount || 0,
-              status: "PAID - NEW ORDER RECEIVED",
-              orderLink: adminOrderLink,
-              couponCode: order.discount?.code
-            });
-
-            await sendMail({
-              to: "personagiftsprints@gmail.com",
-              subject: `🎉 New Order Paid: ${order.orderNumber}`,
-              html: adminEmailData.html,
-              text: adminEmailData.text
-            });
-            console.log(`✅ Admin notification sent for paid order: ${order.orderNumber}`);
-          } catch (adminErr) {
-            console.error("Admin order paid notification failed:", adminErr);
-          }
+          // Always ensure both customer and admin emails are sent
+          await sendPaidOrderEmails(order, session);
         }
       } catch (saveError) {
         console.error("Error processing order completion webhook:", saveError);
